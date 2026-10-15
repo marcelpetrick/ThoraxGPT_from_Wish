@@ -1,0 +1,15 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+id: gemma3-4b
+adapter: ollama
+family: gemma3
+tag: gemma3:4b-it-q4_K_M
+quantization: Q4_K_M
+view: medgemma_ct_v1
+prompt: P3
+capabilities:
+  multi_image: true
+  classification: true
+  report_generation: true
+license: "Gemma Terms of Use"
+tier: "D"
+notes: "General-VLM control with the same architecture and image encoder as MedGemma 1.5 (isolates medical training)."

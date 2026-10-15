@@ -63,7 +63,7 @@ def _chat(content: str) -> dict[str, Any]:
 
 def test_all_model_configs_load() -> None:
     configs = list_model_configs(Settings().configs_dir / "models")
-    assert len(configs) == 14
+    assert len(configs) == 15
     assert {c.adapter for c in configs} == {"ollama", "http_service", "heuristic"}
     with pytest.raises(ModelUnavailableError):
         load_model_config("nope", Settings().configs_dir / "models")
