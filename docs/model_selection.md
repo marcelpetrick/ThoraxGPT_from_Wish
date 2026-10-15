@@ -68,7 +68,8 @@ explicit unsealing; it is not part of an ordinary smoke test.
 ## What do we get?
 
 **Available in the MVP:** findings JSON, raw model output, an English research Markdown
-report, QC limitations, abstention status, measured stage times and provenance hashes.
+report, offline illustrated HTML review with educational severity/follow-up context, QC
+limitations, abstention status, measured stage times and provenance hashes.
 The report provides educational terminology and guideline context, not a patient care plan.
 
 **Planned from benchmarking:** reference-label comparisons with per-label sensitivity,

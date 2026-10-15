@@ -83,13 +83,18 @@ Status: ✅ done · 🔄 in progress · ⏳ open · ✖ dropped
 | ✖ WP10 | ~~Docker, compose, GHCR workflow~~ — dropped at the user's request | 17 | — |
 | ⏳ WP11 | Real runs on the pilot data (dev split only), benchmark report | 26, 32 | lead |
 | 🔄 WP13 | Radiologist-style reading research → preprocessing (windows, MIP, coronal, HU cues) and the per-study English Markdown research report ✅ (term, plain language, educational severity/treatment context, prevalence, guideline context) | user request | research agent + lead |
-| ⏳ WP12 | `/reviewBranch`, fixes, `/githubAbout`, final Vision checklist | all | lead |
+| 🔄 WP12 | GitHub About + ten topics applied ✅; `/reviewBranch`, fixes and final Vision checklist ⏳ | all | lead |
 
 ## Current activity
 
 Updated with every commit (newest first). **If a session breaks, the next agent resumes
 from here**: read this section and *Next steps*, then `git log --oneline | head -20`.
 
+- ✅ **Repository presentation:** applied research-focused GitHub About and ten discovery
+  topics using `githubAbout`; expanded README badges after inspecting myLastFmPlayer and
+  Cullendula. Badge claims link to measured coverage, strict types, pinned FastAPI, local
+  inference, research scope and HTML/PDF manuals. GitHub CI passed for v0.1.0. GitHub Release
+  and package publication are not implemented; no release badge claims otherwise.
 - ✅ **Dependency maintenance:** registry audit verified exact pins for runtime/dev/build
   requirements and latest stable non-yanked releases. Update Hatchling 1.29.0 → 1.32.4
   and CI uv 0.12.18 → 0.13.1; runtime/dev pins and locked transitive versions are current.

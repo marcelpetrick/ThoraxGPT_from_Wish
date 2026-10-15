@@ -3,6 +3,13 @@
 [![Local Pipeline](https://github.com/marcelpetrick/ThoraxGPT_from_Wish/actions/workflows/local-pipeline.yml/badge.svg?branch=main)](https://github.com/marcelpetrick/ThoraxGPT_from_Wish/actions/workflows/local-pipeline.yml)
 [![License: GPL v3 or later](https://img.shields.io/badge/license-GPLv3%20or%20later-blue.svg)](LICENSE)
 [![Python 3.14+](https://img.shields.io/badge/Python-3.14%2B-3776ab.svg)](https://www.python.org/)
+[![FastAPI 0.143.2](https://img.shields.io/badge/FastAPI-0.143.2-009688.svg)](pyproject.toml)
+[![Coverage 98.98%](https://img.shields.io/badge/coverage-98.98%25-brightgreen.svg)](docs/mvp-test.md)
+[![mypy strict](https://img.shields.io/badge/mypy-strict-blue.svg)](pyproject.toml)
+[![Local inference](https://img.shields.io/badge/inference-local%20only-087f8c.svg)](docs/architecture.md)
+[![Research use only](https://img.shields.io/badge/use-research%20only-orange.svg)](Vision.md)
+[![HTML manual](https://img.shields.io/badge/manual-HTML-086c70.svg)](manual.html)
+[![PDF manual](https://img.shields.io/badge/manual-PDF-b44737.svg)](manual.pdf)
 
 A local-first, license-aware, reproducible thoracic-CT AI benchmark laboratory.
 See [`Vision.md`](Vision.md) for the research goals, [`docs/architecture.md`](docs/architecture.md)
@@ -135,3 +142,8 @@ acceptance tests; the CLI uses no browser.
 
 For larger hardware, see the [40 GB VRAM and trusted LAN runner proposal](docs/lan-runner.md).
 It is documented for tomorrow; LAN inference is not enabled in this release.
+
+GitHub Actions run the complete local pipeline on pushes and pull requests. A passing build
+is a software check, not an accuracy benchmark. There is currently no GitHub Release or
+package-publication workflow. The coverage badge records the 2026-10-15 integrated test run;
+its evidence and limitations are in the [MVP test record](docs/mvp-test.md).

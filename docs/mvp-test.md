@@ -112,3 +112,8 @@ See the [HTML operator manual](../manual.html) or [matching PDF](../manual.pdf) 
 setup and run procedure. The manual was checked at desktop/mobile widths, all navigation
 anchors resolved, and the seven-page A4 PDF was checked by text extraction and rendered-page
 inspection. Neither manual contains patient images.
+
+A further Playwright smoke check exercised the user's running loopback UI at v0.1.1:
+create synthetic demo → heuristic findings → HTML download → offline images and visible
+educational severity. It passed. The local review file and screenshot are ignored under
+`data/results/user-ui-test/`; no real study was analyzed.

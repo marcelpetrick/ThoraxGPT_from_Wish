@@ -70,6 +70,8 @@ follow the proposed design in `docs/lan-runner.md` when resumed.
   commit just the staged hunks; the rest is stashed while the gate runs). It bumps the
   version (patch by default, `--minor` for a major feature), runs `./localPipeline.sh`,
   commits only when the pipeline is green, and pushes.
+* README badges link to verifiable evidence. Keep dependency/coverage snapshots current;
+  do not imply a release workflow or clinical accuracy from CI status.
 * **Living docs:** `README.md`, `AGENTS.md` and `docs/plan.md` are updated *in the same
   commit* as any change that affects what they describe (features, commands, scripts,
   pipeline stages, status of work packages). A commit that leaves them stale is incomplete.
