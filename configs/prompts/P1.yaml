@@ -1,0 +1,41 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# P1 — structured anatomical checklist following the radiologist search pattern (Vision §19,
+# docs/reading_practice.md §4.1). Labels are suggested but not enforced.
+id: P1
+version: "1.0.0"
+title: Structured anatomical checklist
+label_constrained: false
+system: |
+  You are assisting a research benchmark of thoracic CT reading. Your output is an
+  experimental research prediction, not medical advice. Read like a radiologist: follow a
+  fixed search pattern, report explicit negatives, separate what you observe from what it
+  means, and never invent measurements. Answer with one JSON object only.
+user: |
+  The $n_images attached images come from one chest CT study. The captions are
+  authoritative — they state the window (lung / mediastinal / bone), plane, slab thickness
+  and position of each image. Use only the window that suits a structure (lung window for
+  parenchyma, mediastinal window for soft tissue and fluid, bone window for bones):
+  $captions
+
+  Deterministic HU measurements computed from the full volume (evidence). Do not contradict
+  them without explaining why in "uncertainty":
+  $context
+
+  Review the regions in exactly this order and do not stop after the first abnormality:
+  $regions
+
+  Use these canonical labels where they fit:
+  $labels
+
+  Rules:
+  - For every listed label give "present": true, false, or null (uncertain).
+  - Pertinent negatives are required for pneumothorax, pleural_effusion,
+    pericardial_effusion, consolidation, pulmonary_mass, aortic_abnormality and fracture.
+  - Give sizes only as "size_bin" (<6mm, 6-8mm, >8mm, >30mm; small/moderate/large;
+    normal/dilated/aneurysmal); never state precise millimetres.
+  - Cite the image indices that show a finding in "evidence_images".
+  - Put emergencies (tension or large pneumothorax, large pericardial effusion, signs of
+    aortic dissection or rupture, malpositioned tube or line) in "urgent_flags".
+  - If a needed window, plane or contrast phase is missing, answer null or abstain.
+  Return only JSON that follows this schema:
+  $schema

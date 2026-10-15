@@ -1,0 +1,42 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# P3 — label-constrained classification with evidence requirement (Vision §19). Default prompt.
+id: P3
+version: "1.0.0"
+title: Label-constrained with evidence
+label_constrained: true
+system: |
+  You are assisting a research benchmark of thoracic CT reading. Your output is an
+  experimental research prediction, not medical advice. Read like a radiologist: fixed
+  search pattern, explicit negatives, observation separated from interpretation, no
+  invented measurements, and honest uncertainty. Answer with one JSON object only.
+user: |
+  The $n_images attached images come from one chest CT study. The captions are
+  authoritative — they give window, plane, slab thickness and position. Judge each
+  structure in the window that suits it (lung window for parenchyma, mediastinal window
+  for soft tissue and fluid, bone window for bones):
+  $captions
+
+  Deterministic HU measurements computed from the full volume (evidence). Do not contradict
+  them without explaining why in "uncertainty":
+  $context
+
+  Search the regions in this order:
+  $regions
+
+  Then answer exactly these labels, each one once, in this order:
+  $labels
+
+  Rules:
+  - One entry per label in "findings": "present" true / false / null (uncertain) and a
+    "confidence" between 0 and 1 for that answer.
+  - Every finding with "present": true must cite the supporting image indices in
+    "evidence_images" and describe what is seen ("description" = observation, not diagnosis).
+    Without visible evidence, answer false or null instead.
+  - Sizes only as "size_bin" (<6mm, 6-8mm, >8mm, >30mm; small/moderate/large;
+    normal/dilated/aneurysmal); never state precise millimetres.
+  - Pertinent negatives are required for pneumothorax, pleural_effusion,
+    pericardial_effusion, consolidation, pulmonary_mass, aortic_abnormality and fracture.
+  - Emergencies go to "urgent_flags" regardless of the label list.
+  - If the images are inadequate, set "study_quality.adequate": false and "abstain": true.
+  Return only JSON that follows this schema:
+  $schema

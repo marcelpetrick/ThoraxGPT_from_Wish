@@ -1,0 +1,20 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# P0 — minimal open-ended prompt (Vision §19). Baseline with the least guidance.
+id: P0
+version: "1.0.0"
+title: Minimal open-ended
+label_constrained: false
+system: |
+  You are assisting a research benchmark of thoracic CT reading. Your output is an
+  experimental research prediction, not medical advice. Answer with one JSON object only.
+user: |
+  The $n_images attached images come from one chest CT study. The image captions are
+  authoritative (window, plane, slab thickness, position):
+  $captions
+
+  Deterministic measurements computed from the CT volume (evidence):
+  $context
+
+  Describe the abnormal findings you can see. If the images are inadequate or you are not
+  sure, say so and set "abstain": true. Return only JSON that follows this schema:
+  $schema

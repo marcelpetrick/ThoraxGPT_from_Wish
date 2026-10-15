@@ -1,0 +1,32 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# P2 — label-constrained classification (Vision §19): one verdict per requested label.
+id: P2
+version: "1.0.0"
+title: Label-constrained classification
+label_constrained: true
+system: |
+  You are assisting a research benchmark of thoracic CT reading. Your output is an
+  experimental research prediction, not medical advice. Classify each requested finding
+  as present, absent or uncertain. Never invent measurements. Answer with one JSON object
+  only.
+user: |
+  The $n_images attached images come from one chest CT study. The captions are
+  authoritative (window, plane, slab thickness, position):
+  $captions
+
+  Deterministic HU measurements computed from the full volume (evidence). Do not contradict
+  them without explaining why in "uncertainty":
+  $context
+
+  Classify exactly these labels, each one once, in this order:
+  $labels
+
+  Rules:
+  - "findings" must contain one entry per label above, with "present" true, false, or null
+    when you are uncertain, and a "confidence" between 0 and 1 for that answer.
+  - Do not add labels that are not in the list; mention other observations in
+    "incidental_findings".
+  - Sizes only as "size_bin"; never state precise millimetres.
+  - If the study is inadequate, set "study_quality.adequate": false and "abstain": true.
+  Return only JSON that follows this schema:
+  $schema
