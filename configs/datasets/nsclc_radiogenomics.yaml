@@ -27,6 +27,12 @@ status: approved
 parent_datasets: []
 role: external_test
 acquisition:
+  nbia_collection: NSCLC Radiogenomics
+  label_files:
+  - NSCLCR01Radiogenomic_DATA_LABELS_2018-05-22_1500-shifted.csv
+  - AIM_files_updated-11-10-2020.zip
+  - NSCLC_Radiogenomics-6-1-21-Version-4-nbia-digest.xlsx
+  - NSCLC_Radiogenomics-6-1-21-Version-4.tcia
   download_method: TCIA NBIA REST API v1 (getSeries / getSeriesSize / getImage?SeriesInstanceUID=), or
     TCIA Data Retriever with the .tcia manifest; no login
   size_per_patient: ~465 MB (98 GB / 211 pts incl. PET); CT series median ~120 MB

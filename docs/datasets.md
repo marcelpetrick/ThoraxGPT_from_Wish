@@ -34,8 +34,84 @@ only permitted development cases. Never read sealed images or sealed IDs for the
 
 **Recovery:** if approval, access, space or the split is missing, stop that workflow and
 record the unmet prerequisite. Do not bypass the license gate or split guard.
-The current CLI has no `acquire` or `data budget` command. The configured 10 GB budget is
-not a complete write quota for demo/analysis routes; inspect actual storage usage.
+`thoraxbench acquire` enforces the configured 10 GB budget (`THORAXBENCH_DATA_BUDGET_GB`)
+for its own downloads only. The budget is not a complete write quota for demo/analysis
+routes; inspect actual storage usage.
+
+## Acquire an approved dataset
+
+`thoraxbench acquire` downloads one approved TCIA collection through the public NBIA REST
+API into `data/raw/<id>/`. It refuses the run when a gate fails:
+
+* the registry status is not `approved*`;
+* the registry entry has no `acquisition.nbia_collection` or no `license_url`;
+* any series reports another collection or another license URI than the registry entry;
+* a patient split already exists and the plan would add new patients;
+* the pending bytes plus one ZIP in flight exceed the remaining data budget.
+
+Prerequisites:
+
+* Network access to `services.cancerimagingarchive.net` and `www.cancerimagingarchive.net`.
+* A registry entry with `status: approved*`, a verified `license_url`, and a verified
+  `acquisition.nbia_collection` (NBIA name, for example `NSCLC Radiogenomics` with a space).
+  Optional: `acquisition.label_files` (TCIA upload file names) and, for LIDC-IDRI,
+  `acquisition.lidc_xml_archive`.
+* For a new cohort: no split exists yet for that dataset.
+
+Steps (working directory: repository root; replace `<id>` with the registry id):
+
+1. Find the dataset id and its status.
+
+   ```bash
+   uv run thoraxbench datasets
+   ```
+
+2. Show the plan and the budget verdict. A new selection needs a patient count.
+
+   ```bash
+   uv run thoraxbench acquire <id> --dry-run --patients 20
+   ```
+
+3. Read the plan lines: series counts per state, estimate, `data/` usage and `fits`.
+4. Start the acquisition with the same options.
+
+   ```bash
+   uv run thoraxbench acquire <id> --patients 20
+   ```
+
+5. Re-run the command without `--patients` to resume. Complete series are skipped.
+6. Re-hash the stored files against their SHA-256 entries. After a split exists, only
+   development patients are opened and hashed; sealed patients are only checked for
+   missing listed files.
+
+   ```bash
+   uv run thoraxbench acquire <id> --verify
+   ```
+
+7. Freeze the split before any indexing (see *Before using these notes*).
+
+**Checkpoint:** exit code 0. `data/raw/<id>/` holds `_selection.json` (frozen plan),
+`_sha256.txt`, `_acquisition.json`, `_LICENSE_SNAPSHOT.txt`, `_api_log.jsonl` and
+`<PatientID>/<SeriesInstanceUID>/*.dcm`. `manifests/datasets/<id>.json` is byte-identical
+to `_acquisition.json` and contains IDs, counts and hashes only.
+
+**Recovery:**
+
+* Exit code 2 (`Acquisition refused`): fix the registry entry or the plan. Never edit the
+  status or license to pass the gate without a new terms review.
+* `REFUSED: exceeds the data budget`: lower `--patients` for a new selection or free space.
+* `exists but is incomplete`: raw data is immutable. Remove only that series directory and
+  re-run.
+* `SHA-256 mismatch` or `missing listed file`: the manifests stay unchanged. Restore the
+  file or remove the series directory and re-run.
+* Network errors: re-run later. In-flight files under `.partial/` are discarded.
+
+The selection of an existing `_selection.json` is frozen and reused; `--patients`,
+`--modality` and `--seed` then have no effect. The pilot datasets `lidc_idri` and
+`nsclc_radiogenomics` have frozen selections and frozen splits:
+`uv run thoraxbench acquire lidc_idri --dry-run` reports 60 complete series. A new selection takes
+whole patients in a seeded order (`--seed`, default 20261015) with the requested
+`--modality` values (default CT). It uses no labels or findings.
 
 ## Summary table
 
@@ -333,7 +409,9 @@ Why NSCLC Radiogenomics as the external domain: CC BY 3.0 (commercial use + redi
 
 These names describe the acquisition research scratchpad. They are not maintained CLI
 commands or scripts shipped at the repository root. Do not run a nonexistent `acquire.py`
-from the checkout. The acquisition port remains open in [the plan](plan.md).
+from the checkout. The maintained port is `thoraxbench acquire` (see *Acquire an approved
+dataset*). The stratified LIDC selector of the prototype is historical; the frozen pilot
+`_selection.json` files keep its result.
 
 - `acquire.py` — resumable downloader (httpx if available, else urllib); `python3 acquire.py --data-root DATA --dataset lidc_idri|nsclc_radiogenomics [--dry-run|--manifest-only] [--workers N]`
 - `build_registry.py` — regenerates `datasets.json`; `xlsx_read.py` — stdlib xlsx reader

@@ -30,6 +30,17 @@ status: approved
 parent_datasets: []
 role: development
 acquisition:
+  nbia_collection: LIDC-IDRI
+  label_files:
+  - tcia-diagnosis-data-2012-04-20.xls
+  - lidc-idri-nodule-counts-6-23-2015.xlsx
+  - LIDC-XML-only.zip
+  - LIDC-IDRI_MetaData.csv
+  - TCIA_LIDC-IDRI_20200921-nbia-digest.xlsx
+  - TCIA_LIDC-IDRI_20200921.tcia
+  - NBIAtoTCIA-patientIDs-official.xls
+  - LIDC-IDRI-voi-array.zip
+  lidc_xml_archive: LIDC-XML-only.zip
   download_method: TCIA NBIA REST API v1 (getSeries / getSeriesSize / getImage?SeriesInstanceUID=), or
     TCIA Data Retriever with the .tcia manifest; no login
   size_per_patient: ~130 MB (133.15 GB / 1,010 pts; CT series median 107 MB, range 34-402 MB)
