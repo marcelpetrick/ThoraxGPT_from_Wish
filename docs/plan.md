@@ -56,7 +56,7 @@ Status: ✅ done · 🔄 in progress · ⏳ open · ✖ dropped
 | 🔄 WP6 | Splits and sealing ✅ (CaseGuard, freeze), leakage tracking ⏳ | 14, 15, 16 | lead |
 | ⏳ WP7 | Scoring (A–G), calibration, bootstrap CIs, perf measurements, provenance | 13, 20, 21, 24 | agent |
 | ⏳ WP8 | Benchmark runner, experiments E001–E008 configs, compare, reports | 18, 25, 26 | agent |
-| ⏳ WP9 | Web UI and screenshots | 18 | agent |
+| 🔄 WP9 | Web UI (concept ✅ in `docs/ui.md`: CLI = engine, local FastAPI+Jinja2+HTMX UI = review layer), implementation, Playwright e2e, screenshot | 18 | lead |
 | ✖ WP10 | ~~Docker, compose, GHCR workflow~~ — dropped at the user's request | 17 | — |
 | ⏳ WP11 | Real runs on the pilot data (dev split only), benchmark report | 26, 32 | lead |
 | 🔄 WP13 | Radiologist-style reading research → preprocessing (windows, MIP, coronal, HU cues) and the per-study English Markdown clinical report (term, plain language, severity, treatment need, prevalence, follow-up) | user request | research agent + lead |
@@ -67,6 +67,10 @@ Status: ✅ done · 🔄 in progress · ⏳ open · ✖ dropped
 Updated with every commit (newest first). **If a session breaks, the next agent resumes
 from here**: read this section and *Next steps*, then `git log --oneline | head -20`.
 
+- ✅ UI ideation + concept: `docs/ui.md` (decision: CLI is the engine; local-only web UI
+  with FastAPI + Jinja2 + vendored HTMX for review; Playwright e2e + README screenshot).
+- ✅ Data pilot downloaded (outside Git): LIDC-IDRI 60 patients 4.3 GB, NSCLC-Radiogenomics
+  27 patients 2.4 GB (both CC BY 3.0), checksummed; registry + docs being committed.
 - 🔄 Wrap-up requested by the user: all workers commit their green state; the lead lands each
   branch with `scripts/land_branch.sh <branch>`.
 - 🔄 Fan-out of parallel work packages (git worktrees, landed on `main` by the lead):
@@ -91,7 +95,7 @@ from here**: read this section and *Next steps*, then `git log --oneline | head 
    build the study index for the downloaded pilot and freeze the 80/20 split.
 4. Clinical Markdown study report (WP13) + `thoraxbench analyze`.
 5. Benchmark runner, experiment configs E001–E008, `compare`, benchmark report (WP8).
-6. Web UI + Playwright e2e + real screenshot (WP9).
+6. Web UI per `docs/ui.md` + Playwright e2e + real screenshot (WP9).
 7. Real runs on the development split with MedGemma Q4/Q8 + controls (WP11).
 8. `/reviewBranch`, fixes, `/githubAbout`, Vision traceability check (WP12).
 
