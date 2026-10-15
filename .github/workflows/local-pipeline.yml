@@ -1,0 +1,45 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Mirrors ./localPipeline.sh exactly: CI runs the same script, so local green == CI green.
+name: Local Pipeline
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  local-pipeline:
+    name: localPipeline.sh
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7.0.1
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v10.3.0
+        with:
+          version: "0.12.18"
+
+      - name: Install Python 3.14
+        run: uv python install 3.14
+
+      - name: Install Playwright Chromium (for e2e UI tests)
+        run: |
+          uv sync --frozen --all-groups
+          uv run playwright install --with-deps chromium
+
+      - name: Run local pipeline
+        run: ./localPipeline.sh
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: coverage-html
+          path: htmlcov/
+          if-no-files-found: ignore

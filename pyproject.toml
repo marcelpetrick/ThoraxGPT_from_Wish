@@ -1,0 +1,101 @@
+[build-system]
+requires = ["hatchling==1.29.0"]
+build-backend = "hatchling.build"
+
+[project]
+name = "thoraxbench"
+dynamic = ["version"]
+description = "Local-first, license-aware, reproducible thoracic-CT AI benchmark laboratory (research use only)."
+readme = "README.md"
+requires-python = ">=3.14"
+license = "GPL-3.0-or-later"
+license-files = ["LICENSE"]
+authors = [{ name = "Marcel Petrick", email = "mail@marcelpetrick.it" }]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Scientific/Engineering :: Medical Science Apps.",
+]
+dependencies = [
+    "fastapi==0.143.2",
+    "httpx==0.28.1",
+    "jinja2==3.1.6",
+    "numpy==2.5.4",
+    "pillow==12.3.0",
+    "pydantic==2.14.1",
+    "pydicom==3.0.2",
+    "python-multipart==0.0.32",
+    "pyyaml==6.0.3",
+    "scikit-learn==1.9.1",
+    "scipy==1.18.1",
+    "typer==0.27.3",
+    "uvicorn==0.54.0",
+]
+
+[project.scripts]
+thoraxbench = "thoraxbench.cli.main:app"
+
+[dependency-groups]
+dev = [
+    "mypy==2.4.0",
+    "pip-audit==2.10.1",
+    "playwright==1.64.0",
+    "pytest==9.1.1",
+    "pytest-cov==7.1.0",
+    "pytest-playwright==0.10.0",
+    "respx==0.23.1",
+    "ruff==0.17.1",
+    "types-pyyaml==6.0.12.20260906",
+]
+
+[tool.hatch.version]
+path = "src/thoraxbench/__init__.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/thoraxbench"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py314"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "UP", "B", "A", "C4", "SIM", "RUF", "PL", "PT", "S", "D"]
+ignore = ["D203", "D213", "PLR0913", "PLR2004", "D105", "D107"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101", "D", "PLR2004", "S108", "PLC0415"]
+"scripts/**" = ["D", "S"]
+
+[tool.ruff.format]
+quote-style = "double"
+
+[tool.mypy]
+python_version = "3.14"
+strict = true
+files = ["src"]
+plugins = ["pydantic.mypy"]
+
+[[tool.mypy.overrides]]
+module = ["pydicom.*", "scipy.*", "sklearn.*"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra --strict-markers"
+markers = [
+    "integration: tests that touch the filesystem/HTTP stack across modules",
+    "e2e: end-to-end tests (CLI, web UI via browser, docker)",
+    "live: tests that require a running Ollama server and real data (skipped in CI)",
+]
+
+[tool.coverage.run]
+source = ["thoraxbench"]
+branch = true
+
+[tool.coverage.report]
+fail_under = 95
+show_missing = true
+skip_covered = true
+exclude_also = ["if TYPE_CHECKING:", "raise NotImplementedError", "if __name__ == .__main__.:"]

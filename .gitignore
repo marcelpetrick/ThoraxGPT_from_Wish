@@ -1,0 +1,40 @@
+# --- Medical image data: never commit (Vision §7, §23, §30) ---
+/data/
+*.dcm
+*.DCM
+*.nii
+*.nii.gz
+*.nrrd
+*.mha
+*.mhd
+*.npz
+*.npy
+**/rendered/
+**/raw/
+!/manifests/**
+# model weights
+*.gguf
+*.safetensors
+*.pt
+*.pth
+*.ckpt
+# secrets
+.env
+*.token
+# python / tooling
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+dist/
+build/
+*.egg-info/
+/results/
+/.pipeline/
+/test-results/
