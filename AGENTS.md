@@ -30,6 +30,9 @@ and this file must be fixed.
 * Commit only through `scripts/commit.sh "<type>(<scope>): <message>"`. It bumps the
   version (patch by default, `--minor` for a major feature), runs `./localPipeline.sh`,
   commits only when the pipeline is green, and pushes.
+* **Living docs:** `README.md`, `AGENTS.md` and `docs/plan.md` are updated *in the same
+  commit* as any change that affects what they describe (features, commands, scripts,
+  pipeline stages, status of work packages). A commit that leaves them stale is incomplete.
 * Conventional commit types: `feat fix docs test refactor perf build ci chore style`.
 * GitHub Actions (`.github/workflows/local-pipeline.yml`) run `./localPipeline.sh`. Keep
   both green; never skip a stage to get a commit through.
