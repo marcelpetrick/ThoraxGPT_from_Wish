@@ -11,6 +11,11 @@ A new session/agent starts by reading `docs/plan.md` (*Current activity* and *Ne
 then `git log --oneline | head -20` and `git status`. Everything needed to continue is in the
 repository; nothing important may live only in a chat or a temp directory.
 
+## 0.1 Current priority
+
+Engine first: the end-to-end pipeline must work with **locally hosted Ollama models** and
+give measured, reproducible results before UI work starts. See `docs/plan.md` → *Priority*.
+
 ## 1. Non-negotiables
 
 1. **Research use only.** Never add text, UI, or output that claims clinical validity,

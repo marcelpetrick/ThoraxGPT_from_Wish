@@ -14,6 +14,15 @@ here are binding until changed by a later commit to this file.
 | Data budget | 10 GB in `./data/` (git-ignored, enforced by `thoraxbench data budget`) |
 | Hugging Face token | none — gated sources (CT-RATE, CT-CLIP weights) are registered as `pending_access` |
 
+## Priority (user decision, 2026-10-15)
+
+1. **Engine first.** The end-to-end engine must work and give good, measured results before
+   any UI work: ingest → preprocess → sample → infer → parse → score → clinical report.
+2. **Locally hosted models on Ollama** are the runtime that matters. MedGemma 1.5 (Q4/Q8) and
+   general VLM controls are benchmarked for real on the pilot development split. 3D PyTorch
+   services stay optional adapters.
+3. The UI (WP9, `docs/ui.md`) follows only after the engine produces results.
+
 ## Key decisions
 
 1. **Package**: `thoraxbench` under `src/`, built with hatchling, one version source
@@ -89,14 +98,18 @@ from here**: read this section and *Next steps*, then `git log --oneline | head 
 
 ## Next steps (in order)
 
-1. Land WP4/WP5/WP7 branches; WP6 splits + sealing guard.
-2. Commit research outputs (model cards, dataset registry YAMLs, reading practice, clinical KB).
-3. `thoraxbench acquire` (TCIA client, manifests, budget, de-id audit) + LIDC XML label loader;
-   build the study index for the downloaded pilot and freeze the 80/20 split.
-4. Clinical Markdown study report (WP13) + `thoraxbench analyze`.
-5. Benchmark runner, experiment configs E001–E008, `compare`, benchmark report (WP8).
-6. Web UI per `docs/ui.md` + Playwright e2e + real screenshot (WP9).
-7. Real runs on the development split with MedGemma Q4/Q8 + controls (WP11).
+1. Land the WP4/WP5/WP7 worker branches (`scripts/land_branch.sh`).
+2. Commit the dataset registry (`configs/datasets/*.yaml`) and `docs/datasets.md`; port the
+   pilot downloader into `thoraxbench acquire` (license gate, budget, checksums, manifests).
+3. LIDC XML → reference labels + lesions; NSCLC-Radiogenomics labels; study index; freeze the
+   80/20 patient-level split (sealed 20 % stored in `data/sealed/`).
+4. `thoraxbench analyze` end to end on a real study with an Ollama model + the English
+   Markdown clinical report.
+5. Benchmark runner + experiment configs E001–E004 (+ E008 external) + `compare` + report.
+6. **Real runs on the development split** with Ollama models (MedGemma 1.5 Q4/Q8, qwen3-vl,
+   other controls) + heuristic baseline; iterate on prompts/sampling on calibration only;
+   document results in `docs/results.md`.
+7. Web UI per `docs/ui.md` + Playwright e2e + real screenshot (WP9).
 8. `/reviewBranch`, fixes, `/githubAbout`, Vision traceability check (WP12).
 
 ## Self-review gates
