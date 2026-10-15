@@ -22,7 +22,7 @@ from thoraxbench.adapters import (
 from thoraxbench.config import Settings
 from thoraxbench.schemas import AnalysisRequest, PreparedInput
 
-OLLAMA = "http://ollama.test:11434"
+OLLAMA = "http://localhost:11434"
 REQ = AnalysisRequest(labels=["emphysema", "pulmonary_nodule"])
 GOOD = {
     "findings": [{"label": "emphysema", "present": True, "confidence": 0.9}],
@@ -107,6 +107,7 @@ def test_ollama_infer_and_runtime() -> None:
     assert raw.meta["prompt_id"] == "P3"
     payload = json.loads(chat.calls.last.request.content)
     assert payload["options"]["temperature"] == 0
+    assert payload["options"]["num_predict"] == 4096
     assert payload["messages"][1]["images"]
     assert model.parse(raw).positive_labels() == {"emphysema"}
 
@@ -125,6 +126,39 @@ def test_ollama_two_pass_and_think() -> None:
     assert raw.tokens_generated == 20
     assert json.loads(chat.calls[0].request.content)["think"] is False
     assert "images" not in json.loads(chat.calls[0].request.content)["messages"][1]
+
+
+@respx.mock
+@pytest.mark.parametrize(("prompt", "truncated_pass"), [("P3", 1), ("P4", 1), ("P4", 2)])
+def test_ollama_token_limit_abstains_and_preserves_output(prompt: str, truncated_pass: int) -> None:
+    text = json.dumps(GOOD)
+    truncated = _chat(text) | {"done_reason": "length", "eval_count": 4096}
+    responses = [httpx.Response(200, json=truncated)]
+    if truncated_pass == 2:
+        responses.insert(0, httpx.Response(200, json=_chat('{"observations": []}')))
+    chat = respx.post(f"{OLLAMA}/api/chat").mock(side_effect=responses)
+    model = load_model("medgemma1.5-q4", _settings(), prompt_id=prompt)
+    raw = model.infer(PreparedInput(view_id="v", view_version="1"), REQ)
+    assert raw.text == text
+    assert raw.error == "generation token limit reached"
+    assert raw.meta["done_reason"] == "length"
+    assert raw.tokens_generated == 4096 + (10 if truncated_pass == 2 else 0)
+    assert chat.call_count == truncated_pass
+    assert model.parse(raw).abstain
+    assert not model.parse(raw).findings
+
+
+@respx.mock
+def test_ollama_config_can_override_generation_limit() -> None:
+    chat = respx.post(f"{OLLAMA}/api/chat").mock(
+        return_value=httpx.Response(200, json=_chat(json.dumps(GOOD)))
+    )
+    original = load_model("medgemma1.5-q4", _settings())
+    assert isinstance(original, OllamaModel)
+    config = original.config.model_copy(update={"options": {"ollama": {"num_predict": 128}}})
+    model = OllamaModel(config, original.prompt, OLLAMA, client=original.client)
+    model.infer(PreparedInput(view_id="v", view_version="1"), REQ)
+    assert json.loads(chat.calls.last.request.content)["options"]["num_predict"] == 128
 
 
 @respx.mock

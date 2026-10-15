@@ -18,6 +18,7 @@ from thoraxbench.schemas import AnalysisRequest, FindingsReport, PreparedInput, 
 
 NS_PER_S = 1e9
 DEFAULT_NUM_CTX = 16384
+DEFAULT_NUM_PREDICT = 4096
 
 
 class OllamaModel(ViewBackedModel):
@@ -25,7 +26,7 @@ class OllamaModel(ViewBackedModel):
 
     Decoding is deterministic: ``temperature=0`` and ``seed=0`` unless the model config
     overrides them. The output is constrained with the findings JSON schema
-    (Ollama structured outputs).
+    (Ollama structured outputs), with a 4096-token generation limit by default.
     """
 
     def __init__(
@@ -106,7 +107,12 @@ class OllamaModel(ViewBackedModel):
         message: dict[str, Any] = {"role": "user", "content": user}
         if images:
             message["images"] = [base64.b64encode(img).decode("ascii") for img in images]
-        options: dict[str, Any] = {"temperature": 0, "seed": 0, "num_ctx": DEFAULT_NUM_CTX}
+        options: dict[str, Any] = {
+            "temperature": 0,
+            "seed": 0,
+            "num_ctx": DEFAULT_NUM_CTX,
+            "num_predict": DEFAULT_NUM_PREDICT,
+        }
         options.update(self.config.options.get("ollama", {}))
         payload: dict[str, Any] = {
             "model": self.tag,
@@ -145,7 +151,12 @@ class OllamaModel(ViewBackedModel):
         )
         data, error, latency = self._chat(rendered.system, rendered.user, prepared.images, schema)
         calls = [data] if data else []
-        if data is not None and error is None and self.prompt.two_pass:
+        if (
+            data is not None
+            and error is None
+            and data.get("done_reason") != "length"
+            and self.prompt.two_pass
+        ):
             first = str(data.get("message", {}).get("content", ""))
             second = self.prompt.render_second_pass(
                 first, labels, n, captions=prepared.image_captions, context=prepared.context
@@ -174,6 +185,9 @@ class OllamaModel(ViewBackedModel):
         )
         return RawOutput(
             text=str(data.get("message", {}).get("content", "")),
+            error="generation token limit reached"
+            if any(c.get("done_reason") == "length" for c in calls)
+            else None,
             tokens_generated=sum(int(c.get("eval_count", 0)) for c in calls),
             prompt_tokens=sum(int(c.get("prompt_eval_count", 0)) for c in calls),
             latency_s=latency,

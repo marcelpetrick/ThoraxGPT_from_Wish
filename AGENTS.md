@@ -15,6 +15,9 @@ repository; nothing important may live only in a chat or a temp directory.
 
 Engine first: the end-to-end pipeline must work with **locally hosted Ollama models** and
 give measured, reproducible results before UI work starts. See `docs/plan.md` → *Priority*.
+The current MVP is the CLI `demo-data` → `analyze`
+path; validate synthetic studies and local Ollama before expanding benchmark/UI scope.
+Create development/sealed splits before real-study indexing or analysis.
 
 ## 1. Non-negotiables
 

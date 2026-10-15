@@ -1,0 +1,62 @@
+{
+  "calibration_fraction": 0.8,
+  "cases": {
+    "calibration": 18,
+    "internal_test": 4,
+    "sealed": 5
+  },
+  "created_at": "2026-10-15T20:02:21+00:00",
+  "dataset": "nsclc_radiogenomics",
+  "development_set_sha256": "947daaf0babe71b891dfe6735fa35df27c5b2bde37a381c51ce92c1ece4c7f6e",
+  "patient_hashes": {
+    "calibration": [
+      "17c548ff205dc8430b9b18937a10964f339c05a0793d6188216744932f37b6b5",
+      "1cd0c0d0a0fc0f89dabd581a03569d21d8c7b779088c2b75406af81db9b7f0b0",
+      "21f1188d1c90efcae0b8b0b26bd0f8ac567e4204a67308c64ac5553eba403ee0",
+      "2ee1c21a95bac2e335a710758816472a66fede4b8b089eb69d58b9eb97ea2560",
+      "30bb579cc4c935cb91b59fd44982eb4047265f43d9da5e66d420c2b27883e95e",
+      "39e8bfdd83ef069c29937b357a2c6c1bd281b507e7d4f427334d935429962416",
+      "3b4cc763c127eddd3cb31bc5bea12f886103b3c60cf88779dd94db52e059af57",
+      "4933b4824a5537326d07c860f91e28888cc48a90047f51ec4141626393e55f15",
+      "54261a758b60b260d3e426594303f134e6f2fe5d209c5af7881354a845b8319f",
+      "5abdd726c1875f2502885bd9f2facec899fa97fff9ccc9c274bed2b24711ad37",
+      "60b7be72e1e3a464fc85ba0acfbe97616eb712c90cba4e162ff2b61bc4f0a490",
+      "613b61a1faf985b8c2c7b8e52721a48cbdfbcbb7a95629b9b3e290a53308eccc",
+      "857e21d1b0fcd40ca49f28a5270865acc13b542933ef0386eb32ea67712570d8",
+      "89e362dae9fe8ecd3db851be046d2797e72c3920dce22d141dcb96f19bbfaaa6",
+      "992de52155f246cd761dbb8d6134eb403ed073de9c969b9c37d8ca5201fff160",
+      "9eaa9eecf71e54654853465317932c15dda41b4fd5f91303bc82ff57e11a2975",
+      "9ec4a84b857cd3436439a5ceb8ebf6464f3adfaf920c85021e832abc3e30a3a9",
+      "b706517602bc7bf1cab6c181c16b793ed33ab8c905729435f6acb5219a767722"
+    ],
+    "internal_test": [
+      "c0e9038c9a0549a3c947553c149349bb03a4e7449de49055088e92f0e26dc314",
+      "c58233955884aac77ff3fc35366fcc07e0713805e7b2e63fae7e48bbbc4d010f",
+      "f55435f769b17d65a8c90493008047fa43afa2af67a76ede989f5886378e0c25",
+      "f7257a710a10705ac3be2a9f147e87073c78ebfa66b7f38adc9588d3c27cb81f"
+    ],
+    "sealed": [
+      "0340440682b819d17b9d633beed573a2dc1f2d99fafcfb23a2ef2a2bfa6daf21",
+      "05157c915c450862d39b9c0bfefd5f217fae07e16330cb7697940f45dbb3ba14",
+      "079022dd09784ebaddcc7d927c0ff1b594d8e858d02d966df370d970fcc86bf0",
+      "0fd1a2681cfbffd341cdca225fa0315274e2e9890f2bc68635ebfb3fb5c62723",
+      "1656f21467c199b9d26ac220b3de237a588cd54a8178d3e12b992d3b649aaa08"
+    ]
+  },
+  "patients": {
+    "calibration": 18,
+    "internal_test": 4,
+    "sealed": 5
+  },
+  "salt": "thoraxbench-split-v1",
+  "sealed_fraction": 0.2,
+  "sealed_set_sha256": "63fbe806dd8764b28580a8b56a4f9c8ef6db93ab9ddc03d666167e849045e0ad",
+  "split_version": "1",
+  "strata": {
+    "all": {
+      "calibration": 18,
+      "internal_test": 4,
+      "sealed": 5
+    }
+  }
+}

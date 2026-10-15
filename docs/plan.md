@@ -64,16 +64,16 @@ Status: ✅ done · 🔄 in progress · ⏳ open · ✖ dropped
 | ✅ WP1 | Model research and Ollama pulls (MedGemma Q4/Q8, controls), feasibility of 3D models | 4, 22 | research agent |
 | 🔄 WP2 | Dataset research ✅, license registry ✅ (16 sources), pilot ✅ (LIDC 60 pts + NSCLC-Radiogenomics 27 pts, 6.7 GB), `thoraxbench acquire` port ⏳ | 5, 6, 8, 27 | data agent |
 | ✅ WPA | Architecture (C4 + flowcharts) in `docs/architecture.md` — before deeper work | 7, 17 | lead |
-| 🔄 WP3 | Core: config/registry ✅, policy gate ✅, DICOM discovery/geometry/HU/QC ✅, synthetic phantoms ✅ | 6, 8, 9 | lead / agents |
+| 🔄 WP3 | Core: config/registry ✅, policy gate ✅, DICOM discovery/geometry/HU/QC ✅, synthetic phantoms ✅, CLI analysis MVP ✅ | 6, 8, 9 | lead / agents |
 | ✅ WP4 | Sampling S1–S6, windows, rendering views | 10 | agent |
 | ✅ WP5 | Schemas, ontology, prompts P0–P4, adapters (Ollama, HTTP 3D service, mock) | 11, 12, 17, 19 | agent |
-| 🔄 WP6 | Splits and sealing ✅ (CaseGuard, freeze), leakage tracking ⏳ | 14, 15, 16 | lead |
+| 🔄 WP6 | Splits and sealing ✅ (CaseGuard, freeze), pilot holdout frozen ✅, development-only indexing ✅, leakage tracking ⏳ | 14, 15, 16 | lead |
 | ✅ WP7 | Scoring (A–G), calibration, bootstrap CIs, perf measurements, provenance | 13, 20, 21, 24 | agent |
 | ⏳ WP8 | Benchmark runner, experiments E001–E008 configs, compare, reports | 18, 25, 26 | agent |
 | 🔄 WP9 | Web UI (concept ✅ in `docs/ui.md`: CLI = engine, local FastAPI+Jinja2+HTMX UI = review layer), implementation, Playwright e2e, screenshot | 18 | lead |
 | ✖ WP10 | ~~Docker, compose, GHCR workflow~~ — dropped at the user's request | 17 | — |
 | ⏳ WP11 | Real runs on the pilot data (dev split only), benchmark report | 26, 32 | lead |
-| 🔄 WP13 | Radiologist-style reading research → preprocessing (windows, MIP, coronal, HU cues) and the per-study English Markdown clinical report (term, plain language, severity, treatment need, prevalence, follow-up) | user request | research agent + lead |
+| 🔄 WP13 | Radiologist-style reading research → preprocessing (windows, MIP, coronal, HU cues) and the per-study English Markdown research report ✅ (term, plain language, educational severity/treatment context, prevalence, guideline context) | user request | research agent + lead |
 | ⏳ WP12 | `/reviewBranch`, fixes, `/githubAbout`, final Vision checklist | all | lead |
 
 ## Current activity
@@ -81,22 +81,36 @@ Status: ✅ done · 🔄 in progress · ⏳ open · ✖ dropped
 Updated with every commit (newest first). **If a session breaks, the next agent resumes
 from here**: read this section and *Next steps*, then `git log --oneline | head -20`.
 
-- 🔄 **Lead, now:** first end-to-end prototype — `analysis.py` (study → view → model → parsed
-  findings, perf + provenance) ✍️ written, next: `reports/study_report.py` (English Markdown:
-  medical term, plain language, severity, treatment need, prevalence, guideline follow-up) and CLI
-  commands `analyze`, `index`, `split`, `demo-data`, `models`, `datasets`.
+- 🔄 **MVP verification (current session):** implemented `analyze` and `demo-data`, findings JSON
+  and English research Markdown; synthetic e2e + mocked Ollama tests; actual local MedGemma
+  Q4 smoke test. Lead owns engine/report/docs; subagents delivered CLI, tests, endpoint checks.
+  QC failures abstain before inference; reports preserve unavailable predictions; dataset
+  analysis requires a saved development split. Full gate and self-review precede commit.
+- ✅ **Environment checked:** Python 3.14.8, locked dependencies installed; Ollama reachable
+  with MedGemma Q4/Q8 and qwen3-vl:4b; NVIDIA A2000 has 8 GB VRAM. Root filesystem now has
+  ~13 GB available: old disk-full blocker resolved. All 12,724 dataset checksums pass;
+  checksum manifests and license snapshots match Git. Playwright Chromium is installed.
+  Refreshed editable package metadata (previously stale at 0.0.9).
+- ✅ **Random patient holdout frozen (user request):** metadata-only pseudorandom split,
+  independent of labels. LIDC: 48 development (38 calibration + 10 internal test), 12 holdout;
+  NSCLC: 22 development (18 calibration + 4 internal test), 5 holdout (nearest whole patient
+  to 20%). Split refuses replacement. Only salted patient hashes are committed; holdout IDs
+  remain ignored in `data/sealed/`. No holdout file was read during verification.
+- ✅ **Development smoke:** indexed one authorized real LIDC development study and ran the
+  HU heuristic baseline successfully (adequate QC, 0.11 s inference/parse with cached cues).
+  Local artifacts: `data/results/mvp-real-development/{result.json,report.md}`.
+  Full non-live gate passed 220 tests at 97.95% coverage; final generation-limit/empty-result
+  regression checks follow in the commit gate. No measured benchmark accuracy is claimed.
+- ✅ **Live Ollama transport smoke:** synthetic single-label input, 256 px, one sampled
+  slice plus a MIP view: completed in 49.5 s (46.2 s Ollama total), recorded actual model
+  digest. The model returned empty findings; engine now treats empty label predictions as
+  abstention. Full-label run exceeded 4000 generated tokens and was stopped; a 4096-token
+  default bounds subsequent runs, preserving truncated output as an abstention. This proves
+  installed weights/inference work, not useful CT detection or accuracy.
+  Smoke artifacts: `data/results/mvp-medgemma-bounded/` (local only).
 - ✅ **Test data available (outside Git, `data/raw/`):** LIDC-IDRI 60 patients (40 with nodules
   ≥3 mm, 20 without) + NSCLC-Radiogenomics 27 patients with tumour SEG; synthetic DICOM phantoms
   for tests/demos (`thoraxbench.synthetic`).
-- 🔄 **Running now:** study index build for `lidc_idri` (60) and `nsclc_radiogenomics` (27):
-  loads every study once, derives reference labels (LIDC reader XML / NSCLC DICOM-SEG) and HU
-  cues → `data/index/<dataset>.json` (log: `.pipeline/build_index.log`, ~15 s per study).
-  Code: `src/thoraxbench/index.py`, `labels/nsclc.py` (being committed with tests).
-- ⛔ **Blocker waiting for the user:** the root partition `/` is 100 % full because the system
-  Ollama service stores models in `/usr/share/ollama/.ollama/models`. Fix (needs sudo, run once):
-  `sudo scripts/move_ollama_models_to_home.sh` → models move to `/home/ollama/models` via
-  `OLLAMA_MODELS`. The `gemma3:4b-it-q4_K_M` pull failed for that reason; retry it afterwards.
-  MedGemma 1.5 Q4/Q8 are already pulled and usable.
 - ✅ LIDC reader-XML parser → consensus lesions + study labels (`labels/lidc.py`).
 - ✅ WP4 sampling S1–S6 + MIP slabs, views (MedGemma RGB per official notebook, lung, multi-window,
   contact sheet, CT-CLIP/M3D tensors), `Study` with HU volume cache; heuristic baseline wired to
@@ -109,37 +123,24 @@ from here**: read this section and *Next steps*, then `git log --oneline | head 
 - ✅ Data pilot downloaded (outside Git): LIDC-IDRI 60 patients 4.3 GB, NSCLC-Radiogenomics
   27 patients 2.4 GB (both CC BY 3.0), checksummed; registry (`configs/datasets/`) + `docs/datasets.md` + `manifests/datasets/` committed.
 - ✅ WP7 scoring (tasks A–G, bootstrap), calibration (sealed-safe), perf, provenance landed.
-- 🔄 Wrap-up requested by the user: all workers commit their green state; the lead lands each
-  branch with `scripts/land_branch.sh <branch>`.
-- 🔄 Fan-out of parallel work packages (git worktrees, landed on `main` by the lead):
-  WP4 preprocess/sampling/views · WP5 prompts/adapters/parsing · WP7 scoring/calibration/perf.
-- 🔄 Lead: WP6 splits + sealing guard, then WP2 integration (`thoraxbench acquire`, LIDC labels).
-- 🔄 Background research (results arrive as notes and are then committed to `docs/`):
-  WP1 Ollama model survey + MedGemma 1.5 pulls → `docs/model_cards.md`;
-  WP2 dataset licenses + LIDC-IDRI pilot download into `data/raw/` → `docs/datasets.md`,
-  `configs/datasets/*.yaml`; WP13 radiologist reading practice + findings knowledge base →
-  `docs/reading_practice.md`, `src/thoraxbench/ontology/clinical_kb.yaml`.
 - ✅ WP13 research: `docs/reading_practice.md`, clinical knowledge base + Fleischner/Lung-RADS
-  rules (`ontology/clinical.py`, `ontology/guidelines.py`); report rendering still open.
+  rules (`ontology/clinical.py`, `ontology/guidelines.py`); research report rendering complete.
 - ✅ WP6 splits + sealed guard (`splits/`).
 - ✅ Schemas + ontology (v0.0.7), DICOM loader + phantoms (v0.0.6), registry (v0.0.5),
   architecture (v0.0.3), bootstrap (v0.0.1).
 
 ## Next steps (in order)
 
-1. Land the WP4/WP5/WP7 worker branches (`scripts/land_branch.sh`).
-2. Commit the dataset registry (`configs/datasets/*.yaml`) and `docs/datasets.md`; port the
-   pilot downloader into `thoraxbench acquire` (license gate, budget, checksums, manifests).
-3. LIDC XML → reference labels + lesions; NSCLC-Radiogenomics labels; study index; freeze the
-   80/20 patient-level split (sealed 20 % stored in `data/sealed/`).
-4. `thoraxbench analyze` end to end on a real study with an Ollama model + the English
-   Markdown clinical report.
-5. Benchmark runner + experiment configs E001–E004 (+ E008 external) + `compare` + report.
-6. **Real runs on the development split** with Ollama models (MedGemma 1.5 Q4/Q8, qwen3-vl,
-   other controls) + heuristic baseline; iterate on prompts/sampling on calibration only;
-   document results in `docs/results.md`.
-7. Web UI per `docs/ui.md` + Playwright e2e + real screenshot (WP9).
-8. `/reviewBranch`, fixes, `/githubAbout`, Vision traceability check (WP12).
+1. Finish live local-model verification and commit/push the tested CLI MVP; MedGemma full
+   schema generation needed a token bound (4096); token-limit termination must abstain.
+2. Preserve the frozen 80/20 holdout; add split/leakage audits as benchmarking expands.
+3. Expand development-only study indexes, then smoke-test `analyze` with local MedGemma on
+   an authorized real development study. Record measured runtime and limitations.
+4. Port acquisition into `thoraxbench acquire` (license gate, budget, checksums, manifests).
+5. Benchmark runner + frozen experiment configs E001–E004 (+ E008 external), compare/reports.
+6. Real development experiments, calibration-only tuning, measured results in `docs/results.md`.
+7. Web UI per `docs/ui.md`, Playwright e2e + screenshot after engine results exist.
+8. Review, GitHub About/topics and Vision traceability check (WP12).
 
 ## Self-review gates
 

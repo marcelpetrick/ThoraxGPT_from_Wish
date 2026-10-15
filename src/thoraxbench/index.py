@@ -3,9 +3,9 @@
 """Study index: one entry per case with reference labels and cached HU cues.
 
 ``thoraxbench index <dataset>`` walks ``data/raw/<dataset>/<patient>/<series>/``, loads each
-study once, derives reference labels and deterministic cues, and writes
-``data/index/<dataset>.json``. Benchmarks then never recompute cues or labels, and the split is
-built from this index (Vision §8: "normalized study index").
+development study once, derives reference labels and deterministic cues, and writes
+``data/index/<dataset>.json``. A frozen split must exist before indexing; sealed studies are
+never opened. Benchmarks then reuse development cues and labels (Vision §8).
 """
 
 from __future__ import annotations
@@ -22,7 +22,7 @@ from thoraxbench.labels import lidc_reference, nsclc_reference
 from thoraxbench.preprocess import HUCues
 from thoraxbench.registry import load_registry, require_acquirable
 from thoraxbench.schemas import ReferenceLabels
-from thoraxbench.splits import CaseRecord
+from thoraxbench.splits import CaseGuard, CaseRecord, Phase, SealedAccessError
 from thoraxbench.study import Study, StudyLoadError, load_study_dir
 
 SUPPORTED = ("lidc_idri", "nsclc_radiogenomics")
@@ -81,20 +81,24 @@ def build_index(
     progress: Callable[[str], None] = lambda _msg: None,
     limit: int | None = None,
 ) -> list[IndexEntry]:
-    """Index every patient folder of an approved, supported dataset.
+    """Index only development folders of an approved dataset with an existing frozen split.
 
     Raises:
         ValueError: if the dataset has no label loader yet.
         thoraxbench.registry.PolicyError: if the dataset is not approved.
+        FileNotFoundError: if the frozen split does not exist.
     """
     if dataset not in SUPPORTED:
         msg = f"no label loader for {dataset}; supported: {', '.join(SUPPORTED)}"
         raise ValueError(msg)
     require_acquirable(load_registry(settings.configs_dir / "datasets")[dataset])
     root = settings.data_path("raw", dataset)
-    patients = sorted(p for p in root.iterdir() if p.is_dir() and not p.name.startswith("_"))
+    guard = CaseGuard.load(settings.data_dir, settings.manifests_dir, dataset)
+    patients = [root / case_id for case_id in guard.cases(Phase.DEVELOPMENT)]
     entries: list[IndexEntry] = []
     for patient_dir in patients[:limit]:
+        guard.check(patient_dir.name, Phase.DEVELOPMENT)
+        _check_case_path(patient_dir, dataset, patient_dir.name, settings)
         try:
             study = load_study_dir(patient_dir, dataset=dataset, case_id=patient_dir.name)
         except StudyLoadError as exc:
@@ -139,8 +143,19 @@ def case_records(entries: dict[str, IndexEntry]) -> list[CaseRecord]:
     ]
 
 
+def _check_case_path(path: Path, dataset: str, case_id: str, settings: Settings) -> None:
+    root = settings.data_path("raw", dataset).resolve()
+    expected = root / case_id
+    if expected.parent != root or path.resolve() != expected or expected.resolve() != expected:
+        msg = f"case {case_id} path is not its development dataset folder"
+        raise SealedAccessError(msg)
+
+
 def open_study(entry: IndexEntry, settings: Settings) -> Study:
-    """Load the study of an index entry and attach its cached cues."""
+    """Load a guarded development study and attach its cached cues."""
+    guard = CaseGuard.load(settings.data_dir, settings.manifests_dir, entry.dataset)
+    guard.check(entry.case_id, Phase.DEVELOPMENT)
+    _check_case_path(settings.data_dir / entry.path, entry.dataset, entry.case_id, settings)
     study = load_study_dir(
         settings.data_dir / entry.path, dataset=entry.dataset, case_id=entry.case_id
     )
