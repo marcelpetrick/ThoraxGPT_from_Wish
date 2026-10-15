@@ -1,0 +1,12 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+id: heuristic-hu
+adapter: heuristic
+family: rules
+view: hu_cues
+capabilities:
+  classification: true
+  probabilities: true
+  localization: true
+license: "GPL-3.0-or-later"
+tier: "control"
+notes: "Deterministic HU-rule baseline."

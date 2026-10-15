@@ -1,0 +1,14 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+id: moondream
+adapter: ollama
+family: moondream
+tag: moondream:latest
+quantization: Q4_0
+view: generic_multislice_v1
+prompt: P3
+capabilities:
+  multi_image: false
+  classification: true
+license: "Apache-2.0"
+tier: "D"
+notes: "Tiny negative control; 2K context."

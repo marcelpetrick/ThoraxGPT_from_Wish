@@ -1,0 +1,17 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+id: qwen3.5-4b
+adapter: ollama
+family: qwen3.5
+tag: qwen3.5:4b
+quantization: Q4_K_M
+options:
+  think: false
+view: generic_multislice_v1
+prompt: P3
+capabilities:
+  multi_image: true
+  classification: true
+  report_generation: true
+license: "Apache-2.0"
+tier: "D"
+notes: "General VLM control; thinking disabled."

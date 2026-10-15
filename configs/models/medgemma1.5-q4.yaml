@@ -1,0 +1,15 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+id: medgemma1.5-q4
+adapter: ollama
+family: medgemma
+tag: medgemma1.5:4b-it-q4_K_M
+quantization: Q4_K_M
+view: medgemma_ct_v1
+prompt: P3
+capabilities:
+  multi_image: true
+  classification: true
+  report_generation: true
+license: "Health AI Developer Foundations terms"
+tier: "A"
+notes: "Primary baseline (Vision §4 Tier A)."

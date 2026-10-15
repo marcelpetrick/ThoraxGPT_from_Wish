@@ -1,0 +1,15 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+id: llama3.2-vision-11b
+adapter: ollama
+family: llama3.2-vision
+tag: llama3.2-vision:11b
+quantization: Q4_K_M
+view: generic_multislice_v1
+prompt: P3
+capabilities:
+  multi_image: false
+  classification: true
+  report_generation: true
+license: "Llama 3.2 Community License"
+tier: "D"
+notes: "Single image per request; use a contact sheet view."

@@ -1,0 +1,12 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+id: radfm
+adapter: http_service
+family: radfm
+service: radfm
+view: m3d_lamed_v1
+capabilities:
+  3d_native: true
+  report_generation: true
+license: "see upstream"
+tier: "B"
+notes: "Historical baseline, low priority."

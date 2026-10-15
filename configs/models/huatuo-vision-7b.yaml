@@ -1,0 +1,13 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+id: huatuo-vision-7b
+adapter: http_service
+family: huatuo-vision
+service: huatuo_vision
+view: generic_multislice_v1
+capabilities:
+  multi_image: true
+  classification: true
+  report_generation: true
+license: "Apache-2.0"
+tier: "C"
+notes: "Medical 2D VLM (PubMedVision)."

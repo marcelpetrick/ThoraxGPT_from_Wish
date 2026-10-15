@@ -1,0 +1,12 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+id: ct-chat
+adapter: http_service
+family: ct-chat
+service: ct_chat
+view: ct_clip_v1
+capabilities:
+  3d_native: true
+  report_generation: true
+license: "CC-BY-NC-SA-4.0"
+tier: "B"
+notes: "High GPU requirements; optional."

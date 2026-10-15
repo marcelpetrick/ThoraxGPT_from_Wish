@@ -1,0 +1,13 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+id: ct-clip
+adapter: http_service
+family: ct-clip
+service: ct_clip
+view: ct_clip_v1
+capabilities:
+  3d_native: true
+  classification: true
+  probabilities: true
+license: "CC-BY-NC-SA-4.0"
+tier: "B"
+notes: "Weights gated on Hugging Face (CT-RATE); trained on CT-RATE (overlap)."

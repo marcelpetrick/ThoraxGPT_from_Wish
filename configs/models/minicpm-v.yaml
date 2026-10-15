@@ -1,0 +1,15 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+id: minicpm-v
+adapter: ollama
+family: minicpm-v
+tag: minicpm-v:latest
+quantization: Q4_0
+view: generic_multislice_v1
+prompt: P3
+capabilities:
+  multi_image: true
+  classification: true
+  report_generation: true
+license: "MiniCPM Model License"
+tier: "D"
+notes: "General VLM control."
