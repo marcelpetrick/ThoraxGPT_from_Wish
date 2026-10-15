@@ -1,0 +1,29 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Dataset registry entry (Vision §6). License facts verified 2026-10-15 on the official pages.
+id: ct_images_in_covid_19
+name: CT Images in COVID-19
+provider: The Cancer Imaging Archive (TCIA), NCI
+modality: CT
+anatomy: thorax
+license: CC-BY-4.0
+license_url: https://creativecommons.org/licenses/by/4.0/
+access: public (no registration)
+redistribution: yes, attribution
+commercial_use: true
+source_url: https://www.cancerimagingarchive.net/collection/ct-images-in-covid-19/
+doi: 10.7937/TCIA.2020.GQRY-NC81
+raw_format: NIfTI (unenhanced chest CT)
+labels:
+- RT-PCR COVID-19 positive (all)
+citation: An, P., Xu, S., Harmon, S. A., Turkbey, E. B., Sanford, T. H., Amalou, A., Kassin, M., Varble,
+  N., Blain, M., Anderson, V., Patella, F., Carrafiello, G., Turkbey, B. T., & Wood, B. J. (2020). CT
+  Images in COVID-19 [Data set]. The Cancer Imaging Archive. https://doi.org/10.7937/TCIA.2020.GQRY-NC81
+status: approved
+parent_datasets: []
+role: candidate
+acquisition:
+  download_method: IBM Aspera (faspex) package -- NOT in NBIA (getSeries returns nothing)
+  size_per_patient: ~22 MB (14.71 GB / 661 pts, NIfTI)
+  verified_on: '2026-10-15'
+notes: 'yes | TCIA Data Usage Policy: no re-identification / contact of participants; acknowledge dataset
+  + DOI | approved (candidate)'

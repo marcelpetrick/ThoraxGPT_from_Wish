@@ -1,0 +1,113 @@
+{
+ "dataset": "nsclc_radiogenomics",
+ "collection": "NSCLC Radiogenomics",
+ "provider": "The Cancer Imaging Archive (TCIA), NBIA",
+ "source_url": "https://www.cancerimagingarchive.net/collection/nsclc-radiogenomics/",
+ "doi": "https://doi.org/10.7937/K9/TCIA.2017.7hs46erv",
+ "source_version": "TCIA Version 4 (2021-06-01)",
+ "downloaded_at": "2026-10-15T19:34:59+00:00",
+ "verified_at": "2026-10-15T19:37:10+00:00",
+ "files": 4431,
+ "bytes": 2361146182,
+ "patients": 27,
+ "series": 54,
+ "series_by_modality": {
+  "CT": 27,
+  "SEG": 27
+ },
+ "sha256_manifest": "_sha256.txt",
+ "sha256_manifest_sha256": "e8c72eab628605eb69c2865e60ca7f0fae7a1f1f7fb09af9bbfd42f9bb83ad2a",
+ "license": "CC-BY-3.0",
+ "license_snapshot": {
+  "file": "_LICENSE_SNAPSHOT.txt",
+  "sha256": "1ee1e4a18c074bcbec4d07875465a116cedd2621757f5a24ccdecd6befa78ccd",
+  "license_url": "https://creativecommons.org/licenses/by/3.0/",
+  "policy_url": "https://www.cancerimagingarchive.net/data-usage-policies-and-restrictions/",
+  "collection_page": "https://www.cancerimagingarchive.net/collection/nsclc-radiogenomics/",
+  "text_excerpt": "# License snapshot for NSCLC Radiogenomics\n# fetched_at: 2026-10-15T19:37:04+00:00\n# license: CC-BY-3.0  https://creativecommons.org/licenses/by/3.0/\n# collection page: https://www.cancerimagingarchive.net/collection/nsclc-radiogenomics/\n# DOI: https://doi.org/10.7937/K9/TCIA.2017.7hs46erv\n# TCIA data usage policy: https://www.cancerimagingarchive.net/data-usage-policies-and-restrictions/\n\n===== LICENSE file shipped inside every NBIA getImage zip =====\nLicense Information. The NSCLC Radiogenomics collection is distributed under the CC BY 3.0 at http://creativecommons.org/licenses/by/3.0/ By downloading the data, you agree to abide by terms of this license.\nData Usage Policy\n\nAny user accessing TCIA data must agree to:\n- Not use the requested datasets, either alone or in concert with any other information, to identify or contact individual participants from whom data and/or samples were collected and follow all other conditions specified in the TCIA Site Disclaimer. Approved Users also agree not to generate and use information (e.g., facial images or comparable representations) in a manner that could allow the identities of research participants to be readily ascertained. These provisions do not apply to research investigators operating with specific IRB approval, pursuant to 45 CFR 46, to contact individuals within datasets or to obtain and use identifying information under an IRB-approved research protocol. All investigators including any Approved User conducting \u201chuman subjects research\u201d within the scope of 45 CFR 46 must comply with the requirements contained therein.\n\n- Acknowledge in all oral or written presentations, disclosures, or publications the specific dataset(s) or applicable accession number(s) and the NIH-designated data repositories through which the investigator accessed any data. Citation guidelines for doing this are outlined below.\n\n- If you are considering mirroring a copy of our publicly available datasets or providing direct access to any of the TCIA data via another tool or website using the REST API (https://wiki.cancerimagingarchive.net/x/NIIiAQ) please review our Data Analysis Centers (DACs) page (https://wiki.cancerimagingarchive.net/x/x49XAQ) for more information. DACs must provide attribution and links back to this TCIA data use policy and must require downstream users to do the same.\n\nThe summary page for every TCIA dataset includes a Citations & Data Usage Policy tab.  Please consult the Citation & Data Usage Policy for each Collection before using them.  \n- Most data are freely available to browse, download, and use for commercial, scientific and educational purposes as outlined in the Creative Commons Attribution 3.0 Unported License or the Creative Commons Attribution 4.0 International License.  In rare circumstances commercial use may be prohibited using Attribution-NonCommercial 3.0 Unported (CC BY-NC 3.0) or Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0). \n\n- Most data are immedia"
+ },
+ "tool_version": "thoraxbench-acquire-prototype 0.1.0; python 3.14.7; httpx 0.28.1",
+ "selection": {
+  "file": "_selection.json",
+  "seed": 20261015,
+  "rule": "Patients whose SEG study contains exactly one CT series: take that CT + the SEG,\nsmallest first until the budget is reached."
+ },
+ "api": {
+  "base": "https://services.cancerimagingarchive.net/nbia-api/services/v1",
+  "endpoints_used": [
+   "https://services.cancerimagingarchive.net/nbia-api/services/v1/getSeries?Collection=NSCLC%20Radiogenomics",
+   "https://services.cancerimagingarchive.net/nbia-api/services/v1/getSeriesSize?SeriesInstanceUID=<uid>",
+   "https://services.cancerimagingarchive.net/nbia-api/services/v1/getImage?SeriesInstanceUID=<uid>"
+  ],
+  "label_urls": [
+   "https://www.cancerimagingarchive.net/wp-content/uploads/NSCLCR01Radiogenomic_DATA_LABELS_2018-05-22_1500-shifted.csv",
+   "https://www.cancerimagingarchive.net/wp-content/uploads/AIM_files_updated-11-10-2020.zip",
+   "https://www.cancerimagingarchive.net/wp-content/uploads/NSCLC_Radiogenomics-6-1-21-Version-4-nbia-digest.xlsx",
+   "https://www.cancerimagingarchive.net/wp-content/uploads/NSCLC_Radiogenomics-6-1-21-Version-4.tcia"
+  ],
+  "series_urls": [
+   "https://services.cancerimagingarchive.net/nbia-api/services/v1/getImage?SeriesInstanceUID=1.3.6.1.4.1.14519.5.2.1.4334.1501.186631586968597236796629173296",
+   "https://services.cancerimagingarchive.net/nbia-api/services/v1/getImage?SeriesInstanceUID=1.3.6.1.4.1.14519.5.2.1.4334.1501.633171473408195110174342247965",
+   "https://services.cancerimagingarchive.net/nbia-api/services/v1/getImage?SeriesInstanceUID=1.3.6.1.4.1.14519.5.2.1.4334.1501.201449711675811751087183808880",
+   "https://services.cancerimagingarchive.net/nbia-api/services/v1/getImage?SeriesInstanceUID=1.3.6.1.4.1.14519.5.2.1.4334.1501.251615934692892343411565055745",
+   "https://services.cancerimagingarchive.net/nbia-api/services/v1/getImage?SeriesInstanceUID=1.3.6.1.4.1.14519.5.2.1.4334.1501.304180700496339805420324471796",
+   "https://services.cancerimagingarchive.net/nbia-api/services/v1/getImage?SeriesInstanceUID=1.3.6.1.4.1.14519.5.2.1.4334.1501.850271654720304148983936668666",
+   "https://services.cancerimagingarchive.net/nbia-api/services/v1/getImage?SeriesInstanceUID=1.3.6.1.4.1.14519.5.2.1.4334.1501.562501298199606691549144721982",
+   "https://services.cancerimagingarchive.net/nbia-api/services/v1/getImage?SeriesInstanceUID=1.3.6.1.4.1.14519.5.2.1.4334.1501.155704685896645017516151761879",
+   "https://services.cancerimagingarchive.net/nbia-api/services/v1/getImage?SeriesInstanceUID=1.3.6.1.4.1.14519.5.2.1.4334.1501.278600013075058328269275061899",
+   "https://services.cancerimagingarchive.net/nbia-api/services/v1/getImage?SeriesInstanceUID=1.3.6.1.4.1.14519.5.2.1.4334.1501.236934125133932841296284122243",
+   "https://services.cancerimagingarchive.net/nbia-api/services/v1/getImage?SeriesInstanceUID=1.3.6.1.4.1.14519.5.2.1.4334.1501.137861564599845711151768978695",
+   "https://services.cancerimagingarchive.net/nbia-api/services/v1/getImage?SeriesInstanceUID=1.3.6.1.4.1.14519.5.2.1.4334.1501.197913670036255193896317641193",
+   "https://services.cancerimagingarchive.net/nbia-api/services/v1/getImage?SeriesInstanceUID=1.3.6.1.4.1.14519.5.2.1.4334.1501.319618333625532847261648128067",
+   "https://services.cancerimagingarchive.net/nbia-api/services/v1/getImage?SeriesInstanceUID=1.3.6.1.4.1.14519.5.2.1.4334.1501.255242772539556242435680746141",
+   "https://services.cancerimagingarchive.net/nbia-api/services/v1/getImage?SeriesInstanceUID=1.3.6.1.4.1.14519.5.2.1.4334.1501.483294612070875432039987483084",
+   "https://services.cancerimagingarchive.net/nbia-api/services/v1/getImage?SeriesInstanceUID=1.3.6.1.4.1.14519.5.2.1.4334.1501.354326535727109329351973410848",
+   "https://services.cancerimagingarchive.net/nbia-api/services/v1/getImage?SeriesInstanceUID=1.3.6.1.4.1.14519.5.2.1.4334.1501.253240712764358425552251645555",
+   "https://services.cancerimagingarchive.net/nbia-api/services/v1/getImage?SeriesInstanceUID=1.3.6.1.4.1.14519.5.2.1.4334.1501.127264693790237012737408747324",
+   "https://services.cancerimagingarchive.net/nbia-api/services/v1/getImage?SeriesInstanceUID=1.3.6.1.4.1.14519.5.2.1.4334.1501.297478488420296422094947251745",
+   "https://services.cancerimagingarchive.net/nbia-api/services/v1/getImage?SeriesInstanceUID=1.3.6.1.4.1.14519.5.2.1.4334.1501.677314703986158619631599317345",
+   "https://services.cancerimagingarchive.net/nbia-api/services/v1/getImage?SeriesInstanceUID=1.3.6.1.4.1.14519.5.2.1.4334.1501.103249989455637283084890164035",
+   "https://services.cancerimagingarchive.net/nbia-api/services/v1/getImage?SeriesInstanceUID=1.3.6.1.4.1.14519.5.2.1.4334.1501.261975400711369336542586381832",
+   "https://services.cancerimagingarchive.net/nbia-api/services/v1/getImage?SeriesInstanceUID=1.3.6.1.4.1.14519.5.2.1.4334.1501.169301374200230628616988932453",
+   "https://services.cancerimagingarchive.net/nbia-api/services/v1/getImage?SeriesInstanceUID=1.3.6.1.4.1.14519.5.2.1.4334.1501.223365470935387458468691878564",
+   "https://services.cancerimagingarchive.net/nbia-api/services/v1/getImage?SeriesInstanceUID=1.3.6.1.4.1.14519.5.2.1.4334.1501.673972728333463465668419775577",
+   "https://services.cancerimagingarchive.net/nbia-api/services/v1/getImage?SeriesInstanceUID=1.3.6.1.4.1.14519.5.2.1.4334.1501.324672653812552595334515123018",
+   "https://services.cancerimagingarchive.net/nbia-api/services/v1/getImage?SeriesInstanceUID=1.3.6.1.4.1.14519.5.2.1.4334.1501.285445474755391961213363755618",
+   "https://services.cancerimagingarchive.net/nbia-api/services/v1/getImage?SeriesInstanceUID=1.3.6.1.4.1.14519.5.2.1.4334.1501.183695468208989997548864990532",
+   "https://services.cancerimagingarchive.net/nbia-api/services/v1/getImage?SeriesInstanceUID=1.3.6.1.4.1.14519.5.2.1.4334.1501.226139906994534596835840540617",
+   "https://services.cancerimagingarchive.net/nbia-api/services/v1/getImage?SeriesInstanceUID=1.3.6.1.4.1.14519.5.2.1.4334.1501.122223435654911489534194180367",
+   "https://services.cancerimagingarchive.net/nbia-api/services/v1/getImage?SeriesInstanceUID=1.3.6.1.4.1.14519.5.2.1.4334.1501.159138041453099081477616146218",
+   "https://services.cancerimagingarchive.net/nbia-api/services/v1/getImage?SeriesInstanceUID=1.3.6.1.4.1.14519.5.2.1.4334.1501.466777020405821972940678710657",
+   "https://services.cancerimagingarchive.net/nbia-api/services/v1/getImage?SeriesInstanceUID=1.3.6.1.4.1.14519.5.2.1.4334.1501.590080933534717737043935982225",
+   "https://services.cancerimagingarchive.net/nbia-api/services/v1/getImage?SeriesInstanceUID=1.3.6.1.4.1.14519.5.2.1.4334.1501.344285999628662193391060749726",
+   "https://services.cancerimagingarchive.net/nbia-api/services/v1/getImage?SeriesInstanceUID=1.3.6.1.4.1.14519.5.2.1.4334.1501.366121226552397218563321681047",
+   "https://services.cancerimagingarchive.net/nbia-api/services/v1/getImage?SeriesInstanceUID=1.3.6.1.4.1.14519.5.2.1.4334.1501.585936563532052068866069000476",
+   "https://services.cancerimagingarchive.net/nbia-api/services/v1/getImage?SeriesInstanceUID=1.3.6.1.4.1.14519.5.2.1.4334.1501.208564813141655649632003079119",
+   "https://services.cancerimagingarchive.net/nbia-api/services/v1/getImage?SeriesInstanceUID=1.3.6.1.4.1.14519.5.2.1.4334.1501.206897074720028403888566021443",
+   "https://services.cancerimagingarchive.net/nbia-api/services/v1/getImage?SeriesInstanceUID=1.3.6.1.4.1.14519.5.2.1.4334.1501.266295160644771145484017758571",
+   "https://services.cancerimagingarchive.net/nbia-api/services/v1/getImage?SeriesInstanceUID=1.3.6.1.4.1.14519.5.2.1.4334.1501.476990039931604624534123588542",
+   "https://services.cancerimagingarchive.net/nbia-api/services/v1/getImage?SeriesInstanceUID=1.3.6.1.4.1.14519.5.2.1.4334.1501.314350671053848747341104890875",
+   "https://services.cancerimagingarchive.net/nbia-api/services/v1/getImage?SeriesInstanceUID=1.3.6.1.4.1.14519.5.2.1.4334.1501.235086157378334951049483993101",
+   "https://services.cancerimagingarchive.net/nbia-api/services/v1/getImage?SeriesInstanceUID=1.3.6.1.4.1.14519.5.2.1.4334.1501.261920905043113024443478036775",
+   "https://services.cancerimagingarchive.net/nbia-api/services/v1/getImage?SeriesInstanceUID=1.3.6.1.4.1.14519.5.2.1.4334.1501.538888637331487045916385393776",
+   "https://services.cancerimagingarchive.net/nbia-api/services/v1/getImage?SeriesInstanceUID=1.3.6.1.4.1.14519.5.2.1.4334.1501.109043909387205980840423289431",
+   "https://services.cancerimagingarchive.net/nbia-api/services/v1/getImage?SeriesInstanceUID=1.3.6.1.4.1.14519.5.2.1.4334.1501.116747927455552211266071188180",
+   "https://services.cancerimagingarchive.net/nbia-api/services/v1/getImage?SeriesInstanceUID=1.3.6.1.4.1.14519.5.2.1.4334.1501.116535782371384563999005119339",
+   "https://services.cancerimagingarchive.net/nbia-api/services/v1/getImage?SeriesInstanceUID=1.3.6.1.4.1.14519.5.2.1.4334.1501.327346275742794291673561090224",
+   "https://services.cancerimagingarchive.net/nbia-api/services/v1/getImage?SeriesInstanceUID=1.3.6.1.4.1.14519.5.2.1.4334.1501.317283051763830572362805785635",
+   "https://services.cancerimagingarchive.net/nbia-api/services/v1/getImage?SeriesInstanceUID=1.3.6.1.4.1.14519.5.2.1.4334.1501.205992043328023380287589535150",
+   "https://services.cancerimagingarchive.net/nbia-api/services/v1/getImage?SeriesInstanceUID=1.3.6.1.4.1.14519.5.2.1.4334.1501.173712899802800085536546370759",
+   "https://services.cancerimagingarchive.net/nbia-api/services/v1/getImage?SeriesInstanceUID=1.3.6.1.4.1.14519.5.2.1.4334.1501.401100128120943407389963602580",
+   "https://services.cancerimagingarchive.net/nbia-api/services/v1/getImage?SeriesInstanceUID=1.3.6.1.4.1.14519.5.2.1.4334.1501.286497645200236630433157358364",
+   "https://services.cancerimagingarchive.net/nbia-api/services/v1/getImage?SeriesInstanceUID=1.3.6.1.4.1.14519.5.2.1.4334.1501.236292275387776172223368783337"
+  ],
+  "full_call_log": "_api_log.jsonl"
+ },
+ "previous_run_results": {
+  "downloaded": 54
+ },
+ "run_results": {
+  "downloaded": 54
+ },
+ "run_history": "initial run: downloaded=54, errors=0; later --manifest-only rebuilds (license snapshot text cleanup)"
+}

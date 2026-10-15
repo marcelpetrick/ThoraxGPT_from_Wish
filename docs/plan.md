@@ -57,13 +57,13 @@ Status: ✅ done · 🔄 in progress · ⏳ open · ✖ dropped
 |---|---|---|---|
 | ✅ WP0 | Repo bootstrap: LICENSE, README, AGENTS.md, pyproject, `localPipeline.sh`, CI, version script | 7, 30, 31-M0 | lead |
 | 🔄 WP1 | Model research and Ollama pulls (MedGemma Q4/Q8, controls), feasibility of 3D models | 4, 22 | research agent |
-| 🔄 WP2 | Dataset research, license registry, acquisition of a ≤10 GB LIDC-IDRI pilot | 5, 6, 8, 27 | data agent |
+| 🔄 WP2 | Dataset research ✅, license registry ✅ (16 sources), pilot ✅ (LIDC 60 pts + NSCLC-Radiogenomics 27 pts, 6.7 GB), `thoraxbench acquire` port ⏳ | 5, 6, 8, 27 | data agent |
 | ✅ WPA | Architecture (C4 + flowcharts) in `docs/architecture.md` — before deeper work | 7, 17 | lead |
 | 🔄 WP3 | Core: config/registry ✅, policy gate ✅, DICOM discovery/geometry/HU/QC ✅, synthetic phantoms ✅ | 6, 8, 9 | lead / agents |
 | ⏳ WP4 | Sampling S1–S6, windows, rendering views | 10 | agent |
 | ⏳ WP5 | Schemas, ontology, prompts P0–P4, adapters (Ollama, HTTP 3D service, mock) | 11, 12, 17, 19 | agent |
 | 🔄 WP6 | Splits and sealing ✅ (CaseGuard, freeze), leakage tracking ⏳ | 14, 15, 16 | lead |
-| ⏳ WP7 | Scoring (A–G), calibration, bootstrap CIs, perf measurements, provenance | 13, 20, 21, 24 | agent |
+| ✅ WP7 | Scoring (A–G), calibration, bootstrap CIs, perf measurements, provenance | 13, 20, 21, 24 | agent |
 | ⏳ WP8 | Benchmark runner, experiments E001–E008 configs, compare, reports | 18, 25, 26 | agent |
 | 🔄 WP9 | Web UI (concept ✅ in `docs/ui.md`: CLI = engine, local FastAPI+Jinja2+HTMX UI = review layer), implementation, Playwright e2e, screenshot | 18 | lead |
 | ✖ WP10 | ~~Docker, compose, GHCR workflow~~ — dropped at the user's request | 17 | — |
@@ -79,7 +79,8 @@ from here**: read this section and *Next steps*, then `git log --oneline | head 
 - ✅ UI ideation + concept: `docs/ui.md` (decision: CLI is the engine; local-only web UI
   with FastAPI + Jinja2 + vendored HTMX for review; Playwright e2e + README screenshot).
 - ✅ Data pilot downloaded (outside Git): LIDC-IDRI 60 patients 4.3 GB, NSCLC-Radiogenomics
-  27 patients 2.4 GB (both CC BY 3.0), checksummed; registry + docs being committed.
+  27 patients 2.4 GB (both CC BY 3.0), checksummed; registry (`configs/datasets/`) + `docs/datasets.md` + `manifests/datasets/` committed.
+- ✅ WP7 scoring (tasks A–G, bootstrap), calibration (sealed-safe), perf, provenance landed.
 - 🔄 Wrap-up requested by the user: all workers commit their green state; the lead lands each
   branch with `scripts/land_branch.sh <branch>`.
 - 🔄 Fan-out of parallel work packages (git worktrees, landed on `main` by the lead):

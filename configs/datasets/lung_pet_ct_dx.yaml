@@ -1,0 +1,30 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Dataset registry entry (Vision §6). License facts verified 2026-10-15 on the official pages.
+id: lung_pet_ct_dx
+name: Lung-PET-CT-Dx
+provider: The Cancer Imaging Archive (TCIA), NCI
+modality: CT
+anatomy: thorax
+license: CC-BY-4.0
+license_url: https://creativecommons.org/licenses/by/4.0/
+access: public (no registration)
+redistribution: yes, attribution
+commercial_use: true
+source_url: https://www.cancerimagingarchive.net/collection/lung-pet-ct-dx/
+doi: 10.7937/TCIA.2020.NNC2-0461
+raw_format: DICOM CT, PET + XML bbox
+labels:
+- tumor bounding boxes (PASCAL-VOC XML)
+- 'histology: adenocarcinoma/small-cell/large-cell/squamous'
+citation: Li, P., Wang, S., Li, T., Lu, J., HuangFu, Y., & Wang, D. (2020). A Large-Scale CT and PET/CT
+  Dataset for Lung Cancer Diagnosis (Lung-PET-CT-Dx) [Data set]. The Cancer Imaging Archive. https://doi.org/10.7937/TCIA.2020.NNC2-0461
+status: approved
+parent_datasets: []
+role: candidate
+acquisition:
+  download_method: TCIA NBIA REST API v1 (getSeries / getSeriesSize / getImage?SeriesInstanceUID=), or
+    TCIA Data Retriever with the .tcia manifest; no login
+  size_per_patient: ~350 MB (123 GB CT / 355 pts)
+  verified_on: '2026-10-15'
+notes: 'yes | TCIA Data Usage Policy: no re-identification / contact of participants; acknowledge dataset
+  + DOI | approved (candidate)'

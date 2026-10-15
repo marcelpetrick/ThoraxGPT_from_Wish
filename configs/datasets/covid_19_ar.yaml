@@ -1,0 +1,32 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Dataset registry entry (Vision §6). License facts verified 2026-10-15 on the official pages.
+id: covid_19_ar
+name: COVID-19-AR
+provider: The Cancer Imaging Archive (TCIA), NCI
+modality: CT
+anatomy: thorax
+license: CC-BY-4.0
+license_url: https://creativecommons.org/licenses/by/4.0/
+access: public (no registration)
+redistribution: yes, attribution
+commercial_use: true
+source_url: https://www.cancerimagingarchive.net/collection/covid-19-ar/
+doi: 10.7937/tcia.2020.py71-5978
+raw_format: DICOM CT, CR, DX
+labels:
+- RT-PCR COVID-19 positive (all)
+- 'clinical correlates xlsx: admission, ventilation, mortality'
+citation: Desai, S., Baghal, A., Wongsurawat, T., Al-Shukri, S., Gates, K., Farmer, P., Rutherford, M.,
+  Blake, G.D., Nolan, T., Powell, T., Sexton, K., Bennett, W., Prior, F. (2020). Data from Chest Imaging
+  with Clinical and Genomic Correlates Representing a Rural COVID-19 Positive Population [Data set]. The
+  Cancer Imaging Archive. https://doi.org/10.7937/tcia.2020.py71-5978
+status: approved
+parent_datasets: []
+role: candidate
+acquisition:
+  download_method: TCIA NBIA REST API v1 (getSeries / getSeriesSize / getImage?SeriesInstanceUID=), or
+    TCIA Data Retriever with the .tcia manifest; no login
+  size_per_patient: ~160 MB CT (16.7 GB CT / 105 pts; plus CR/DX)
+  verified_on: '2026-10-15'
+notes: 'yes | TCIA Data Usage Policy: no re-identification / contact of participants; acknowledge dataset
+  + DOI | approved'

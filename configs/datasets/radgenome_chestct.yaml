@@ -1,0 +1,34 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Dataset registry entry (Vision §6). License facts verified 2026-10-15 on the official pages.
+id: radgenome_chestct
+name: RadGenome-ChestCT
+provider: RadGenome team (Hugging Face)
+modality: CT
+anatomy: thorax
+license: CC-BY-4.0
+license_url: null
+access: HF API currently reports gated=False (2026-10-15), but card carries extra_gated_prompt terms;
+  images are CT-RATE volumes (gated) -- only masks/reports here
+redistribution: no (per card terms)
+commercial_use: false
+source_url: https://huggingface.co/datasets/RadGenome/RadGenome-ChestCT
+doi: 10.57967/hf/5331
+raw_format: NIfTI segmentation masks + parquet/JSON grounded reports & VQA
+labels:
+- 197-class organ/region segmentation masks
+- 665K sentence-level grounded reports
+- 1.3M grounded VQA pairs
+citation: 'Zhang, X., Wu, C., Zhao, Z., Lei, J., Zhang, Y., Wang, Y., Xie, W. RadGenome-Chest CT: A Grounded
+  Vision-Language Dataset for Chest CT Analysis. arXiv:2404.16754 (2024); and CT-CLIP arXiv:2403.17834'
+status: pending_terms_review
+parent_datasets:
+- ct_rate
+role: development
+acquisition:
+  download_method: huggingface_hub (needs CT-RATE volumes separately, which are gated); not downloaded
+    here
+  size_per_patient: 1.32 TB total (masks + parquet reports), CT volumes come from CT-RATE
+  verified_on: '2026-10-15'
+notes: 'unclear -> treat as research-only | pending_terms_review (license tag vs. terms conflict) | license
+  detail: CC-BY-4.0 (metadata tag) BUT card terms copied from CT-RATE: research/educational only, no commercial
+  exploitation, no redistribution'

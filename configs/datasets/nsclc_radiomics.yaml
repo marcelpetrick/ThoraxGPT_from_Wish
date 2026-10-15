@@ -1,0 +1,33 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Dataset registry entry (Vision §6). License facts verified 2026-10-15 on the official pages.
+id: nsclc_radiomics
+name: NSCLC-Radiomics (Lung1)
+provider: The Cancer Imaging Archive (TCIA), NCI
+modality: CT
+anatomy: thorax
+license: CC-BY-NC-3.0
+license_url: https://creativecommons.org/licenses/by-nc/3.0/
+access: public (no registration)
+redistribution: yes, non-commercial, with attribution
+commercial_use: false
+source_url: https://www.cancerimagingarchive.net/collection/nsclc-radiomics/
+doi: 10.7937/K9/TCIA.2015.PF0M9REI
+raw_format: DICOM CT, RTSTRUCT, SEG
+labels:
+- GTV-1 + organs-at-risk RTSTRUCT/SEG
+- 'clinical CSV: histology, TNM stage, survival'
+citation: Aerts, H. J. W. L., Wee, L., Rios Velazquez, E., Leijenaar, R. T. H., Parmar, C., Grossmann,
+  P., Carvalho, S., Bussink, J., Monshouwer, R., Haibe-Kains, B., Rietveld, D., Hoebers, F., Rietbergen,
+  M. M., Leemans, C. R., Dekker, A., Quackenbush, J., Gillies, R. J., Lambin, P. (2014). Data From NSCLC-Radiomics
+  (version 4) [Data set]. The Cancer Imaging Archive. https://doi.org/10.7937/K9/TCIA.2015.PF0M9REI
+status: approved_noncommercial
+parent_datasets: []
+role: candidate
+acquisition:
+  download_method: TCIA NBIA REST API v1 (getSeries / getSeriesSize / getImage?SeriesInstanceUID=), or
+    TCIA Data Retriever with the .tcia manifest; no login
+  size_per_patient: ~85 MB (35.78 GB / 422 pts)
+  source_version: Version 4 (2020-10-22)
+  verified_on: '2026-10-15'
+notes: 'yes (NC) | TCIA Data Usage Policy: no re-identification / contact of participants; acknowledge
+  dataset + DOI | approved_noncommercial'

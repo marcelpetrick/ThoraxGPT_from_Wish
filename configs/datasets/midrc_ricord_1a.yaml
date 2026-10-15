@@ -1,0 +1,32 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Dataset registry entry (Vision §6). License facts verified 2026-10-15 on the official pages.
+id: midrc_ricord_1a
+name: MIDRC-RICORD-1A (Chest CT COVID-positive, annotated)
+provider: The Cancer Imaging Archive (TCIA), NCI
+modality: CT
+anatomy: thorax
+license: CC-BY-NC-4.0
+license_url: https://creativecommons.org/licenses/by-nc/4.0/
+access: public (no registration)
+redistribution: yes, non-commercial, attribution
+commercial_use: false
+source_url: https://www.cancerimagingarchive.net/collection/midrc-ricord-1a/
+doi: 10.7937/VTW4-X588
+raw_format: DICOM CT + JSON annotations
+labels:
+- expert per-slice segmentation/labels of COVID-related opacities (MD.ai JSON)
+- study-level classification (typical/indeterminate/atypical/negative)
+- clinical xlsx
+citation: Tsai, E., Simpson, S., Lungren, M.P., et al. (2020). Data from the Medical Imaging Data Resource
+  Center - RSNA International COVID Radiology Database Release 1a - Chest CT Covid+ (MIDRC-RICORD-1A).
+  The Cancer Imaging Archive. https://doi.org/10.7937/VTW4-X588
+status: approved_noncommercial
+parent_datasets: []
+role: candidate
+acquisition:
+  download_method: TCIA NBIA REST API v1 (getSeries / getSeriesSize / getImage?SeriesInstanceUID=), or
+    TCIA Data Retriever with the .tcia manifest; no login
+  size_per_patient: ~106 MB (11.7 GB / 110 pts)
+  verified_on: '2026-10-15'
+notes: 'yes (NC) | TCIA Data Usage Policy: no re-identification / contact of participants; acknowledge
+  dataset + DOI | approved_noncommercial'

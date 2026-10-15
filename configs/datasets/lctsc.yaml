@@ -1,0 +1,30 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Dataset registry entry (Vision §6). License facts verified 2026-10-15 on the official pages.
+id: lctsc
+name: Lung CT Segmentation Challenge 2017 (LCTSC)
+provider: The Cancer Imaging Archive (TCIA), NCI
+modality: CT
+anatomy: thorax
+license: CC-BY-3.0
+license_url: https://creativecommons.org/licenses/by/3.0/
+access: public (no registration)
+redistribution: yes, attribution
+commercial_use: true
+source_url: https://www.cancerimagingarchive.net/collection/lctsc/
+doi: 10.7937/K9/TCIA.2017.3R3FVZ08
+raw_format: DICOM CT + RTSTRUCT
+labels:
+- organ-at-risk RTSTRUCT (lungs, heart, esophagus, spinal cord)
+citation: Yang, J., Sharp, G., Veeraraghavan, H., Van Elmpt, W., Dekker, A., Lustberg, T., & Gooding,
+  M. (2017). Data from Lung CT Segmentation Challenge (LCTSC) (Version 3) [Data set]. The Cancer Imaging
+  Archive. https://doi.org/10.7937/K9/TCIA.2017.3R3FVZ08
+status: approved
+parent_datasets: []
+role: candidate
+acquisition:
+  download_method: TCIA NBIA REST API v1 (getSeries / getSeriesSize / getImage?SeriesInstanceUID=), or
+    TCIA Data Retriever with the .tcia manifest; no login
+  size_per_patient: ~83 MB (5.0 GB / 60 pts)
+  verified_on: '2026-10-15'
+notes: 'yes | TCIA Data Usage Policy: no re-identification / contact of participants; acknowledge dataset
+  + DOI | approved (candidate)'

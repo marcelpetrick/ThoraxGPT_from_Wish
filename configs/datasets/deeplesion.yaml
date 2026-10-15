@@ -1,0 +1,30 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Dataset registry entry (Vision §6). License facts verified 2026-10-15 on the official pages.
+id: deeplesion
+name: DeepLesion
+provider: NIH Clinical Center
+modality: CT
+anatomy: thorax
+license: UNVERIFIED
+license_url: null
+access: public (historically NIH Box, no login); currently unreachable
+redistribution: unverified
+commercial_use: false
+source_url: https://nihcc.app.box.com/v/DeepLesion
+doi: 10.1117/1.JMI.5.3.036501 (paper)
+raw_format: 16-bit PNG slices + DL_info.csv
+labels:
+- RECIST-diameter bounding boxes for 32,735 lesions
+- coarse lesion type (lung, mediastinum, liver, ...)
+citation: 'Yan, K., Wang, X., Lu, L., Summers, R.M. (2018). DeepLesion: automated mining of large-scale
+  lesion annotations and universal lesion detection with deep learning. J. Med. Imaging 5(3):036501. https://doi.org/10.1117/1.JMI.5.3.036501'
+status: pending_terms_review
+parent_datasets: []
+role: candidate
+acquisition:
+  download_method: NIH Box zip parts (batch_download_zips.py) -- link dead at check time
+  size_per_patient: ~221 GB total key slices +/- context (32,120 slices / 4,427 pts); not volumetric,
+    multi-region (not thorax-only)
+  verified_on: '2026-10-15'
+notes: 'unverified | candidate / license-review-required (keep) | license detail: UNVERIFIED (secondary
+  sources claim CC-BY-NC-SA-4.0 or ''other''; official Box link returned HTTP 404 on 2026-10-15)'

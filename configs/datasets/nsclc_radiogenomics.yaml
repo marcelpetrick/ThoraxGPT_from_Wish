@@ -1,0 +1,37 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Dataset registry entry (Vision §6). License facts verified 2026-10-15 on the official pages.
+id: nsclc_radiogenomics
+name: NSCLC Radiogenomics
+provider: The Cancer Imaging Archive (TCIA), NCI
+modality: CT
+anatomy: thorax
+license: CC-BY-3.0
+license_url: https://creativecommons.org/licenses/by/3.0/
+access: public (no registration)
+redistribution: yes, with attribution
+commercial_use: true
+source_url: https://www.cancerimagingarchive.net/collection/nsclc-radiogenomics/
+doi: 10.7937/K9/TCIA.2017.7hs46erv
+raw_format: DICOM CT, PET, DICOM-SEG
+labels:
+- DICOM-SEG tumor segmentation (144 pts, R01 cohort)
+- AIM semantic annotations
+- 'clinical: histology, stage, smoking, survival/recurrence'
+- EGFR/KRAS/ALK mutation status
+- (RNA-seq at GEO GSE103584)
+citation: 'Bakr, S., Gevaert, O., Echegaray, S., Ayers, K., Zhou, M., Shafiq, M., Zheng, H., Zhang, W.,
+  Leung, A., Kadoch, M., Shrager, J., Quon, A., Rubin, D., Plevritis, S., & Napel, S. (2017). Data for
+  NSCLC Radiogenomics (Version 4) [Data set]. The Cancer Imaging Archive. https://doi.org/10.7937/K9/TCIA.2017.7hs46erv
+  ; publication: Bakr et al., Sci Data 5:180202 (2018) https://doi.org/10.1038/sdata.2018.202'
+status: approved
+parent_datasets: []
+role: external_test
+acquisition:
+  download_method: TCIA NBIA REST API v1 (getSeries / getSeriesSize / getImage?SeriesInstanceUID=), or
+    TCIA Data Retriever with the .tcia manifest; no login
+  size_per_patient: ~465 MB (98 GB / 211 pts incl. PET); CT series median ~120 MB
+  source_version: Version 4 (2021-06-01)
+  verified_on: '2026-10-15'
+  pilot_downloaded: true
+notes: 'yes | TCIA Data Usage Policy: no re-identification / contact of participants; acknowledge dataset
+  + DOI | approved'

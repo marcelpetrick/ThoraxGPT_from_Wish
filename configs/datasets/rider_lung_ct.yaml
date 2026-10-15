@@ -1,0 +1,31 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Dataset registry entry (Vision §6). License facts verified 2026-10-15 on the official pages.
+id: rider_lung_ct
+name: RIDER Lung CT
+provider: The Cancer Imaging Archive (TCIA), NCI
+modality: CT
+anatomy: thorax
+license: CC-BY-4.0
+license_url: https://creativecommons.org/licenses/by/4.0/
+access: public (no registration)
+redistribution: yes, attribution
+commercial_use: true
+source_url: https://www.cancerimagingarchive.net/collection/rider-lung-ct/
+doi: 10.7937/K9/TCIA.2015.U1X8A5NR
+raw_format: DICOM CT, SEG, SR, PR
+labels:
+- lesion SEG / measurements (test-retest)
+citation: Zhao, B., Schwartz, L. H., Kris, M. G., & Riely, G. J. (2015). Coffee-break lung CT collection
+  with scan images reconstructed at multiple imaging parameters (Version 3) [Dataset]. The Cancer Imaging
+  Archive. https://doi.org/10.7937/k9/tcia.2015.u1x8a5nr
+status: approved
+parent_datasets: []
+role: candidate
+acquisition:
+  download_method: TCIA NBIA REST API v1 (getSeries / getSeriesSize / getImage?SeriesInstanceUID=), or
+    TCIA Data Retriever with the .tcia manifest; no login
+  size_per_patient: ~1.3 GB (43 GB / 32 pts, many recons)
+  verified_on: '2026-10-15'
+notes: 'yes | TCIA Data Usage Policy: no re-identification / contact of participants; acknowledge dataset
+  + DOI | approved (candidate) | license detail: CC-BY-4.0 (images, v3 2024); lesion-notes XLS listed
+  as CC-BY-3.0'

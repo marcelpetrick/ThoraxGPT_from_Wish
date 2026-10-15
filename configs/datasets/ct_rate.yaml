@@ -1,0 +1,37 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Dataset registry entry (Vision §6). License facts verified 2026-10-15 on the official pages.
+id: ct_rate
+name: CT-RATE
+provider: Hamamci et al. / Forithmus (Hugging Face)
+modality: CT
+anatomy: thorax
+license: CC-BY-NC-SA-4.0
+license_url: null
+access: gated (HF login + accept terms + share contact info; HF API gated='auto')
+redistribution: 'no'
+commercial_use: false
+source_url: https://huggingface.co/datasets/ibrahimhamamci/CT-RATE
+doi: null
+raw_format: NIfTI (.nii.gz) + CSV metadata
+labels:
+- free-text radiology reports
+- 18 multi-abnormality labels (report-derived)
+- metadata
+- VQA pairs (CT-CHAT)
+- official train/validation split
+citation: Hamamci, I.E., Er, S., Wang, C., Almas, F., Simsek, A.G., Esirgun, S.N., Dogan, I., Durugol,
+  O.F., Hou, B., Shit, S., et al. Generalist foundation models from a multimodal dataset for 3D computed
+  tomography. Nature Biomedical Engineering (2026). (also arXiv:2403.17834)
+status: pending_access
+parent_datasets: []
+role: development
+acquisition:
+  download_method: 'huggingface_hub snapshot_download / hf CLI with HF_TOKEN after accepting terms (NOT
+    possible here: no token)'
+  size_per_patient: ~0.4 GB per NIfTI volume (21.3 TB / 50,188 volumes incl. reconstructions; 25,692 scans,
+    21,304 patients)
+  verified_on: '2026-10-15'
+notes: 'HF gated terms: academic/research/educational use only; commercial exploitation without prior
+  permission forbidden; redistribution of the dataset or any portion not allowed; no re-identification
+  | share-alike (NC-SA) + terms restrict sharing derived data | approved_noncommercial (gated; documented
+  only, not downloaded)'

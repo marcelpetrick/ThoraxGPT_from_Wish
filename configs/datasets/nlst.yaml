@@ -1,0 +1,30 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Dataset registry entry (Vision §6). License facts verified 2026-10-15 on the official pages.
+id: nlst
+name: National Lung Screening Trial (NLST) CT
+provider: The Cancer Imaging Archive (TCIA), NCI
+modality: CT
+anatomy: thorax
+license: CC-BY-4.0
+license_url: https://creativecommons.org/licenses/by/4.0/
+access: public (images + publicly distributable clinical subset); full clinical data via NCI CDAS (application)
+redistribution: yes, attribution
+commercial_use: true
+source_url: https://www.cancerimagingarchive.net/collection/nlst/
+doi: 10.7937/TCIA.HMQ8-J677
+raw_format: DICOM CT (low-dose screening)
+labels:
+- 'public clinical subset (package-nlst-780.2021-05-28.zip): screening abnormalities incl. non-nodule
+  findings, lung cancer diagnosis/follow-up'
+citation: National Lung Screening Trial Research Team. (2013). Data from the National Lung Screening Trial
+  (NLST) [Data set]. The Cancer Imaging Archive. https://doi.org/10.7937/TCIA.HMQ8-J677
+status: approved
+parent_datasets: []
+role: candidate
+acquisition:
+  download_method: TCIA NBIA REST API v1 (getSeries / getSeriesSize / getImage?SeriesInstanceUID=), or
+    TCIA Data Retriever with the .tcia manifest; no login
+  size_per_patient: ~450 MB (11.92 TB / 26,254 pts, multiple screening rounds/recons)
+  verified_on: '2026-10-15'
+notes: 'yes | TCIA Data Usage Policy: no re-identification / contact of participants; acknowledge dataset
+  + DOI | approved (candidate)'

@@ -1,0 +1,40 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Dataset registry entry (Vision §6). License facts verified 2026-10-15 on the official pages.
+id: lidc_idri
+name: LIDC-IDRI
+provider: The Cancer Imaging Archive (TCIA), NCI
+modality: CT
+anatomy: thorax
+license: CC-BY-3.0
+license_url: https://creativecommons.org/licenses/by/3.0/
+access: public (no registration)
+redistribution: yes, with attribution (CC BY 3.0) + TCIA policy (DACs mirroring must link back to TCIA
+  policy)
+commercial_use: true
+source_url: https://www.cancerimagingarchive.net/collection/lidc-idri/
+doi: 10.7937/K9/TCIA.2015.LO9QL9SX
+raw_format: DICOM CT (+ a few CR/DX) ; XML reader annotations
+labels:
+- 4-reader nodule markup XML (nodule >=3 mm contours + 9 characteristics incl. malignancy 1-5; nodule
+  <3 mm centroids; non-nodule >=3 mm centroids)
+- per-patient nodule counts xlsx
+- patient-level diagnosis for a subset (tcia-diagnosis-data-2012-04-20.xls)
+citation: 'Armato III, S. G., McLennan, G., Bidaut, L., McNitt-Gray, M. F., Meyer, C. R., Reeves, A. P.,
+  Zhao, B., Aberle, D. R., Henschke, C. I., Hoffman, E. A., Kazerooni, E. A., MacMahon, H., Van Beek,
+  E. J. R., Yankelevitz, D., et al. (2015). Data From LIDC-IDRI [Data set]. The Cancer Imaging Archive.
+  https://doi.org/10.7937/K9/TCIA.2015.LO9QL9SX ; plus publication Armato et al., Med Phys 38(2):915-931
+  (2011) https://doi.org/10.1118/1.3528204 ; plus acknowledgement: ''The authors acknowledge the National
+  Cancer Institute and the Foundation for the National Institutes of Health, and their critical role in
+  the creation of the free publicly available LIDC/IDRI Database used in this study.'''
+status: approved
+parent_datasets: []
+role: development
+acquisition:
+  download_method: TCIA NBIA REST API v1 (getSeries / getSeriesSize / getImage?SeriesInstanceUID=), or
+    TCIA Data Retriever with the .tcia manifest; no login
+  size_per_patient: ~130 MB (133.15 GB / 1,010 pts; CT series median 107 MB, range 34-402 MB)
+  source_version: Version 4 (2020-09-21)
+  verified_on: '2026-10-15'
+  pilot_downloaded: true
+notes: 'yes | TCIA Data Usage Policy: no re-identification / contact of participants; acknowledge dataset
+  + DOI | approved'

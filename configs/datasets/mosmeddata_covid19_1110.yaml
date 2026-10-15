@@ -1,0 +1,31 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Dataset registry entry (Vision §6). License facts verified 2026-10-15 on the official pages.
+id: mosmeddata_covid19_1110
+name: 'MosMedData: Chest CT Scans with COVID-19 Related Findings (COVID19_1110)'
+provider: Research and Practical Clinical Center for Diagnostics and Telemedicine Technologies, Moscow
+  Health Care Dept.
+modality: CT
+anatomy: thorax
+license: CC-BY-NC-ND-3.0
+license_url: null
+access: public per paper; official host mosmed.ai unreachable from here (connection reset 2026-10-15)
+  -- re-verify terms on host before ingest
+redistribution: verbatim only, non-commercial, attribution
+commercial_use: false
+source_url: https://mosmed.ai/datasets/covid19_1110
+doi: 10.1101/2020.05.20.20100362 (medRxiv preprint); journal version 10.17816/dd46826 (Digital Diagnostics)
+raw_format: NIfTI
+labels:
+- 'CT-0..CT-4 severity category (CT-0 = no COVID findings: normal/negatives)'
+- binary GGO/consolidation masks for 50 studies
+citation: 'Morozov, S.P., Andreychenko, A.E., Pavlov, N.A., Vladzymyrskyy, A.V., Ledikhova, N.V., Gombolevskiy,
+  V.A., Blokhin, I.A., Gelezhe, P.B., Gonchar, A.V., Chernina, V.Yu., Babkin, V. (2020). MosMedData: Chest
+  CT Scans With COVID-19 Related Findings Dataset. medRxiv 2020.05.20.20100362. https://doi.org/10.1101/2020.05.20.20100362'
+status: pending_terms_review
+parent_datasets: []
+role: candidate
+acquisition:
+  download_method: direct archive download from mosmed.ai (host unreachable during this session)
+  size_per_patient: unverified (1,110 studies; NIfTI; reportedly only every 10th slice kept)
+  verified_on: '2026-10-15'
+notes: 'no (ND): do not publish transformed subsets | approved_eval_only (pending host re-verification)'
