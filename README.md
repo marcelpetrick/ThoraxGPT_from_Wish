@@ -5,7 +5,8 @@
 [![Python 3.14+](https://img.shields.io/badge/Python-3.14%2B-3776ab.svg)](https://www.python.org/)
 
 A local-first, license-aware, reproducible thoracic-CT AI benchmark laboratory.
-See [`Vision.md`](Vision.md) for the research goals and [`docs/plan.md`](docs/plan.md) for the
+See [`Vision.md`](Vision.md) for the research goals, [`docs/architecture.md`](docs/architecture.md)
+for the C4 architecture and [`docs/plan.md`](docs/plan.md) for the
 implementation plan.
 
 > **Research use only.** ThoraxBench Local is not a medical device and its outputs are

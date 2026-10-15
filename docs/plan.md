@@ -49,7 +49,7 @@ Status: ✅ done · 🔄 in progress · ⏳ open · ✖ dropped
 | ✅ WP0 | Repo bootstrap: LICENSE, README, AGENTS.md, pyproject, `localPipeline.sh`, CI, version script | 7, 30, 31-M0 | lead |
 | 🔄 WP1 | Model research and Ollama pulls (MedGemma Q4/Q8, controls), feasibility of 3D models | 4, 22 | research agent |
 | 🔄 WP2 | Dataset research, license registry, acquisition of a ≤10 GB LIDC-IDRI pilot | 5, 6, 8, 27 | data agent |
-| ⏳ WPA | Architecture (C4 + flowcharts) in `docs/architecture.md` — before deeper work | 7, 17 | lead |
+| ✅ WPA | Architecture (C4 + flowcharts) in `docs/architecture.md` — before deeper work | 7, 17 | lead |
 | ⏳ WP3 | Core: config/registry, policy gate, study model, DICOM discovery/geometry/HU, QC | 6, 8, 9 | lead / agents |
 | ⏳ WP4 | Sampling S1–S6, windows, rendering views | 10 | agent |
 | ⏳ WP5 | Schemas, ontology, prompts P0–P4, adapters (Ollama, HTTP 3D service, mock) | 11, 12, 17, 19 | agent |
