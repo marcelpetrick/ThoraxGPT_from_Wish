@@ -21,6 +21,7 @@ from typing import Any, Protocol, runtime_checkable
 from thoraxbench.adapters.base import ModelConfig
 from thoraxbench.ontology import Ontology, load_ontology
 from thoraxbench.parsing import parse_findings
+from thoraxbench.preprocess import HUCues
 from thoraxbench.schemas import (
     AnalysisRequest,
     Capabilities,
@@ -38,6 +39,9 @@ EFFUSION_MIDPOINT_ML = 20.0
 PNEUMOTHORAX_MIDPOINT_ML = 10.0
 CALCIUM_MIDPOINT_VOXELS = 10.0
 METAL_MIDPOINT_VOXELS = 20.0
+METAL_MIDPOINT_COMPONENTS = 0.5
+CONSOLIDATION_MIDPOINT_PCT = 3.0
+GGO_MIDPOINT_PCT = 15.0
 NODULE_MIN_MM = 3.0
 MASS_MIN_MM = 30.0
 
@@ -72,15 +76,33 @@ def _logistic(value: float, midpoint: float, steepness: float = 1.0) -> float:
     return 1.0 / (1.0 + math.exp(-4.0 * x))
 
 
-def _cues_of(study: Any) -> HUCuesLike:
+def _cues_of(study: Any) -> HUCuesLike | HUCues:
     cues = getattr(study, "cues", study)
+    if isinstance(cues, HUCues):
+        return cues
     if not isinstance(cues, HUCuesLike):
         msg = "heuristic model needs HU cues (emphysema_laa950_pct, effusion_ml_*, …)"
         raise TypeError(msg)
     return cues
 
 
-def _cues_dict(cues: HUCuesLike) -> dict[str, Any]:
+def _cues_dict(cues: HUCuesLike | HUCues) -> dict[str, Any]:
+    if isinstance(cues, HUCues):
+        return {
+            "emphysema_laa950_pct": cues.emphysema_laa950_pct,
+            "effusion_ml_left": cues.pleural_fluid_ml["left"],
+            "effusion_ml_right": cues.pleural_fluid_ml["right"],
+            # cardiac-region calcium volume in mm^3 (~ voxels at 1 mm^3)
+            "calcium_voxels": round(cues.cardiac_calcium_ml * 1000.0),
+            "pneumothorax_air_ml": cues.pleural_air_ml,
+            "metal_components": cues.metal_components,
+            "consolidation_pct": cues.consolidation_pct,
+            "ggo_burden_pct": cues.ggo_burden_pct,
+            "nodule_candidates": [
+                {"diameter_mm": c.diameter_mm, "side": c.side, "z_index": c.z_index}
+                for c in cues.nodule_candidates
+            ],
+        }
     if is_dataclass(cues) and not isinstance(cues, type):
         data: dict[str, Any] = asdict(cues)
         return data
@@ -124,6 +146,7 @@ def heuristic_findings(cues: dict[str, Any]) -> dict[str, Any]:
     ptx = float(cues.get("pneumothorax_air_ml", 0.0) or 0.0)
     calcium = float(cues.get("calcium_voxels", 0))
     metal = float(cues.get("metal_voxels", 0) or 0)
+    metal_components = cues.get("metal_components")
     candidates = list(cues.get("nodule_candidates", []))
     nodules = [c for c in candidates if NODULE_MIN_MM <= c["diameter_mm"] < MASS_MIN_MM]
     masses = [c for c in candidates if c["diameter_mm"] >= MASS_MIN_MM]
@@ -150,10 +173,31 @@ def heuristic_findings(cues: dict[str, Any]) -> dict[str, Any]:
         ),
         _finding(
             "medical_device",
-            _logistic(metal, METAL_MIDPOINT_VOXELS),
-            f"{metal:.0f} metal-density voxels",
+            _logistic(float(metal_components), METAL_MIDPOINT_COMPONENTS)
+            if metal_components is not None
+            else _logistic(metal, METAL_MIDPOINT_VOXELS),
+            f"{metal_components} metal-density component(s)"
+            if metal_components is not None
+            else f"{metal:.0f} metal-density voxels",
         ),
     ]
+    if "consolidation_pct" in cues:
+        cons = float(cues["consolidation_pct"])
+        ggo = float(cues.get("ggo_burden_pct", 0.0))
+        findings.append(
+            _finding(
+                "consolidation",
+                _logistic(cons, CONSOLIDATION_MIDPOINT_PCT),
+                f"{cons:.1f} % of the lung envelope at soft-tissue density",
+            )
+        )
+        findings.append(
+            _finding(
+                "ground_glass_opacity",
+                _logistic(ggo, GGO_MIDPOINT_PCT),
+                f"{ggo:.1f} % of the lung envelope in the ground-glass HU range",
+            )
+        )
     for label, group in (("pulmonary_nodule", nodules), ("pulmonary_mass", masses)):
         if group:
             biggest = max(group, key=lambda c: c["diameter_mm"])
