@@ -256,7 +256,7 @@ def test_split_freezes_random_patient_holdout_without_reading_dicom(
 
 
 def test_index_passes_limit_and_progress_and_handles_errors(
-    monkeypatch: pytest.MonkeyPatch,
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
     from thoraxbench.index import build_index
 
@@ -267,7 +267,8 @@ def test_index_passes_limit_and_progress_and_handles_errors(
     assert "1 development case(s) indexed" in invocation.output
     assert mock.call_args.args[0] == "lidc_idri"
     assert mock.call_args.kwargs["limit"] == 1
-    assert mock.call_args.kwargs["progress"] is cli.typer.echo
+    mock.call_args.kwargs["progress"](f"skip P-1: {Path.home()}/cases/P-1")
+    assert capsys.readouterr().out == "skip P-1: [home]/P-1\n"
     mock.side_effect = ValueError("freeze a split first")
     failed = runner.invoke(cli.app, ["index", "lidc_idri"])
     assert failed.exit_code == 1

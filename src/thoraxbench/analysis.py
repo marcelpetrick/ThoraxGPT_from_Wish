@@ -23,6 +23,7 @@ from thoraxbench.adapters.factory import load_model
 from thoraxbench.adapters.ollama import OllamaModel
 from thoraxbench.config import Settings
 from thoraxbench.perf import PerfRecord, measure
+from thoraxbench.privacy import Redactor, settings_redactor
 from thoraxbench.provenance import RunProvenance, sha256_of_obj
 from thoraxbench.schemas import (
     AnalysisRequest,
@@ -150,7 +151,7 @@ def analyze_study(
             }
         ),
     )
-    return AnalysisResult(
+    result = AnalysisResult(
         dataset=study.dataset,
         case_id=study.case_id,
         patient_id=study.patient_id,
@@ -170,3 +171,19 @@ def analyze_study(
         perf=perf,
         provenance=provenance,
     )
+    return redact_result(result, settings_redactor(settings))
+
+
+_REDACTED_FIELDS = ("report", "raw_text", "raw_error", "raw_meta", "view_meta", "context", "perf")
+
+
+def redact_result(result: AnalysisResult, redactor: Redactor) -> AnalysisResult:
+    """Redact absolute paths and identifier values in free-text and metadata fields (§29).
+
+    Result keys (dataset, case, patient pseudonym, series UID) and provenance hashes stay
+    unchanged, so scoring and split checks are unaffected. Prepared images are kept.
+    """
+    data = redactor.redact_obj(result.model_dump(mode="json", include=set(_REDACTED_FIELDS)))
+    data["report"] = FindingsReport.model_validate(data["report"])
+    data["perf"] = PerfRecord.model_validate(data["perf"])
+    return result.model_copy(update=data)

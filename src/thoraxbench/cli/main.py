@@ -8,6 +8,7 @@ from typing import Annotated
 import typer
 
 from thoraxbench import __version__
+from thoraxbench.cli.privacy import privacy_app
 from thoraxbench.config import get_settings
 from thoraxbench.splits import Phase
 from thoraxbench.study_access import guard_study_input
@@ -23,6 +24,14 @@ app = typer.Typer(
     help="ThoraxBench Local — research-only thoracic-CT AI benchmark. Not medical advice.",
     no_args_is_help=True,
 )
+app.add_typer(privacy_app)
+
+
+def _redact(value: object) -> str:
+    """Replace absolute paths in CLI messages (Vision §29)."""
+    from thoraxbench.privacy import settings_redactor  # noqa: PLC0415 - imports pydicom
+
+    return settings_redactor(get_settings()).redact(str(value))
 
 
 def _version_callback(value: bool) -> None:
@@ -95,7 +104,7 @@ def analyze(
             html.write_text(render_html_report(result, study), encoding="utf-8")
         typer.echo(markdown)
     except (OSError, ValueError, RuntimeError, KeyError) as exc:
-        typer.echo(f"Analysis failed: {exc}\n{DISCLAIMER}", err=True)
+        typer.echo(f"Analysis failed: {_redact(exc)}\n{DISCLAIMER}", err=True)
         raise typer.Exit(1) from exc
     if result.report.abstain or result.raw_error is not None:
         raise typer.Exit(1)
@@ -131,9 +140,11 @@ def index(
     from thoraxbench.index import build_index  # noqa: PLC0415 - index only
 
     try:
-        entries = build_index(dataset, get_settings(), progress=typer.echo, limit=limit)
+        entries = build_index(
+            dataset, get_settings(), progress=lambda m: typer.echo(_redact(m)), limit=limit
+        )
     except (OSError, ValueError, RuntimeError, KeyError) as exc:
-        typer.echo(f"Cannot build index: {exc}\n{DISCLAIMER}", err=True)
+        typer.echo(f"Cannot build index: {_redact(exc)}\n{DISCLAIMER}", err=True)
         raise typer.Exit(1) from exc
     typer.echo(f"{len(entries)} development case(s) indexed")
 
@@ -148,7 +159,7 @@ def split(
     try:
         result = create_pilot_split(dataset, get_settings())
     except (OSError, ValueError, RuntimeError, KeyError) as exc:
-        typer.echo(f"Cannot create split: {exc}\n{DISCLAIMER}", err=True)
+        typer.echo(f"Cannot create split: {_redact(exc)}\n{DISCLAIMER}", err=True)
         raise typer.Exit(1) from exc
     counts = result.patients
     development = counts[Phase.CALIBRATION.value] + counts[Phase.INTERNAL_TEST.value]
