@@ -90,6 +90,11 @@ Status: ✅ done · 🔄 in progress · ⏳ open · ✖ dropped
 Updated with every commit (newest first). **If a session breaks, the next agent resumes
 from here**: read this section and *Next steps*, then `git log --oneline | head -20`.
 
+- ✅ **Dependency maintenance:** registry audit verified exact pins for runtime/dev/build
+  requirements and latest stable non-yanked releases. Update Hatchling 1.29.0 → 1.32.4
+  and CI uv 0.12.18 → 0.13.1; runtime/dev pins and locked transitive versions are current.
+  Full commit gate uses uv 0.13.1. Registry sources: [Hatchling](https://pypi.org/project/hatchling/1.32.4/)
+  and [uv](https://pypi.org/project/uv/0.13.1/). No runtime/dev or transitive update was needed.
 - ✅ **Local GUI MVP and illustrated exports:** guided study/viewer/model/results flow,
   English/light defaults, persistent EN/DE and light/dark, accessible translated help,
   About attribution and installed dependency licenses. CLI and GUI share development

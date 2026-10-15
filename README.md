@@ -8,7 +8,9 @@ A local-first, license-aware, reproducible thoracic-CT AI benchmark laboratory.
 See [`Vision.md`](Vision.md) for the research goals, [`docs/architecture.md`](docs/architecture.md)
 for the C4 architecture and [`docs/plan.md`](docs/plan.md) for the
 implementation plan. Read the [HTML operator manual](manual.html) or [printable PDF](manual.pdf)
-for setup, configuration, a first run and troubleshooting.
+for setup, configuration, a first run and troubleshooting. The build backend is pinned to
+Hatchling 1.32.4; CI uses uv 0.13.1. Runtime, development and locked transitive dependencies
+were checked against current stable releases on 2026-10-15.
 
 > **Research use only.** ThoraxBench Local is not a medical device and its outputs are
 > experimental predictions, not medical advice from a qualified healthcare professional.

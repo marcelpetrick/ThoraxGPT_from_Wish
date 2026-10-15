@@ -83,8 +83,9 @@ follow the proposed design in `docs/lan-runner.md` when resumed.
 
 ## 3. Code rules
 
-* Python 3.14, `src/` layout, managed with `uv` (`uv sync --all-groups`). Pin exact
-  versions in `pyproject.toml`.
+* Python 3.14, `src/` layout, managed with `uv` (`uv sync --all-groups`; CI uv 0.13.1).
+  Pin exact versions in `pyproject.toml`, including build-system requirements (Hatchling
+  1.32.4). Registry dependency checks include runtime, development, build and locked transitives.
 * `ruff format`, `ruff check` and `mypy --strict` must pass. No blanket `# type: ignore`
   or `noqa` without a reason in a comment.
 * Every source file starts with the SPDX header:
