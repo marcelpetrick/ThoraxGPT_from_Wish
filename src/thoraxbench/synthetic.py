@@ -17,7 +17,12 @@ from pathlib import Path
 import numpy as np
 import numpy.typing as npt
 from pydicom.dataset import Dataset, FileMetaDataset
-from pydicom.uid import CTImageStorage, ExplicitVRLittleEndian, generate_uid
+from pydicom.uid import (
+    CTImageStorage,
+    ExplicitVRLittleEndian,
+    SegmentationStorage,
+    generate_uid,
+)
 
 AIR = -1000
 SOFT_TISSUE = 40
@@ -167,3 +172,55 @@ def _set_pixels(ds: Dataset, hu_slice: npt.NDArray[np.int16]) -> None:
     ds.HighBit = 11
     ds.PixelRepresentation = 0
     ds.PixelData = stored.tobytes()
+
+
+def write_seg(
+    mask: npt.NDArray[np.bool_],
+    out_path: Path,
+    spacing_mm: tuple[float, float, float],
+    *,
+    z_positions_mm: list[float],
+) -> Path:
+    """Write a binary DICOM-SEG (one segment) for the frames of *mask* that contain voxels.
+
+    ``z_positions_mm[k]`` is the patient z of mask slice ``k``; in-plane origin is (0, 0) like
+    :func:`write_dicom_series`.
+    """
+    from pydicom.pixels.utils import pack_bits  # noqa: PLC0415 - only needed for SEG writing
+    from pydicom.sequence import Sequence  # noqa: PLC0415
+
+    frames = [k for k in range(mask.shape[0]) if mask[k].any()]
+    ds = _base_dataset("PHANTOM-0001", generate_uid(), generate_uid(), "synthetic SEG")
+    ds.Modality = "SEG"
+    ds.file_meta.MediaStorageSOPClassUID = SegmentationStorage
+    ds.SOPClassUID = SegmentationStorage
+    ds.Rows, ds.Columns = mask.shape[1:]
+    ds.NumberOfFrames = len(frames)
+    ds.SamplesPerPixel = 1
+    ds.PhotometricInterpretation = "MONOCHROME2"
+    ds.BitsAllocated = 1
+    ds.BitsStored = 1
+    ds.HighBit = 0
+    ds.PixelRepresentation = 0
+    measures = Dataset()
+    measures.PixelSpacing = [spacing_mm[1], spacing_mm[2]]
+    measures.SliceThickness = spacing_mm[0]
+    shared = Dataset()
+    shared.PixelMeasuresSequence = Sequence([measures])
+    ds.SharedFunctionalGroupsSequence = Sequence([shared])
+    per_frame = []
+    for k in frames:
+        pos = Dataset()
+        pos.ImagePositionPatient = [0.0, 0.0, float(z_positions_mm[k])]
+        item = Dataset()
+        item.PlanePositionSequence = Sequence([pos])
+        per_frame.append(item)
+    ds.PerFrameFunctionalGroupsSequence = Sequence(per_frame)
+    segment = Dataset()
+    segment.SegmentNumber = 1
+    segment.SegmentLabel = "Tumor"
+    ds.SegmentSequence = Sequence([segment])
+    ds.PixelData = pack_bits(mask[frames].astype(np.uint8))
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    ds.save_as(out_path, enforce_file_format=True)
+    return out_path

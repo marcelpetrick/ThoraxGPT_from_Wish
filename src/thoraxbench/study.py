@@ -40,6 +40,10 @@ class Study:
             self._cues = hu_cues(self.volume)
         return self._cues
 
+    def attach_cues(self, cues: HUCues) -> None:
+        """Use previously computed cues (e.g. from the study index) instead of recomputing."""
+        self._cues = cues
+
     @property
     def qc(self) -> QCReport:
         """Quality-control report of the volume."""
