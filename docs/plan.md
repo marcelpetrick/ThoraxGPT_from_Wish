@@ -53,7 +53,7 @@ Status: ✅ done · 🔄 in progress · ⏳ open · ✖ dropped
 | 🔄 WP3 | Core: config/registry ✅, policy gate ✅, DICOM discovery/geometry/HU/QC ✅, synthetic phantoms ✅ | 6, 8, 9 | lead / agents |
 | ⏳ WP4 | Sampling S1–S6, windows, rendering views | 10 | agent |
 | ⏳ WP5 | Schemas, ontology, prompts P0–P4, adapters (Ollama, HTTP 3D service, mock) | 11, 12, 17, 19 | agent |
-| ⏳ WP6 | Splits and sealing, leakage tracking | 14, 15, 16 | lead |
+| 🔄 WP6 | Splits and sealing ✅ (CaseGuard, freeze), leakage tracking ⏳ | 14, 15, 16 | lead |
 | ⏳ WP7 | Scoring (A–G), calibration, bootstrap CIs, perf measurements, provenance | 13, 20, 21, 24 | agent |
 | ⏳ WP8 | Benchmark runner, experiments E001–E008 configs, compare, reports | 18, 25, 26 | agent |
 | ⏳ WP9 | Web UI and screenshots | 18 | agent |
