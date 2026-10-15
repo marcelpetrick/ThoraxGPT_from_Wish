@@ -1,10 +1,10 @@
-# ThoraxBench Local
+# 🫁 ThoraxBench Local
 
 [![Local Pipeline](https://github.com/marcelpetrick/ThoraxGPT_from_Wish/actions/workflows/local-pipeline.yml/badge.svg?branch=main)](https://github.com/marcelpetrick/ThoraxGPT_from_Wish/actions/workflows/local-pipeline.yml)
 [![License: GPL v3 or later](https://img.shields.io/badge/license-GPLv3%20or%20later-blue.svg)](LICENSE)
 [![Python 3.14+](https://img.shields.io/badge/Python-3.14%2B-3776ab.svg)](https://www.python.org/)
 [![FastAPI 0.143.2](https://img.shields.io/badge/FastAPI-0.143.2-009688.svg)](pyproject.toml)
-[![Coverage 98.98%](https://img.shields.io/badge/coverage-98.98%25-brightgreen.svg)](docs/mvp-test.md)
+[![Coverage 98.90%](https://img.shields.io/badge/coverage-98.90%25-brightgreen.svg)](docs/mvp-test.md)
 [![mypy strict](https://img.shields.io/badge/mypy-strict-blue.svg)](pyproject.toml)
 [![Local inference](https://img.shields.io/badge/inference-local%20only-087f8c.svg)](docs/architecture.md)
 [![Research use only](https://img.shields.io/badge/use-research%20only-orange.svg)](Vision.md)
@@ -19,6 +19,15 @@ implementation plan. Read the [HTML operator manual](manual.html) or [printable 
 for setup, configuration, a first run and troubleshooting. The build backend is pinned to
 Hatchling 1.32.4; CI uses uv 0.13.1. Runtime, development and locked transitive dependencies
 were checked against current stable releases on 2026-10-15.
+
+| Document | Content |
+|---|---|
+| [`docs/results.md`](docs/results.md) | Measured benchmark runs with config hash, command and limitations |
+| [`docs/reproducibility.md`](docs/reproducibility.md) | What each run records, pinned software, how to repeat a run |
+| [`DATA_POLICY.md`](DATA_POLICY.md) | Medical-data rules, license gate, data budget, sealed holdout |
+| [`SECURITY.md`](SECURITY.md) | Implemented controls, known gaps, vulnerability reporting |
+| [`docs/vision_traceability.md`](docs/vision_traceability.md) | Vision section → implementation status and evidence |
+| [`docs/datasets.md`](docs/datasets.md) | Dataset license research and the `acquire` procedure |
 
 > **Research use only.** ThoraxBench Local is not a medical device and its outputs are
 > experimental predictions, not medical advice from a qualified healthcare professional.
@@ -110,7 +119,8 @@ and acceptance criteria are in [the UI design document](docs/ui.md).
 Downloaded cohorts are randomly split **by patient**, reproducibly, before development
 analysis. The 80% development pool includes calibration and internal-test subsets. The 20%
 **holdout** stays sealed: no development indexing, prompt tuning, calibration or tests.
-Only a future frozen benchmark with explicit unsealing may evaluate it.
+No current command evaluates it: `thoraxbench benchmark --unseal` is refused (exit status 2)
+until a frozen-config sealed-evaluation workflow is implemented and reviewed.
 
 ```mermaid
 flowchart TD
@@ -119,7 +129,7 @@ flowchart TD
     S --> H[20% sealed holdout 🔒]
     D --> C[Calibration: prompt and threshold development]
     D --> I[Internal test: development evaluation]
-    H -. frozen experiment + explicit unseal only .-> E[Final holdout evaluation<br/>benchmark runner pending]
+    H -. frozen experiment + explicit unseal only .-> E[Final holdout evaluation<br/>not implemented; --unseal refused]
 ```
 
 | Downloaded cohort | Development / training | Sealed holdout |
@@ -137,7 +147,8 @@ and right pleural effusion (score 1.00), with 0.465 s in analysis stages, exclud
 loading, report rendering and provenance collection. These uncalibrated scores demonstrate the pipeline; accuracy remains unmeasured.
 See the [MVP test record](docs/mvp-test.md) for the exact command and results.
 The [model selection and benchmark status](docs/model_selection.md) explains which models
-are installed, what was tested, and the planned comparison.
+are installed, what was tested, and the planned comparison. Measured development-split
+benchmark runs are in [`docs/results.md`](docs/results.md).
 
 ## Repeat the run from the CLI
 
@@ -228,23 +239,98 @@ runtime dependencies. Start the compatible service at its configured loopback UR
 select **Refresh model availability**. The app does not install these services, supply
 credentials, or bypass gated access.
 
+## Commands
+
+Run every command from the repository root. `uv run thoraxbench <command> --help` shows the
+current options.
+
+| Command | Purpose |
+|---|---|
+| `info` | Print the intended-use statement |
+| `serve [--port N]` | Start the browser workbench on `127.0.0.1` |
+| `demo-data DIR` | Write a synthetic chest-CT phantom (no patient data) |
+| `analyze DIR` | Analyse one permitted DICOM study with one local model |
+| `models` | List configured models and local availability |
+| `datasets` | List registered data sources and their license status |
+| `acquire DATASET` | Download an approved TCIA collection with license, budget, split and checksum gates |
+| `split DATASET` | Freeze the 80 % development / 20 % sealed patient split |
+| `index DATASET` | Index development studies and reference labels |
+| `privacy audit DIR` | Report DICOM header identifiers by tag keyword and count, never values |
+| `benchmark EXPERIMENT` | Score a model setup against reference labels of development cases |
+
 ## Before using a downloaded research cohort
 
-1. Run `uv run thoraxbench datasets` to inspect the specific dataset's license status.
-2. For an approved downloaded cohort without a split, run
-   `uv run thoraxbench split lidc_idri` (replace the registry ID for another cohort).
-3. Check the reported development and holdout counts.
-4. Run `uv run thoraxbench index lidc_idri --limit 1` to index one permitted development case.
+Prerequisite: the dataset has `status: approved*` in `configs/datasets/<id>.yaml`.
+
+1. Inspect the license status.
+
+   ```bash
+   uv run thoraxbench datasets
+   ```
+
+2. Download the cohort with `thoraxbench acquire`. Follow the full procedure in
+   [`docs/datasets.md`](docs/datasets.md#acquire-an-approved-dataset). Start with
+   `--dry-run` to see the plan and the data-budget verdict.
+3. Freeze the patient split. Replace the registry ID for another cohort.
+
+   ```bash
+   uv run thoraxbench split lidc_idri
+   ```
+
+4. Check the reported development and holdout counts.
+5. Index one permitted development case.
+
+   ```bash
+   uv run thoraxbench index lidc_idri --limit 1
+   ```
 
 **Checkpoint:** the split is frozen before indexing or analysis. Existing splits refuse
 replacement; keep them. Real files under `data/raw/` require development membership.
 Known sealed hashes also block copied holdout files. A guard rejection is intentional;
-never bypass it. Acquisition automation and the frozen benchmark runner remain pending.
+never bypass it. After a split exists, `acquire` refuses new patients, and
+`acquire --verify` re-hashes development patients only.
+
+**Recovery:** `Acquisition refused` (exit status 2) means a license, split or budget gate
+failed. Fix the registry entry or the plan; never edit a status to pass the gate.
+
+### Audit DICOM headers
+
+```bash
+uv run thoraxbench privacy audit data/demo/mvp
+```
+
+**Checkpoint:** the synthetic phantom reports `FAIL` for `PatientName` (a synthetic name)
+plus three `review` items. Header values are never printed. Add `--json` for machine-readable
+output and `--strict` to exit with status 1 on a `fail` item. The audit checks a subset of
+the DICOM PS3.15 Basic Profile; it does not inspect pixel data or prove anonymity.
+
+### Run a development benchmark
+
+Prerequisite: the datasets named in the experiment are split and indexed.
+
+1. Run a quick check on a few cases per dataset.
+
+   ```bash
+   uv run thoraxbench benchmark configs/experiments/E000_heuristic_hu_baseline.yaml --limit 2
+   ```
+
+2. Run the full experiment without `--limit`.
+3. Read `data/results/benchmark/E000/report.md`.
+
+**Checkpoint:** the command prints per-variant status counts, the result and report paths
+and the config SHA-256. It reads development cases only. Failures and abstentions stay
+explicit per case. E000 is a pipeline baseline of a deterministic HU heuristic, not model
+accuracy; see [`docs/results.md`](docs/results.md). `configs/experiments/` also holds the
+MedGemma experiments E001–E004; they need local Ollama and have no recorded result yet.
+
+**Recovery:** `Benchmark failed` (exit status 1) names the cause, for example a missing
+index or split. `--unseal` is refused with exit status 2; the sealed holdout stays untouched.
 
 The synthetic phantom exercises the full DICOM path without patient data. Failed inference,
 invalid responses and inadequate studies abstain; inspect saved output for details. Scores
-are uncalibrated; educational guideline context is not a patient care plan. Benchmarking and
-reference-scored comparison and advanced review remain pending; see [the current plan](docs/plan.md).
+are uncalibrated; educational guideline context is not a patient care plan. Sealed-holdout
+evaluation, calibrated scores, CLI `compare` and a reference-scored GUI view remain open;
+see [the current plan](docs/plan.md).
 
 This workstation has the locked Python dependencies, MedGemma Q4/Q8 and qwen3-vl:4b, and
 Playwright Chromium. All 8,293 LIDC-IDRI and 4,431 NSCLC-Radiogenomics downloaded files

@@ -21,8 +21,9 @@ do not leave essential information only in chat or temporary files.
 The CLI engine and frozen pilot holdout are available. The **local UI MVP** is implemented
 (2026-10-15): maintain its tested research workflow around the existing engine and keep
 model-quality limitations visible. **UI feature work is frozen after v0.2.0** (fixes and
-docs only). The next priority is the WP8 benchmark runner and a reference-scored development
-baseline (WP11). See `docs/plan.md` → *Priority*.
+docs only). The WP8 benchmark runner and the E000 development baseline exist. Next: MedGemma
+experiments E001–E004 through the same runner and the ranked gaps in
+`docs/vision_traceability.md`. See `docs/plan.md` → *Priority* and *Next steps*.
 Keep `manual.html` and `manual.pdf` synchronized with user-facing configuration and commands.
 
 UI defaults are **English and light mode**, independent of browser preferences. Offer
@@ -69,8 +70,9 @@ follow the proposed design in `docs/lan-runner.md` when resumed.
 3. **The sealed split stays sealed.** The 20 % sealed-validation patients
    (`data/sealed/`, hash-only manifest in `manifests/splits/`) must never be read by
    development, prompt tuning, calibration fitting, threshold fitting or tests. Only
-   the planned `thoraxbench benchmark --unseal` workflow with a *frozen* experiment config
-   may touch them. That benchmark command is not implemented in the current MVP.
+   a future `thoraxbench benchmark --unseal` workflow with a *frozen* experiment config
+   may touch them. `thoraxbench benchmark` exists and reads development cases only;
+   `--unseal` is not implemented and is refused (exit status 2).
    Never weaken `thoraxbench.splits.guard`.
 4. **License gate first.** No acquisition code may run for a dataset whose registry status
    (`configs/datasets/*.yaml`) is not `approved*`. Never inherit a license from another
@@ -138,7 +140,7 @@ Apply the flight-manual writing style throughout repository documentation:
   modules, filesystem, mocked HTTP), `tests/e2e` (CLI end to end and web UI through
   Playwright). Tests that need a running Ollama or real data are marked `live` and are
   excluded from the pipeline.
-* Tests use synthetic DICOM phantoms generated in code (`tests/phantoms.py`), never real
+* Tests use synthetic DICOM phantoms generated in code (`src/thoraxbench/synthetic.py`), never real
   patient data.
 * Every artifact that affects results (prompt, preprocessing transform, sampling strategy,
   scoring) is versioned and hashed into the run provenance (Vision §24).
@@ -147,13 +149,19 @@ Apply the flight-manual writing style throughout repository documentation:
 
 | Path | Content |
 |---|---|
-| `src/thoraxbench/` | the framework (CLI, ingest, dicom, preprocess, sampling, adapters, schemas, splits, scoring, calibration, reports, api/web UI) |
+| `src/thoraxbench/` | the framework (CLI, dicom, preprocess, sampling, adapters, schemas, splits, scoring, calibration, reports, api/web UI) |
+| `src/thoraxbench/acquisition/` | `thoraxbench acquire`: NBIA client, license/budget/split gates, manifests, checksums |
+| `src/thoraxbench/benchmark/` | `thoraxbench benchmark`: experiment config, development-split runner, report |
+| `src/thoraxbench/privacy.py` | DICOM header audit (`thoraxbench privacy audit`) and output path redaction |
+| `src/thoraxbench/study_access.py` | shared CLI/API study-input guard |
 | `src/thoraxbench/ontology/labels.yaml` | canonical label ontology with native-term mappings (packaged data) |
 | `src/thoraxbench/synthetic.py` | synthetic DICOM phantoms for tests and demos |
-| `configs/` | datasets registry, models, prompts, preprocessing, experiments (YAML) |
+| `configs/` | datasets registry, models, prompts (YAML) |
+| `configs/experiments/` | benchmark experiment configs (E001 heuristic baseline, E002–E004 MedGemma) |
 | `manifests/` | acquisition manifests, split manifests (IDs/hashes only), model manifests |
 | `scripts/` | small documented helper scripts (see `scripts/README.md`) |
-| `docs/` | architecture, datasets, model cards, benchmarking, reproducibility, plan, traceability |
+| `docs/` | architecture, datasets, model cards, results, reproducibility, plan, traceability |
+| `SECURITY.md`, `DATA_POLICY.md` | security controls and medical-data rules |
 | `data/` | **git-ignored** raw/normalized/cache/rendered/results data |
 
 ## 5. Useful commands
@@ -164,4 +172,9 @@ uv sync --all-groups                 # create/refresh .venv
 ./localPipeline.sh                   # full gate (what CI runs)
 scripts/commit.sh "feat(dicom): …"   # bump + gate + commit + push
 uv run thoraxbench --help            # CLI
+uv run thoraxbench acquire <id> --dry-run            # plan + budget verdict, no download
+uv run thoraxbench privacy audit data/demo/mvp       # header identifiers, never values
+uv run thoraxbench benchmark configs/experiments/E001_heuristic_hu_baseline.yaml --limit 2
 ```
+
+Run commands from the repository root.

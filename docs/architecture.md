@@ -13,10 +13,12 @@ Source of requirements: [`Vision.md`](../Vision.md). Section references (§) poi
 ## Read the diagrams against current scope
 
 The diagrams include target architecture. A drawn component does not establish that its
-CLI command is implemented. Current commands are `analyze`, `demo-data`, `index`, `split`,
-`datasets`, `models`, `serve`, `info` and `--version`. Use
-`uv run thoraxbench --help` from the repository root to check the installed interface.
-Acquisition, frozen benchmarking, reference-scored comparison and their reports remain open.
+CLI command is implemented. Current commands are `acquire`, `split`, `index`, `analyze`,
+`benchmark`, `privacy audit`, `demo-data`, `datasets`, `models`, `serve`, `info` and
+`--version`. Use `uv run thoraxbench --help` from the repository root to check the installed
+interface. `benchmark` scores development cases only; `benchmark --unseal` is refused.
+Sealed evaluation, an experiment-freeze command, CLI `compare`, calibrated scores and the
+HTML/CSV benchmark report remain open. The *Status* column below marks each module.
 
 1. Read `docs/plan.md` for the active work package.
 2. Locate the affected component below.
@@ -71,7 +73,7 @@ C4Container
     Person(researcher, "Researcher")
 
     System_Boundary(tb, "ThoraxBench Local (one Python 3.14 package: thoraxbench)") {
-        Container(cli, "CLI", "Typer", "thoraxbench analyze | benchmark | compare | acquire | split | datasets | models | report | serve")
+        Container(cli, "CLI", "Typer", "thoraxbench analyze | benchmark | acquire | split | index | privacy | datasets | models | serve (planned: compare, report)")
         Container(web, "Local web UI", "FastAPI + Jinja2", "Study browser, model runner, findings, score, export")
         Container(core, "Core library", "Python", "Registry, DICOM, preprocessing, sampling, adapters, scoring, calibration, reports")
         ContainerDb(data, "Data directory", "Filesystem (git-ignored)", "data/raw, cache, rendered, labels, splits, sealed, results — 10 GB budget")
@@ -102,7 +104,7 @@ C4Component
     Container_Boundary(core, "thoraxbench") {
         Component(config, "config", "pydantic-settings style", "Paths, endpoints, budget; env THORAXBENCH_*")
         Component(registry, "registry", "YAML + pydantic", "Dataset/model registry, license status, policy gate")
-        Component(ingest, "ingest", "httpx", "Source-specific acquisition (TCIA), checksums, manifests, budget, de-id audit")
+        Component(ingest, "acquisition", "httpx", "Source-specific acquisition (TCIA), checksums, manifests, budget")
         Component(dicom, "dicom", "pydicom + numpy", "Series discovery/selection, geometry, HU volume, QC")
         Component(preprocess, "preprocess", "numpy/scipy", "Windows, masks, MIP/coronal, deterministic HU cues")
         Component(sampling, "sampling", "numpy", "S1–S6 slice-selection strategies (versioned)")
@@ -116,7 +118,7 @@ C4Component
         Component(scoring, "scoring", "numpy/sklearn", "Tasks A–G metrics, bootstrap CIs, FROC")
         Component(calibration, "calibration", "sklearn", "Thresholds, temperature, isotonic, abstention")
         Component(perf, "perf + provenance", "psutil/nvidia-smi", "Latency/VRAM/RAM, hashes, git commit, hardware")
-        Component(benchmark, "benchmark", "Python", "Experiment runner, resumable results, compare")
+        Component(benchmark, "benchmark", "Python", "Experiment runner on the development split, scoring, Markdown report")
         Component(reports, "reports", "Jinja2/Markdown", "Benchmark report + per-study clinical Markdown report")
     }
 
@@ -137,27 +139,31 @@ C4Component
 
 ### Component responsibilities and contracts
 
-| Module | Key types / functions | Notes |
-|---|---|---|
-| `study_access` | `guard_study_input(path, settings)` | Shared core input guard used by CLI and API; never import a private CLI helper into the API |
-| `config` | `Settings` (`data_dir`, `ollama_url`, `data_budget_bytes`, `services`) | env prefix `THORAXBENCH_` |
-| `registry` | `DatasetEntry`, `DatasetStatus`, `load_registry()`, `require_acquirable(entry)` → `PolicyError` | statuses from §6 plus `pending_access` |
-| `ingest` | `TciaClient`, `acquire(dataset_id, plan)`, `write_manifest()`, `check_budget()`, `audit_deid()` | resumable, checksum-verified, raw immutable |
-| `dicom` | `discover_series(root)`, `select_series()`, `load_volume(series)` → `Volume` | `Volume.hu: int16[z,y,x]`, `spacing_mm`, `qc` |
-| `preprocess` | `apply_window()`, `lung_mask()`, `body_mask()`, `mip_slab()`, `coronal()`, `hu_cues(volume)` | canonical HU never altered (§9.3) |
-| `sampling` | `SamplingStrategy` (`id`, `version`, `select(volume, cues) -> list[int]`), S1–S6 | deterministic; seed recorded if used |
-| `views` | `ViewBuilder.build(volume, indices) -> PreparedInput` | `PreparedInput.images: list[bytes]`, `meta` |
-| `prompts` | `PromptTemplate` (`id`, `version`, `sha256`, `render(labels, n_images)`) | P0–P4 |
-| `adapters` | `ThoraxModel` protocol: `prepare`, `infer`, `parse`, `capabilities` (§17) | `OllamaModel`, `HttpServiceModel`, `HeuristicModel` |
-| `parsing` | `extract_json(text)`, `parse_findings(raw, ontology)` → `FindingsReport` | never invents findings; invalid → abstain |
-| `ontology` | `Label`, `ONTOLOGY`, `map_native(dataset, term)`, `ClinicalKB` | mapping back to native terms (§12) |
-| `labels` | `load_reference(dataset, case)` → `ReferenceLabels` | LIDC XML parser: nodules, size, reader count |
-| `splits` | `make_split()`, `SplitManifest`, `CaseGuard.allowed(phase)` → `SealedAccessError` | patient-level, label-stratified, deterministic hash |
-| `scoring` | `task_a()`…`task_g()`, `bootstrap_ci()`, `froc()` | patient-level bootstrap |
-| `calibration` | `fit_thresholds()`, `TemperatureScaler`, `IsotonicCalibrator`, `abstention_curve()` | fitted only on development data |
-| `perf`, `provenance` | `measure()` context manager, `RunProvenance` | §21, §24 |
-| `benchmark` | `ExperimentConfig`, `run_experiment()`, `compare_runs()` | results in `data/results/<run_id>/` |
-| `reports` | `render_benchmark_report()`, `render_study_report()` | Markdown/HTML/CSV/JSON |
+Status: ✅ implemented, 🔄 partly implemented. Some function names describe the target
+contract; check `src/thoraxbench/` for the exact current names.
+
+| Module | Key types / functions | Status | Notes |
+|---|---|---|---|
+| `study_access` | `guard_study_input(path, settings)` | ✅ | Shared core input guard used by CLI and API; never import a private CLI helper into the API |
+| `config` | `Settings` (`data_dir`, `ollama_url`, `data_budget_bytes`, `services`) | ✅ | env prefix `THORAXBENCH_` |
+| `registry` | `DatasetEntry`, `DatasetStatus`, `load_registry()`, `require_acquirable(entry)` → `PolicyError` | ✅ | statuses from §6 plus `pending_access` |
+| `acquisition` | `acquire(dataset, settings, options)`, `build_plan()`, `BudgetError`, manifest and checksum helpers | ✅ | NBIA REST only; license, split and budget gates; resumable; raw data immutable; `--verify` hashes development patients only |
+| `privacy` | `audit_study_dir()`, `Redactor`, `settings_redactor()` | ✅ | header audit and output redaction; see §9 |
+| `dicom` | `discover_series(root)`, `select_series()`, `load_volume(series)` → `Volume` | ✅ | `Volume.hu: int16[z,y,x]`, `spacing_mm`, `qc` |
+| `preprocess` | `apply_window()`, `lung_mask()`, `body_mask()`, `mip_slab()`, `coronal()`, `hu_cues(volume)` | ✅ | canonical HU never altered (§9.3) |
+| `sampling` | `SamplingStrategy` (`id`, `version`, `select(volume, cues) -> list[int]`), S1–S6 | ✅ | deterministic; seed recorded if used |
+| `views` | `ViewBuilder.build(volume, indices) -> PreparedInput` | ✅ | `PreparedInput.images: list[bytes]`, `meta` |
+| `prompts` | `PromptTemplate` (`id`, `version`, `sha256`, `render(labels, n_images)`) | ✅ | P0–P4 |
+| `adapters` | `ThoraxModel` protocol: `prepare`, `infer`, `parse`, `capabilities` (§17) | 🔄 | `OllamaModel`, `HttpServiceModel`, `HeuristicModel`; no 3D service ships with the repository |
+| `parsing` | `extract_json(text)`, `parse_findings(raw, ontology)` → `FindingsReport` | ✅ | never invents findings; invalid → abstain |
+| `ontology` | `Label`, `ONTOLOGY`, `map_native(dataset, term)`, `ClinicalKB` | ✅ | mapping back to native terms (§12) |
+| `labels` | `lidc_reference()`, `nsclc_reference()` → `ReferenceLabels` | ✅ | LIDC XML (nodules, size, reader count) and NSCLC segmentation loaders |
+| `splits` | `make_split()`, `SplitManifest`, `CaseGuard`, `freeze_experiment()` → `SealedAccessError` | 🔄 | patient-level, deterministic hash; the pilot uses one stratum; freezing is not exposed in the CLI |
+| `scoring` | `task_a()`…`task_g()`, `bootstrap_ci()`, `froc()` | 🔄 | patient-level bootstrap; the benchmark uses tasks A, B, E and G |
+| `calibration` | `fit_thresholds()`, `TemperatureScaler`, `IsotonicCalibrator`, `abstention_curve()` | 🔄 | library only; no calibrator is fitted in a benchmark yet; fitted only on development data |
+| `perf`, `provenance` | `measure()` context manager, `RunProvenance` | ✅ | §21, §24 |
+| `benchmark` | `load_experiment()`, `run_experiment()`, `write_outputs()` | 🔄 | development split only; writes `data/results/benchmark/<id>/result.json` and `report.md`; `compare_runs()` planned |
+| `reports` | `render_study_report()`, `render_html_report()`, `render_comparison_report()` | 🔄 | per-study Markdown/HTML; HTML/CSV benchmark report planned |
 
 ---
 
@@ -212,14 +218,18 @@ classDiagram
 flowchart TD
     A[configs/datasets/&lt;id&gt;.yaml] --> B{status approved*?}
     B -- no --> X[PolicyError: refuse to download]
-    B -- yes --> C{budget left in data/?}
+    B -- yes --> L{series license URI and<br/>collection match registry?}
+    L -- no --> X
+    L -- yes --> S{split frozen and<br/>new patients planned?}
+    S -- yes --> X
+    S -- no --> C{budget left in data/?}
     C -- no --> Y[BudgetError]
     C -- yes --> D[Official API: TCIA NBIA getSeries / getImage]
-    D --> E[unzip into data/raw/&lt;id&gt;/&lt;patient&gt;/&lt;series&gt;/ read-only]
-    E --> F[sha256 manifest + license snapshot]
-    F --> G[DICOM tag audit: de-identification sanity check]
-    G --> H[normalized study index data/index/&lt;id&gt;.json]
-    H --> I[manifests/datasets/&lt;id&gt;.json committed: counts + hashes only]
+    D --> E[unzip into data/raw/&lt;id&gt;/&lt;patient&gt;/&lt;series&gt;/]
+    E --> F[_sha256.txt + _acquisition.json + license snapshot]
+    F --> I[manifests/datasets/&lt;id&gt;.json committed: counts + hashes only]
+    I -.separate commands.-> G[thoraxbench privacy audit: header check]
+    I -.separate commands.-> H[thoraxbench split, then index]
 ```
 
 ### 5.2 Single-study analysis (`thoraxbench analyze`, §18)
@@ -242,6 +252,10 @@ flowchart LR
 ```
 
 ### 5.3 Benchmark with sealed validation (§14–§16)
+
+Implemented today: the development branch, per-case analysis, scoring of tasks A, B, E and G
+with bootstrap CIs, and `result.json` plus `report.md`. Planned: the sealed branch
+(`--unseal` is refused), calibration fitting, HTML/CSV reports and run comparison.
 
 ```mermaid
 flowchart TD
@@ -328,7 +342,7 @@ flowchart LR
 
 | Concern | Decision |
 |---|---|
-| Reproducibility | Every run writes `run.json` with git commit, config/prompt/preprocess/split hashes, model digest, hardware, driver (§24). |
+| Reproducibility | Every result embeds a `provenance` record with git commit, config/prompt/preprocess hashes, model digest, hardware and driver; benchmark runs add dataset/split manifest hashes (§24). No separate `run.json` is written. |
 | Determinism | No random slice selection; Ollama `temperature=0`, `seed=0`. |
 | Safety | Disclaimer in CLI output, UI banner and every report; abstention is a first-class result. |
 | Privacy | No telemetry; logs redact paths/DICOM values; only de-identified research data. |
@@ -388,3 +402,60 @@ Browser forecasts start with broad workstation guesses. Later estimates use nume
 recent request durations keyed by model ID and image count in local storage. They do
 not include study identifiers. Remaining-batch estimates sum available model estimates;
 actual inference progress is unknown. Preserve this distinction from recorded engine time.
+
+## 9. Privacy checks (Vision §29)
+
+`thoraxbench.privacy` provides two controls. Both run locally and send nothing anywhere.
+
+**DICOM header audit.** `audit_study_dir`, `audit_series` and `audit_files` read headers
+only (`stop_before_pixels=True`). They check a subset of the DICOM PS3.15 Basic
+Application Level Confidentiality Profile, including attributes in nested sequences.
+The audit reports tag keyword, tag number, category, severity and file count. It never
+reports, stores or returns header values.
+
+* `fail`: a direct identifier has a value. Examples are `PatientName` (unless it repeats
+  the `PatientID` pseudonym), `PatientBirthDate`, `OtherPatientIDs`, `InstitutionName`,
+  `ReferringPhysicianName`, `AccessionNumber` and `BurnedInAnnotation = YES`.
+* `review`: a quasi-identifier or an undeclared state. Examples are dates, `PatientAge`,
+  free-text comments, private tags, an unverified `PatientID`, an absent
+  `BurnedInAnnotation` and an absent `PatientIdentityRemoved = YES`.
+
+The audit is a report, not an access gate. The split guards stay the only access control.
+
+**Output redaction.** `Redactor` replaces absolute paths and given identifier values.
+`settings_redactor` maps the data directory to `[data]/<relative path>`, the repository to
+`[repo]/<relative path>` and the home directory to `[home]/<basename>`. Other absolute paths
+become `[path]/<basename>`. Identifier values passed by the caller (for example from
+`identifier_values`) become `[redacted]`. `analyze_study` passes no identifier values; it
+redacts paths only. It redacts
+the report text, raw model text and errors, model and view metadata, context and the
+performance error. The JSON result, Markdown report, HTML export and web API all receive
+this redacted result. CLI errors from `analyze`, `index` and `split`, and `index` progress
+lines, are also redacted. Dataset, case, patient pseudonym, series UID and provenance hashes
+stay unchanged.
+
+Prerequisite: run the commands from the repository root with the synced environment.
+
+1. Write a synthetic study:
+   `.venv/bin/thoraxbench demo-data data/results/demo-phantom`
+2. Audit it:
+   `.venv/bin/thoraxbench privacy audit data/results/demo-phantom`
+3. For machine-readable output, add `--json`. To fail a script on `fail` findings, add
+   `--strict`.
+
+**Checkpoint:** the synthetic phantom reports `FAIL` with one `fail` finding:
+`PatientName` (the phantom stores a synthetic name). It also reports `review` findings for
+`PatientID`, `BurnedInAnnotation` and `PatientIdentityRemoved`. No header value is printed.
+This proves that the audit detects a populated name attribute.
+
+**Recovery:** if the command reports `sealed input is forbidden` or a split error, the
+folder is sealed or not a development folder. Choose a development or ad hoc folder. Do not
+weaken the guard. The command runs the same split guard as `analyze` before it reads any
+header. If an audit of a real collection reports `fail`, do not analyse or share outputs of
+that study until the identifier source is understood.
+
+Limitations: the audit does not inspect pixel data for burned-in text. It checks a subset of
+the profile attributes. For ad hoc studies, the DICOM `PatientID` and the folder name pass
+through to `patient_id` and `case_id` unchanged. Redaction does not rewrite the
+`data/cache/` volume files or `data/index/*.json`. These hold the DICOM `PatientID` and
+relative paths, and they stay under ignored `data/`.

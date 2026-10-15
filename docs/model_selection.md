@@ -21,7 +21,7 @@ Configuration files live in [`configs/models/`](../configs/models/).
 
 | Model / configuration ID | Why include it? | Installed or available locally? | Evidence so far |
 |---|---|---|---|
-| HU rules — `heuristic-hu` | Deterministic control: what can simple density measurements recover without learned weights? | Yes; built into the engine | Synthetic pipeline smoke: 0.465 s measured stages; one authorized real development study also completed. No accuracy benchmark. |
+| HU rules — `heuristic-hu` | Deterministic control: what can simple density measurements recover without learned weights? | Yes; built into the engine | Synthetic pipeline smoke: 0.465 s measured stages; one authorized real development study also completed. Development-split pipeline baseline E000 in [`results.md`](results.md); not model accuracy. |
 | MedGemma 1.5 Q4 — `medgemma1.5-q4` | Primary medical VLM candidate; practical local weight size (3.34 GB) | Yes; `medgemma1.5:4b-it-q4_K_M` | Live synthetic transport smoke completed in 49.5 s, but returned empty findings. No useful detection or accuracy demonstrated. |
 | MedGemma 1.5 Q8 — `medgemma1.5-q8` | Same model at higher precision: test accuracy/runtime/memory tradeoffs against Q4 | Yes; `medgemma1.5:4b-it-q8_0` (4.98 GB weights) | Earlier synthetic image-count smoke recorded in the research notes; full current analysis path and accuracy comparison pending. |
 | Gemma 3 4B — `gemma3-4b` | General model from the same architecture family: investigate the effect of medical specialization | **No**; configured `gemma3:4b-it-q4_K_M` tag is absent | Availability prerequisite pending; no project accuracy benchmark. |
@@ -81,9 +81,9 @@ flowchart TD
     E -->|No| F[Fix on synthetic or calibration cases; record abstention]
     F --> D
     E -->|Yes| G[Planned: tune prompts and thresholds on calibration only]
-    G --> H[Planned: compare fixed settings on internal test]
+    G --> H[Compare fixed settings: thoraxbench benchmark, development split]
     H --> I[Freeze experiment configuration]
-    I --> J[Planned: explicit benchmark --unseal on untouched holdout]
+    I --> J[Planned: sealed evaluation; --unseal is refused today]
     J --> K[Metrics, uncertainty, errors, runtime and reproducibility record]
 ```
 
@@ -99,11 +99,15 @@ report, offline illustrated HTML review with educational severity/follow-up cont
 limitations, abstention status, measured stage times and provenance hashes.
 The report provides educational terminology and guideline context, not a patient care plan.
 
-**Planned from benchmarking:** reference-label comparisons with per-label sensitivity,
-specificity, precision, F1 and AUROC where defined; calibration measures and confidence
-intervals; failures/abstentions; and runtime/memory comparisons. Missing reference labels
-remain unknown rather than being treated as negative. These measurements will show which
-labels and representations work under a recorded experiment, with their limitations.
+**Available from `thoraxbench benchmark` (development split only):** reference-label
+comparisons with per-label AUROC, sensitivity and related metrics where defined; raw-score
+calibration measures; patient-level bootstrap confidence intervals; explicit failures and
+abstentions; and runtimes. Missing reference labels remain unknown rather than being treated
+as negative. Recorded runs are in [`results.md`](results.md). E000 is a pipeline baseline of
+the HU heuristic. The MedGemma experiments E001–E004 are configured in
+`configs/experiments/` and have no recorded result yet.
+
+**Still planned:** calibrator fitting, sealed-holdout evaluation, and memory comparisons.
 
 Current timings are smoke observations, not comparable speed rankings. The Q4 test used a
 synthetic single-label request with a sampled slice plus a MIP view at 256 px. Its empty

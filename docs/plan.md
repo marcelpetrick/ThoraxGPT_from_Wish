@@ -96,20 +96,26 @@ Status: ✅ done · 🔄 in progress · ⏳ open · ✖ dropped
 Updated with every commit (newest first). **If a session breaks, the next agent resumes
 from here**: read this section and *Next steps*, then `git log --oneline | head -20`.
 
-- 🔄 **Course correction work (2026-10-15, uncommitted; commit queue in `enableSuperpowers.md`):**
+- ✅ **Course correction work (2026-10-15, committed locally 0.2.1–0.3.3, not pushed):**
   `thoraxbench benchmark` runner with E000–E004 configs; E000 heuristic baseline on 70
   development cases (macro AUROC 0.51 — a constant-output control, not accuracy; see
   `docs/results.md`). `thoraxbench acquire` with license, budget, split and checksum gates;
   `--verify` hashes development patients only. `thoraxbench privacy audit` and output path
   redaction. New SECURITY.md, DATA_POLICY.md, docs/reproducibility.md,
-  docs/vision_traceability.md, screenshot script. Sandboxed checks pass outside the browser
-  suite; the sandbox blocks Chromium, Ollama, push and `gh`.
+  docs/vision_traceability.md, screenshot script. Sandboxed checks (2026-10-15): headers,
+  datagate, format, lint, strict types, build, wheel and audit pass; 368 tests pass with
+  99.17 % coverage excluding the 11 Playwright tests. The sandbox blocks Chromium, Ollama,
+  push and `gh`. At the user's request the queued changes were committed locally with plain
+  `git commit` (version bumps as `commit.sh` would do) because `commit.sh` cannot pass the
+  Playwright stage in the sandbox. **Not pushed; the Playwright stage has not run on these
+  commits.** Next session: run `./localPipeline.sh`, fix any failure, then `git push` and
+  publish the release. Commits 0.2.0–0.3.3 listed in `enableSuperpowers.md`. Session closed 2026-10-16.
 
 - 🔄 **UI extension v0.2.0 — implementation and review complete. Sandboxed gate (2026-10-15):
   sync/headers/datagate/format/lint/types pass, 287 tests pass, coverage 98.90 %; the 11
   Playwright tests could not start Chromium inside the agent sandbox (Unix sockets blocked)
-  and must pass in the operator's full gate. Commit, push, tag and public release are pending an operator with push rights
-  and `gh` authentication (see *Next steps* 1):** show browser
+  and must pass in the operator's full gate. Committed locally as `083971a` (0.2.0); push, tag and public release are pending an
+  operator with push rights and `gh` authentication (see *Next steps* 1):** show browser
   elapsed waiting time during inference, distinct from recorded engine stages. Add an opt-in
   switch to run available recommended local models sequentially, preserving per-model
   errors/abstentions, skipped availability and partial successes. Present findings side by
@@ -213,13 +219,13 @@ from here**: read this section and *Next steps*, then `git log --oneline | head 
 
 ## Next steps (in order)
 
-1. **Operator with push rights:** commit the staged v0.2.0 file set, then publish the release.
-   Run from the repository root:
-   `scripts/commit.sh --minor --staged "feat(ui): add live runtime, model comparison and guided model setup"`
-   then `gh release create v0.2.0 --title "ThoraxBench Local 0.2.0" --notes-file docs/releases/v0.2.0.md manual.html manual.pdf`.
-   **Checkpoint:** version 0.2.0 on `main`, GitHub CI green, release page lists both manuals.
-   Source-checkout installation remains supported; the wheel gate checks packaging/version only.
-2. **Operator, unrestricted session:** follow `enableSuperpowers.md`. Run the full gate with
+1. **Operator with push rights:** the work is committed locally (0.2.0–0.3.3), not pushed.
+   Run the full gate with Playwright, push, tag and release v0.2.0 as listed in
+   `enableSuperpowers.md` → *Local commits awaiting the full gate and push*.
+2. **User decisions pending:** (a) may screenshots showing a rendered *synthetic* phantom
+   slice be committed (AGENTS.md forbids rendered CT slices)? (b) sandbox settings for
+   Ollama/Chromium per `enableSuperpowers.md`.
+   **Operator, unrestricted session:** follow `enableSuperpowers.md`. Run the full gate with
    Playwright, capture screenshots, then commit the queued atomic changes listed there.
 3. **Operator with Ollama:** run `uv run thoraxbench benchmark configs/experiments/E001_medgemma_quantization.yaml --limit 5`
    as a smoke test, then E001–E004 in full. Record results in `docs/results.md`.

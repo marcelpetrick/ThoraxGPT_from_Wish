@@ -193,11 +193,12 @@ The complete local pipeline runs both suites. A real browser capture from the sy
 workbench may be kept at `data/results/ui-preview.png` for local inspection; the About screen
 can provide a public README screenshot without medical imagery.
 
-Operator instructions ship as [manual.html](../manual.html) and a matching
-[eight-page PDF](../manual.pdf). They cover installation, local configuration, first-run
+Operator instructions ship as [manual.html](../manual.html) and a
+[printable PDF](../manual.pdf) generated from it. They cover installation, local configuration, first-run
 checkpoints, report interpretation and recovery in short, direct instructions. Regenerate
 the PDF after editing the HTML using the command at the end of the manual.
 
-Deferred scope: benchmark/reference-scored comparison, persistent run history, reference overlays, volumetric navigation,
-and reader-study mode. The planned final holdout evaluation remains a separate frozen
-benchmark operation; the GUI does not provide an unseal shortcut.
+Deferred GUI scope: reference-scored comparison, persistent run history, reference overlays,
+volumetric navigation and reader-study mode. Reference scoring of development cases exists
+in the CLI only (`thoraxbench benchmark`). Sealed-holdout evaluation is not implemented;
+`benchmark --unseal` is refused, and the GUI provides no unseal shortcut.

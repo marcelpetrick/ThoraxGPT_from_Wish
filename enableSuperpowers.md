@@ -75,63 +75,48 @@ Keep the patterns narrow. They still pass through the normal permission prompts.
 
 Run each from the repository root. Read `docs/plan.md` → *Next steps* for the current list.
 
-1. Commit the staged v0.2.0 file set:
-   `scripts/commit.sh --minor --staged "feat(ui): add live runtime, model comparison and guided model setup"`
-2. Publish the release:
-   `gh release create v0.2.0 --title "ThoraxBench Local 0.2.0" --notes-file docs/releases/v0.2.0.md manual.html manual.pdf`
-3. Capture documentation screenshots with `scripts/capture_screenshots.py` (see `scripts/README.md`).
-4. Run MedGemma experiments through `thoraxbench benchmark` on the development split.
+1. Verify, push and release the local commits (see the next section).
+2. Capture documentation screenshots with `scripts/capture_screenshots.py` (see `scripts/README.md`).
+3. Run MedGemma experiments through `thoraxbench benchmark` on the development split.
    Never use `--unseal`.
 
 **Checkpoint:** version 0.2.0 on `main`, GitHub CI green, the release lists both manuals.
 
-## Atomic commit queue
+## Local commits awaiting the full gate and push
 
-The sandboxed session could not commit: `commit.sh` runs the full gate, and the gate's
-Playwright stage cannot start Chromium in the sandbox. Commit the work in this order. Each
-step is one logical change. Stage exactly the listed paths, then run
-`scripts/commit.sh --staged "<message>"`. The script stashes everything else during the gate.
+At the user's request the sandboxed session committed the work locally as atomic
+conventional commits with plain `git commit`. Versions were bumped as `commit.sh` does.
+Every gate stage except Playwright passed on each commit's tree. Nothing is pushed.
 
-Never stage the root dotfiles (`.bashrc`, `.gitconfig`, `.idea`, …) if they appear. They are
-sandbox mount points, not project files.
+| Commit | Version | Message |
+|---|---|---|
+| `083971a` | 0.2.0 | `feat(ui): add live runtime, model comparison and guided model setup` |
+| `a80a714` | 0.2.1 | `feat(privacy): audit DICOM headers and redact output paths` |
+| `6e5ce9f` | 0.2.2 | `feat(acquire): add license, budget, split and checksum gated acquisition` |
+| `1578b0b` | 0.3.0 | `feat(benchmark): add development benchmark runner and E000 baseline` |
+| `bd0a770` | 0.3.1 | `docs(scripts): add reproducible synthetic screenshot capture script` |
+| `9de41d8` | 0.3.2 | `fix(splits): stop pointing to a nonexistent freeze command` |
+| last | 0.3.3 | `docs(repo): document benchmark, acquisition, privacy and data policies` |
 
-`src/thoraxbench/cli/main.py` and `docs/architecture.md` carry changes for several steps.
-Prepared versions of `main.py` live in the git-ignored `.pipeline/queue/` (lint- and
-type-checked). Before steps 2, 3 and 4, run
-`cp .pipeline/queue/main.stepN.py src/thoraxbench/cli/main.py && git add src/thoraxbench/cli/main.py`
-with N = 2, 3, 4. `main.step4.py` equals the final file. Commit `docs/architecture.md`
-(including its privacy section) whole in step 6.
+Prerequisites: the settings above are active. Work from the repository root.
 
-1. **Release v0.2.0** (already staged): `--minor`,
-   `feat(ui): add live runtime, model comparison and guided model setup`.
-2. **Privacy:** `src/thoraxbench/privacy.py`, `src/thoraxbench/cli/privacy.py`,
-   `tests/unit/test_privacy.py`, `src/thoraxbench/analysis.py`, `tests/e2e/test_mvp_cli.py`,
-   and `main.step2.py`. Message: `feat(privacy): audit DICOM headers and redact output paths`.
-3. **Acquisition:** `src/thoraxbench/acquisition/`, `src/thoraxbench/cli/acquire.py`,
-   `tests/unit/test_acquisition.py`, `tests/integration/test_acquire.py`,
-   `configs/datasets/lidc_idri.yaml`, `configs/datasets/nsclc_radiogenomics.yaml`,
-   `docs/datasets.md`, and `main.step3.py`.
-   Message: `feat(acquire): add license, budget, split and checksum gated acquisition`.
-4. **Benchmark:** `src/thoraxbench/benchmark/`, `src/thoraxbench/cli/benchmark.py`,
-   `configs/experiments/`, `tests/unit/test_benchmark_config.py`,
-   `tests/integration/test_benchmark.py`, `docs/results.md`, and `main.step4.py`. Use `--minor`. Message: `feat(benchmark): add development benchmark runner and E000 baseline`.
-5. **Screenshots:** run `uv run python scripts/capture_screenshots.py`, review every PNG, then
-   stage `scripts/capture_screenshots.py`, `scripts/README.md` and `docs/assets/*.png`, and
-   add the image embeds to `README.md` and `docs/ui.md`.
-   Message: `docs(ui): add reproducible synthetic screenshots`.
-   **Decision needed:** four shots show a rendered slice of the synthetic phantom. AGENTS.md
-   forbids committing rendered CT slices; confirm that synthetic phantoms are exempt first.
-6. **Documentation:** first regenerate `manual.pdf` (command at the end of `manual.html`;
-   the PDF is two sheets behind). In `docs/plan.md`, flip the "Course correction work
-   (uncommitted …)" entry to ✅ and drop "uncommitted". Set the README coverage badge from
-   the full gate in `.pipeline/tests.log`. Then stage all remaining changes (`README.md`, `AGENTS.md`, `docs/plan.md`,
-   `SECURITY.md`, `DATA_POLICY.md`, `docs/reproducibility.md`, `docs/vision_traceability.md`,
-   other `docs/*.md`, `manual.html`, `manual.pdf`, `src/thoraxbench/splits/guard.py` message).
-   Message: `docs(repo): document benchmark, acquisition, privacy and data policies`.
+1. Run `./localPipeline.sh`. Expect `RESULT: GREEN`, including `tests/e2e/test_web_ui.py`.
+2. If a stage fails, fix it in a new commit through `scripts/commit.sh --no-push "fix(<scope>): …"`.
+3. Regenerate `manual.pdf` (command at the end of `manual.html`; the PDF is two sheets behind).
+   Commit it: `scripts/commit.sh "docs(manual): regenerate PDF manual"`. This also pushes.
+4. Tag and publish v0.2.0 on its commit:
+   `git tag v0.2.0 083971a && git push origin v0.2.0`, then
+   `gh release create v0.2.0 --verify-tag --title "ThoraxBench Local 0.2.0" --notes-file docs/releases/v0.2.0.md manual.html manual.pdf`.
+5. Capture screenshots after the decision below; embed them in `README.md` and `docs/ui.md`.
+6. Set the README coverage badge from `.pipeline/tests.log`.
 
-**Checkpoint:** `git status` shows only the sandbox dotfiles; every commit has a green gate.
-**Recovery:** if a step's gate fails because it needs a file from a later step, move that
-file forward to the current step and retry.
+**Decision needed:** four shots show a rendered slice of the synthetic phantom. AGENTS.md
+forbids committing rendered CT slices; confirm that synthetic phantoms are exempt first.
+
+Never stage the root dotfiles (`.bashrc`, `.gitconfig`, `.idea`, …). They are sandbox mount
+points, not project files.
+
+**Checkpoint:** `git status` is clean, `origin/main` matches `main`, GitHub CI is green.
 
 ## Sources
 

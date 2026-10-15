@@ -5,4 +5,4 @@
 Research use only. Not a medical device. Outputs are experimental predictions.
 """
 
-__version__ = "0.3.2"
+__version__ = "0.3.3"

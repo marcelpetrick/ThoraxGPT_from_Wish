@@ -29,10 +29,12 @@
 <li><a href="#commands">Repeat the workflow from the command line</a></li>
 <li><a href="#configuration">Configure paths and local models</a></li>
 <li><a href="#model-setup">Set up models and understand wait estimates</a></li>
+<li><a href="#cohort">Acquire a cohort and audit DICOM headers</a></li>
+<li><a href="#benchmark">Benchmark a model setup on development cases</a></li>
 <li><a href="#recovery">Protect data, recover and shut down</a></li>
 </ol>
-<p class="small">Author: Marcel Petrick · GPL-3.0-or-later · Project generated with AI assistance.<br>Written in a flight-manual style with short actions and explicit checkpoints; no formal technical-English compliance claim. This manual describes the current MVP, not the planned benchmark or LAN runner.</p>
-<footer><span>ThoraxBench Local · Experimental research · Not medical advice</span><span>01 / 08</span></footer>
+<p class="small">Author: Marcel Petrick · GPL-3.0-or-later · Project generated with AI assistance.<br>Written in a flight-manual style with short actions and explicit checkpoints; no formal technical-English compliance claim. This manual describes the current commands. Sealed-holdout evaluation and the LAN runner are not implemented.</p>
+<footer><span>ThoraxBench Local · Experimental research · Not medical advice</span><span>01 / 10</span></footer>
 </section>
 <section class="sheet" id="preflight">
 <span class="section-number">01 / PREFLIGHT</span><h2>Install. Verify. Start locally.</h2>
@@ -49,7 +51,7 @@ uv run thoraxbench --help</code></pre><p>Expect a version, the research disclaim
 <h3>Port 8000 is already in use</h3>
 <pre><code>uv run thoraxbench serve --port 8001</code></pre>
 <p>Open <code>http://127.0.0.1:8001</code>. The server binds to loopback. LAN access and remote inference are not supported in this MVP.</p>
-<footer><span>Research use only · Self-made tool · Findings can be wrong</span><span>02 / 08</span></footer>
+<footer><span>Research use only · Self-made tool · Findings can be wrong</span><span>02 / 10</span></footer>
 </section>
 <section class="sheet" id="workbench">
 <span class="section-number">02 / NORMAL PROCEDURE</span><h2>Complete your first browser run.</h2>
@@ -69,7 +71,7 @@ uv run thoraxbench --help</code></pre><p>Expect a version, the research disclaim
 <p>Use Tab to reach controls and help-bearing fields. Focus or hover shows translated help; Escape dismisses it. The language switch selects English or German. The theme switch selects light or dark. Both choices persist in this browser. Reports and prompts remain English. About lists the author, version and library licenses.</p>
 
 <div class="notice"><strong>Privacy checkpoint:</strong> A downloaded report contains images and research identifiers. Keep real-study exports in controlled local storage. The browser may save downloads outside the repository; manage those copies as sensitive data.</div>
-<footer><span>Research use only · No diagnosis or treatment decisions</span><span>03 / 08</span></footer>
+<footer><span>Research use only · No diagnosis or treatment decisions</span><span>03 / 10</span></footer>
 </section>
 <section class="sheet" id="review">
 <span class="section-number">03 / RESULT REVIEW</span><h2>Inspect claims before conclusions.</h2>
@@ -94,7 +96,7 @@ uv run thoraxbench --help</code></pre><p>Expect a version, the research disclaim
 <p>Compare each model column by finding, status and uncalibrated score. Keep abstentions, failures and skipped models visible. Agreement is not validation; disagreement is not an accuracy ranking. Use each model’s downloads to inspect its own images and provenance. A combined offline HTML report preserves the comparison and individual evidence reports.</p>
 <h3>Check reproducibility</h3>
 <p>Save JSON for original responses, QC, hashes and provenance. “Browser request elapsed” covers waiting time for the request or batch; “Current model elapsed” times the active model. “Engine stages” exclude loading and reporting. Timers do not measure inference progress. Synthetic runs and transport tests do not establish patient accuracy.</p>
-<footer><span>Research use only · Incorrect, incomplete or misleading findings are possible</span><span>04 / 08</span></footer>
+<footer><span>Research use only · Incorrect, incomplete or misleading findings are possible</span><span>04 / 10</span></footer>
 </section>
 <section class="sheet" id="commands">
 <span class="section-number">04 / COMMAND-LINE PROCEDURE</span><h2>Repeat a run and save its artifacts.</h2>
@@ -121,7 +123,7 @@ uv run thoraxbench analyze data/demo/manual \
 <h3>Available overrides</h3>
 <p><code>--model</code> selects an ID from <code>configs/models/</code>. <code>--prompt</code> selects P0–P4. <code>--strategy</code> overrides the sampling strategy. <code>--n</code> requests a positive number of sampled slices; the browser limits it to 1–16. Use <code>uv run thoraxbench analyze --help</code> for the current options.</p>
 <p class="small">HTML output must be inside the configured data directory's <code>results/</code> folder. Destinations or symlinks that escape that folder are rejected before inference. JSON and Markdown examples also stay inside ignored results storage.</p>
-<footer><span>Research use only · Synthetic demonstrations do not measure accuracy</span><span>05 / 08</span></footer>
+<footer><span>Research use only · Synthetic demonstrations do not measure accuracy</span><span>05 / 10</span></footer>
 </section>
 <section class="sheet" id="configuration">
 <span class="section-number">05 / CONFIGURATION</span><h2>Keep paths explicit and inference local.</h2>
@@ -129,7 +131,7 @@ uv run thoraxbench analyze data/demo/manual \
 <table><thead><tr><th>Environment variable</th><th>Default / role</th></tr></thead><tbody>
 <tr><td><code>THORAXBENCH_DATA_DIR</code></td><td><code>&lt;checkout&gt;/data</code>. Raw data, caches, splits, sealed IDs, demos and results. Keep medical data outside Git.</td></tr>
 <tr><td><code>THORAXBENCH_OLLAMA_URL</code></td><td><code>http://localhost:11434</code>. Only loopback inference endpoints are accepted.</td></tr>
-<tr><td><code>THORAXBENCH_DATA_BUDGET_GB</code></td><td><code>10.0</code> decimal GB. Configured data budget; inspect actual usage before writing. Current analysis/demo routes do not provide a complete quota enforcement system.</td></tr>
+<tr><td><code>THORAXBENCH_DATA_BUDGET_GB</code></td><td><code>10.0</code> decimal GB. <code>thoraxbench acquire</code> enforces it for its own downloads. Analysis, demo and benchmark routes do not; inspect actual usage before writing.</td></tr>
 <tr><td><code>THORAXBENCH_CT_CLIP_URL</code><br><code>THORAXBENCH_M3D_URL</code></td><td><code>http://localhost:8011</code> / <code>:8012</code>. Optional CT-CLIP / M3D services.</td></tr>
 <tr><td><code>THORAXBENCH_CT_CHAT_URL</code><br><code>THORAXBENCH_RADFM_URL</code><br><code>THORAXBENCH_HUATUO_URL</code></td><td><code>http://localhost:8013</code> / <code>:8014</code> / <code>:8015</code>. Optional services; not installed by the MVP.</td></tr>
 </tbody></table>
@@ -144,7 +146,7 @@ uv run thoraxbench analyze data/demo/manual \
 uv run thoraxbench models</code></pre></li>
 </ol>
 <p class="small">Configuration files, prompts, preprocessing and sampling affect results. Preserve version control and the recorded hashes. Remote/LAN inference is a design proposal only; do not bypass the loopback guard.</p>
-<footer><span>Research use only · Local inference · No telemetry</span><span>06 / 08</span></footer>
+<footer><span>Research use only · Local inference · No telemetry</span><span>06 / 10</span></footer>
 </section>
 <section class="sheet" id="model-setup">
 <span class="section-number">06 / MODEL SETUP &amp; WAIT ESTIMATES</span><h2>Install explicitly. Expect variable waits.</h2>
@@ -164,17 +166,59 @@ uv run thoraxbench models</code></pre></li>
 <h3>Read the rough remaining estimate</h3>
 <p><strong>Rough remaining estimate</strong> starts with workstation guesses: <strong>1–60 seconds</strong> for the HU baseline and <strong>1–15+ minutes</strong> for vision models. Later estimates use recent local request durations for the same model and requested image count. Only numeric duration history is saved in this browser; no study identifiers are stored with it.</p>
 <p>A batch adds estimates for remaining available models. If the upper estimate is exceeded, the UI says <strong>Taking longer than estimated; still running</strong>. Hardware, input size, cold loading and generation can extend the wait. These are guesses, not measured benchmarks, guaranteed deadlines or inference-progress percentages.</p>
-<footer><span>Research use only · Terms acknowledgement does not validate model findings</span><span>07 / 08</span></footer>
+<footer><span>Research use only · Terms acknowledgement does not validate model findings</span><span>07 / 10</span></footer>
+</section>
+<section class="sheet" id="cohort">
+<span class="section-number">07 / RESEARCH COHORT</span><h2>Acquire under the gates. Audit the headers.</h2>
+<p>Run these commands from the repository root. Prerequisites: network access to TCIA, and a dataset whose registry status is <code>approved*</code>. Check it with <code>uv run thoraxbench datasets</code>. The pilot cohorts <code>lidc_idri</code> and <code>nsclc_radiogenomics</code> are already acquired and split.</p>
+<h3>Acquire an approved TCIA collection</h3>
+<ol class="steps">
+<li><strong>Show the plan and the budget verdict.</strong><pre><code>uv run thoraxbench acquire &lt;id&gt; --dry-run --patients 20</code></pre><p>Nothing is downloaded. Read the series counts, the size estimate, the <code>data/</code> usage and <code>fits</code>.</p></li>
+<li><strong>Start the download with the same options.</strong><pre><code>uv run thoraxbench acquire &lt;id&gt; --patients 20</code></pre><p>To resume, re-run without <code>--patients</code>. Complete series are skipped.</p></li>
+<li><strong>Re-hash the stored files.</strong><pre><code>uv run thoraxbench acquire &lt;id&gt; --verify</code></pre><p>After a split exists, only development patients are opened and hashed.</p></li>
+<li><strong>Freeze the patient split before indexing.</strong><p>Follow <a href="#recovery">page 10</a>.</p></li>
+</ol>
+<div class="check"><strong>Checkpoint:</strong> exit status 0. <code>data/raw/&lt;id&gt;/</code> holds the DICOM series, <code>_sha256.txt</code>, <code>_acquisition.json</code> and a license snapshot.</div>
+<table><thead><tr><th>Observed problem</th><th>Recovery action</th></tr></thead><tbody>
+<tr><td>Exit 2: <code>Acquisition refused</code></td><td>A license, series-license, split or budget gate failed. Fix the registry entry or the plan. Never edit a license status to pass the gate.</td></tr>
+<tr><td><code>REFUSED: exceeds the data budget</code></td><td>Lower <code>--patients</code> for a new selection, or free space.</td></tr>
+<tr><td>Exit 1: download or checksum failure</td><td>Re-run later. For an incomplete or mismatched series, remove only that series directory and re-run.</td></tr>
+</tbody></table>
+<h3>Audit DICOM headers for identifiers</h3>
+<pre><code>uv run thoraxbench privacy audit data/demo/manual</code></pre>
+<p>The audit prints tag keywords and file counts, never values. Add <code>--json</code> for structured output. Add <code>--strict</code> to exit with status 1 on a <code>fail</code> item.</p>
+<div class="check"><strong>Checkpoint:</strong> the synthetic phantom reports <code>FAIL</code> for <code>PatientName</code> (a synthetic name) and three <code>review</code> items. <strong>Recovery:</strong> if a real study reports <code>fail</code>, do not analyse or share its outputs until the identifier source is understood. The audit does not inspect pixel data and does not prove anonymity.</div>
+<footer><span>Research use only · Respect each dataset license</span><span>08 / 10</span></footer>
+</section>
+<section class="sheet" id="benchmark">
+<span class="section-number">08 / DEVELOPMENT BENCHMARK</span><h2>Score development cases. Keep the holdout sealed.</h2>
+<p>Prerequisites: the datasets named in the experiment are split and indexed. Experiments live in <code>configs/experiments/</code>: E000 is the deterministic HU-heuristic baseline; E001–E004 need MedGemma in local Ollama.</p>
+<ol class="steps">
+<li><strong>Run a quick check on a few cases per dataset.</strong><pre><code>uv run thoraxbench benchmark \
+  configs/experiments/E000_heuristic_hu_baseline.yaml --limit 2</code></pre></li>
+<li><strong>Run the full experiment.</strong><pre><code>uv run thoraxbench benchmark \
+  configs/experiments/E000_heuristic_hu_baseline.yaml</code></pre></li>
+<li><strong>Read the report.</strong><p>Open <code>data/results/benchmark/E000/report.md</code>. Structured output is in <code>result.json</code> in the same folder.</p></li>
+<li><strong>Compare the printed config SHA-256 with <code>docs/results.md</code>.</strong><p>A different hash means the experiment file changed. Record a new run; do not overwrite the old entry.</p></li>
+</ol>
+<div class="check"><strong>Checkpoint:</strong> the command prints status counts per variant, the result and report paths, and the config SHA-256. Only development cases are read. Failures and abstentions stay explicit per case and are excluded from label metrics.</div>
+<table><thead><tr><th>Observed problem</th><th>Recovery action</th></tr></thead><tbody>
+<tr><td>Exit 1: <code>Benchmark failed</code></td><td>Read the named cause, for example a missing split or index. Freeze and index the dataset first.</td></tr>
+<tr><td>Exit 2 after <code>--unseal</code></td><td>Expected. Sealed evaluation is not implemented. Run without <code>--unseal</code>.</td></tr>
+<tr><td>Vision model unavailable</td><td>Check <code>uv run thoraxbench models</code> and local Ollama. Do not substitute a cloud endpoint.</td></tr>
+</tbody></table>
+<div class="notice"><strong>Read results with their limits:</strong> E000 measures the pipeline of a non-learned control, not model accuracy. Scores are uncalibrated. A <code>--limit</code> run is partial. No result here is a sealed-holdout evaluation or clinical validation.</div>
+<footer><span>Research use only · Development scores are not clinical accuracy</span><span>09 / 10</span></footer>
 </section>
 <section class="sheet" id="recovery">
-<span class="section-number">07 / ABNORMAL PROCEDURES &amp; SHUTDOWN</span><h2>Stop safely. Keep the holdout sealed.</h2>
+<span class="section-number">09 / ABNORMAL PROCEDURES &amp; SHUTDOWN</span><h2>Stop safely. Keep the holdout sealed.</h2>
 <h3>Before any real-study workflow</h3>
-<p>Verify the specific dataset's license status with <code>uv run thoraxbench datasets</code>. Acquisition requires an approved registry entry; never infer a license from the hosting site. Acquisition automation and the benchmark runner remain unfinished.</p>
+<p>Verify the specific dataset's license status with <code>uv run thoraxbench datasets</code>. Acquisition requires an approved registry entry; never infer a license from the hosting site. Acquire the cohort first (<a href="#cohort">page 08</a>).</p>
 <ol class="steps">
 <li><strong>Freeze the patient split before indexing or analysis.</strong><pre><code>uv run thoraxbench split lidc_idri</code></pre><p>Run this only for an approved, already downloaded cohort that has no split yet. Existing frozen splits refuse replacement. Do not regenerate them.</p></li>
 <li><strong>Index only permitted development cases.</strong><pre><code>uv run thoraxbench index lidc_idri --limit 1</code></pre><p>Indexed development studies appear in the browser. The browser has no arbitrary-folder upload flow. The CLI can read a permitted study directory through its guards.</p></li>
 </ol>
-<p class="stop">Never open <code>data/sealed/</code>, inspect holdout images, or copy sealed cases into development folders. No current MVP command is an approved holdout evaluation workflow. The future benchmark requires a frozen experiment and explicit unsealing.</p>
+<p class="stop">Never open <code>data/sealed/</code>, inspect holdout images, or copy sealed cases into development folders. No current command evaluates the holdout. <code>thoraxbench benchmark --unseal</code> is refused; sealed evaluation is not implemented.</p>
 <table><thead><tr><th>Observed problem</th><th>Recovery action</th></tr></thead><tbody>
 <tr><td>Model unavailable</td><td>Open Model availability &amp; setup. Check <code>ollama list</code>, the configured tag and loopback URL. Use <code>heuristic-hu</code> for the demo. Do not substitute a cloud endpoint.</td></tr>
 <tr><td>Slow run / empty or invalid output</td><td>Preserve the error and result. Try a smaller synthetic vision request. Do not turn an abstention into a negative finding.</td></tr>
@@ -185,7 +229,7 @@ uv run thoraxbench models</code></pre></li>
 <h3>Shutdown and handover</h3>
 <p>Press <strong>Ctrl+C</strong> in the server terminal. Completed result files remain on disk. Record the model, settings, version, result paths, warnings and next action before you hand work to another researcher. Never commit patient images, rendered CT slices, model weights or secrets.</p>
 <p class="small"><strong>Maintain this manual:</strong> edit <code>manual.html</code>, then regenerate the PDF from the repository root with <code>uv run python -m playwright pdf --paper-format A4 file://"$PWD"/manual.html manual.pdf</code>. Install Chromium with <code>uv run playwright install chromium</code> if needed. Check <code>docs/plan.md</code> for current scope; this manual contains no patient images.</p>
-<footer><span>Self-made experimental tool · Not professional medical advice · Errors possible</span><span>08 / 08</span></footer>
+<footer><span>Self-made experimental tool · Not professional medical advice · Errors possible</span><span>10 / 10</span></footer>
 </section>
 </main>
 </body>
