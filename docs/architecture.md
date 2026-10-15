@@ -6,6 +6,32 @@ Diagrams are Mermaid, so GitHub renders them directly.
 
 Source of requirements: [`Vision.md`](../Vision.md). Section references (§) point there.
 
+> Research use only. This self-made experimental tool is not professional medical advice.
+> Findings may be incorrect, incomplete or misleading. Do not use outputs for diagnosis or
+> treatment decisions.
+
+## Read the diagrams against current scope
+
+The diagrams include target architecture. A drawn component does not establish that its
+CLI command is implemented. Current commands are `analyze`, `demo-data`, `index`, `split`,
+`datasets`, `models`, `serve`, `info` and `--version`. Use
+`uv run thoraxbench --help` from the repository root to check the installed interface.
+Acquisition, frozen benchmarking, reference-scored comparison and their reports remain open.
+
+1. Read `docs/plan.md` for the active work package.
+2. Locate the affected component below.
+3. Check its implemented contract in `src/thoraxbench/`.
+4. Preserve the split, endpoint and output-path guards.
+5. Run `./localPipeline.sh --fast` while iterating.
+6. Run the full gate through `scripts/commit.sh` before committing.
+
+**Checkpoint:** CLI and API call the same core guards and analysis functions. If a proposed
+path bypasses a guard, reject that design rather than weakening the guard.
+**Recovery:** inspect `.pipeline/<stage>.log` after a failed gate and fix the cause.
+
+The pilot uses metadata-only pseudorandom patient splits before development indexing.
+The stratified split design below remains a future research option, not the pilot procedure.
+
 ---
 
 ## 1. System context (C4 level 1)
@@ -30,8 +56,9 @@ C4Context
     Rel(tb, hf, "Downloads gated data if approved + token present", "HTTPS")
 ```
 
-Data that never leaves the machine: CT pixels, rendered images, predictions, labels.
-The only outbound traffic is the acquisition of approved datasets (§2.1, §29).
+CT pixels, rendered images, predictions and labels stay on the workstation. Inference uses
+only loopback services. Outbound setup/acquisition can obtain approved datasets, documentation,
+source packages, model weights and metadata (§2.1, §29). It must not send study data.
 
 ---
 
@@ -112,6 +139,7 @@ C4Component
 
 | Module | Key types / functions | Notes |
 |---|---|---|
+| `study_access` | `guard_study_input(path, settings)` | Shared core input guard used by CLI and API; never import a private CLI helper into the API |
 | `config` | `Settings` (`data_dir`, `ollama_url`, `data_budget_bytes`, `services`) | env prefix `THORAXBENCH_` |
 | `registry` | `DatasetEntry`, `DatasetStatus`, `load_registry()`, `require_acquirable(entry)` → `PolicyError` | statuses from §6 plus `pending_access` |
 | `ingest` | `TciaClient`, `acquire(dataset_id, plan)`, `write_manifest()`, `check_budget()`, `audit_deid()` | resumable, checksum-verified, raw immutable |
@@ -233,10 +261,14 @@ flowchart TD
 
 ### 5.4 Split creation and sealing
 
+Current pilot procedure: inspect patient directory metadata before any development index.
+Use a pseudorandom deterministic order independent of labels. Keep every patient's studies
+together. Label stratification is a future alternative that requires its own frozen design.
+
 ```mermaid
 flowchart LR
-    A[study index] --> B[group by patient]
-    B --> C[stratify by primary label]
+    A[patient directory metadata] --> B[group by patient]
+    B --> C[pseudorandom ordering independent of labels]
     C --> D[deterministic order:<br/>sha256 of salt + patient ID]
     D --> E[80 % development<br/>split into calibration/internal-test]
     D --> F[20 % sealed validation]
@@ -307,7 +339,8 @@ flowchart LR
 ## 8. Local GUI MVP and illustrated exports
 
 The current workbench is a thin FastAPI interface over `analysis.analyze_study` and the
-same development guards as the CLI. Local vanilla JavaScript drives the slice slider,
+same development guards as the CLI. Both import `study_access.guard_study_input` from the
+core. The API must not import private CLI helpers. Local vanilla JavaScript drives the slice slider,
 model invocation and preference switches; all templates/styles/scripts are packaged
 assets. There is no external frontend framework, CDN or telemetry. English/light are
 first-visit defaults; English/German and light/dark preferences persist in browser storage.
@@ -331,3 +364,27 @@ no study images. Per-run HTML remains under ignored `data/results/`: it presents
 educational severity/attention and evidence galleries, while preserving uncertainty and
 explicit self-made-tool/fallibility disclaimers. No severity is assigned to absent or
 uncertain findings; educational context cannot establish whether care is needed.
+
+### Exploratory multi-model comparison
+
+The browser runs recommended available models sequentially through the shared analysis
+endpoint to avoid concurrent model loading. It tracks request wall time separately from
+recorded engine-stage duration, preserves partial results, and distinguishes errors,
+abstentions and unavailable/skipped models. Recommendation is an explicit configured
+inventory flag, not an accuracy rank. A comparison export combines existing guarded run
+artifacts into one offline HTML review; it does not score reference labels or unseal cases.
+
+### Explicit model acquisition and runtime forecasts
+
+The model inventory carries adapter, license, terms/source links and setup guidance.
+A terms-acknowledged operator action can request a pull for a configured Ollama tag.
+`api.model_pulls.ModelPullJobs` tracks one active local pull and bounded session-only
+snapshots. It reports actual current-layer bytes when supplied by Ollama; layer totals
+can reset. The app must not invent whole-model progress. Weights remain in Ollama's store.
+Optional HTTP services require publisher-approved manual setup and a healthy loopback
+service. Availability never establishes accuracy or hardware capacity.
+
+Browser forecasts start with broad workstation guesses. Later estimates use numeric
+recent request durations keyed by model ID and image count in local storage. They do
+not include study identifiers. Remaining-batch estimates sum available model estimates;
+actual inference progress is unknown. Preserve this distinction from recorded engine time.

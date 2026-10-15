@@ -1,9 +1,13 @@
 # ThoraxBench Local — UI design and acceptance
 
-> Experimental research only — not medical advice, a diagnosis, or a medical device.
+> Research use only. This self-made experimental tool is not medical advice from a
+> qualified healthcare professional, a diagnosis, or a medical device. Available models
+> and reference knowledge may produce incorrect, incomplete or misleading findings.
+> Do not use outputs for diagnosis or treatment decisions.
 
 The user brought the GUI MVP forward on 2026-10-15: a testable local graphical workflow now
-ships alongside the engine. Advanced benchmarking and comparison screens follow later.
+ships alongside the engine. Exploratory model-output comparison is implemented.
+Reference-scored benchmarking and advanced review screens follow later.
 The CLI and GUI call the same core functions and enforce the same development split guards.
 
 ## Two concrete proposals
@@ -17,6 +21,24 @@ No dedicated frontend-design skill is installed in this session. Design choices 
 research workflow and accessibility requirements: visible state, short labels, deliberate
 progression, semantic controls, and helpful explanations without requiring technical setup
 knowledge. Keep research caveats visible near findings rather than relying on an About page.
+
+## Operator procedure
+
+Prerequisite: a running local server. Use `uv run thoraxbench serve` from the repository root.
+
+1. Open `http://127.0.0.1:8000` on the same computer.
+2. Select **Create synthetic demo** or an indexed development study.
+3. Inspect the viewer and QC status.
+4. Select an available model.
+5. Select **Run analysis locally**.
+6. Inspect status, findings and educational context.
+7. Save the HTML, JSON or Markdown download.
+
+**Checkpoint:** results retain their model identity, evidence and provenance. A downloaded
+HTML report opens without the server. Display-window changes do not change analysis.
+
+**Recovery:** preserve errors and abstentions. Check model availability and permitted study
+membership. Never bypass a split rejection. See [the manual](../manual.html#recovery).
 
 ## Guided workbench
 
@@ -39,6 +61,71 @@ The image viewer and model controls sit alongside each other on wide screens and
 small screens. The findings table uses a contained scrolling region if needed; the page
 itself must not overflow horizontally. A synthetic demo is the easiest first action and
 never needs real patient data, model downloads, or an Ollama connection when using HU rules.
+
+## Live runtime and recommended-model comparison
+
+The request timer advances while inference is pending. It measures browser waiting time,
+including network and server work, and does not establish actual model progress. The engine
+stage duration remains a separate recorded result. A batch shows the active model, batch
+position and elapsed waiting time; failures stop that model's timer and allow later models
+to proceed.
+
+The **Rough remaining estimate** starts with broad workstation guesses: 1–60 seconds for
+the HU baseline and 1–15+ minutes for a vision model. Later estimates use recent local
+request durations for the same model and image count. They are not measured benchmarks,
+inference progress or deadlines. Hardware, input size and cold loading can exceed them.
+Only numeric duration history is stored locally; no study identifiers are used.
+
+A comparison adds estimates for the remaining available models. The UI subtracts active
+elapsed time. If the estimate is exceeded, it says **Taking longer than estimated; still
+running**. It does not display a negative countdown or an inference percentage.
+
+To compare outputs:
+
+1. Enable **Compare recommended local models**.
+2. Select **Compare local models**.
+3. Inspect each model's status in the comparison table.
+4. Compare finding presence and uncalibrated scores in the finding matrix.
+5. Inspect each model's individual report and downloads.
+6. Select **Download comparison HTML**.
+
+**Checkpoint:** each available candidate runs sequentially. Partial results remain visible.
+**Batch progress** shows model position; it does not show an inference-completion percentage.
+
+The recommended inventory contains:
+`heuristic-hu`, `medgemma1.5-q4`, `medgemma1.5-q8`, `gemma3-4b`, `qwen3-vl-4b`.
+Only locally available candidates are attempted. Availability failures, abstentions and
+skipped models are explicit; partial successes remain inspectable. A finding matrix shows
+per-model outputs and each run retains its own report and downloads. Scores across models
+are uncalibrated and are not directly comparable; agreement does not validate a finding.
+This is an exploratory output comparison without reference-label accuracy scoring.
+
+A combined offline HTML review preserves per-run evidence and educational context. It uses
+existing guarded results rather than triggering additional inference. Restart an already
+running server after upgrading so its API and browser assets use the same version.
+
+## Unavailable model setup
+
+1. Open **Model availability & setup**.
+2. Inspect the model's terms, adapter and provider information.
+3. For Ollama, open **Model terms** before acknowledging permitted use.
+4. Select **Download model weights** only after the terms acknowledgement.
+5. Wait for the final download state.
+6. Check the refreshed model inventory.
+
+**Checkpoint:** the backend accepts only configured Ollama tags and one active pull.
+The local Ollama service obtains weights using its own network and storage. **Active layer
+bytes** is actual layer transfer data, not a whole-model percentage or inference progress.
+Analysis and setup controls lock during the pending download.
+
+**Recovery:** preserve **Download failed** details. Resolve terms/access, network, disk or
+Ollama problems before retrying explicitly. The application provides no cancel endpoint.
+No automatic background installation starts when the page opens.
+
+For non-Ollama models, follow the provider links and **Provider configuration (English)**.
+Obtain required access approval and weights. Check hardware/dependencies. Start a compatible
+service at its configured loopback URL. Select **Refresh model availability** to recheck it.
+A successful health response establishes service availability, not model accuracy.
 
 ## Language, appearance and help
 
@@ -73,7 +160,20 @@ never needs real patient data, model downloads, or an Ollama connection when usi
 ## MVP acceptance and verification
 
 Playwright runs an actual local server against a temporary synthetic-only data directory.
-It verifies the complete user workflow rather than implementation details:
+Run the browser checks from the repository root:
+
+```bash
+uv run playwright install chromium
+uv run pytest tests/e2e/test_web_ui.py -m "not live"
+```
+
+Install Chromium only if the browser is missing. The test suite starts its own temporary
+server. Do not point it at patient data.
+
+**Checkpoint:** all selected tests pass. **Recovery:** inspect the first failure and the
+browser installation. Keep tests synthetic; do not substitute live or sealed cases.
+
+The suite verifies the complete user workflow:
 
 - EN/light first visit despite a DE/dark browser; switching and persistence after reload.
 - Synthetic demo creation, case selection, visible rendered slice and slice navigation.
@@ -94,10 +194,10 @@ workbench may be kept at `data/results/ui-preview.png` for local inspection; the
 can provide a public README screenshot without medical imagery.
 
 Operator instructions ship as [manual.html](../manual.html) and a matching
-[seven-page PDF](../manual.pdf). They cover installation, local configuration, first-run
+[eight-page PDF](../manual.pdf). They cover installation, local configuration, first-run
 checkpoints, report interpretation and recovery in short, direct instructions. Regenerate
 the PDF after editing the HTML using the command at the end of the manual.
 
-Deferred scope: benchmark run history/comparison, reference overlays, volumetric navigation,
+Deferred scope: benchmark/reference-scored comparison, persistent run history, reference overlays, volumetric navigation,
 and reader-study mode. The planned final holdout evaluation remains a separate frozen
 benchmark operation; the GUI does not provide an unseal shortcut.

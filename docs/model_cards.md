@@ -3,6 +3,28 @@
 Hardware: RTX A2000 Laptop 8 GB, Ollama 0.40.4, Python 3.14.7 (torch not installed; PyPI has torch up to 2.14.1, which has cp314 wheels; torch has shipped 3.14 wheels since 2.9).
 **Status:** sections 1, 2, 4 and 5 are done. Section 3 is done for MedGemma. **The qwen3-vl:4b smoke test was NOT run** because the lead ran out of budget.
 
+> Research use only. This self-made experimental tool is not medical advice from a
+> qualified healthcare professional. Findings can be incorrect, incomplete or misleading.
+> Do not use outputs for diagnosis or treatment decisions.
+
+## How to use these historical notes
+
+This page records the original 2026-10-15 research pass. Preserve its measured values and
+citations. For current installation status, use [model selection](model_selection.md).
+
+1. Check the current configuration under `configs/models/`.
+2. Run `uv run thoraxbench models` from the repository root.
+3. Follow [the current synthetic run procedure](mvp-test.md).
+4. Record any failure or abstention beside successful results.
+
+**Checkpoint:** the configured tag and actual installed model match. Synthetic transport
+success does not establish CT detection accuracy.
+
+**Recovery:** if a historical script or artifact is absent, use the maintained procedure.
+The scratchpad names below are historical references, not files shipped by the repository.
+Do not download weights solely because they appear in a research table; check terms,
+capacity and the intended experiment first.
+
 ## 1. Vision models available through Ollama
 
 | Tag | Size | Ctx | Fits 8 GB | Multi-image | License | Source |
@@ -40,8 +62,8 @@ Hardware: RTX A2000 Laptop 8 GB, Ollama 0.40.4, Python 3.14.7 (torch not install
 - No control model was pulled. gemma3:4b-it-q4_K_M is recommended (see section 1).
 
 ## 3. Smoke tests (POST /api/chat, format=json, temperature 0, seed 0, think=false)
-- **Script:** smoke.py in this scratchpad. It puts a random nonce in the system message so the KV prefix cache cannot shrink `prompt_eval_count`.
-- **Images:** synthetic 512x512 grayscale PNGs (circles on black) in img/.
+- **Historical script:** `smoke.py` in the research scratchpad, not a maintained repository command. It inserted a random nonce in the system message so the KV prefix cache could not shrink `prompt_eval_count`.
+- **Historical images:** synthetic 512x512 grayscale PNGs (circles on black) in the scratchpad's `img/`. No patient images were used.
 
 | Model | N img | num_ctx | prompt_eval_count | prefill s | eval_count | eval s | JSON valid | /api/ps size_vram | nvidia-smi peak |
 |---|---|---|---|---|---|---|---|---|---|
@@ -84,7 +106,11 @@ Sources:
 - https://github.com/chaoyi-wu/RadFM
 - https://huggingface.co/FreedomIntelligence/HuatuoGPT-Vision-7B
 
-## 5. Official MedGemma 1.5 CT preprocessing (to reimplement as `medgemma_ct_v1`)
+## 5. Official MedGemma 1.5 CT preprocessing reference
+
+Use this section as an upstream implementation reference. It is not a command sequence
+for the current workbench. Preserve the upstream sampling, windows and prompt details
+when comparing implementations. Record any deviation in the view configuration and provenance.
 
 The client-side code is in **notebooks/high_dimensional_ct_hugging_face.ipynb**: https://github.com/Google-Health/medgemma/blob/main/notebooks/high_dimensional_ct_hugging_face.ipynb
 - The Model Garden notebook (high_dimensional_ct_model_garden.ipynb) sends `{"type":"image_dicom"}` and windows on the server.

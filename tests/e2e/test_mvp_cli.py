@@ -171,7 +171,7 @@ def test_raw_development_patient_passes_guard(
         spec.spacing_mm,
         patient_id=patient,
     )
-    assert cli._guard_study_input(path, settings) == ("demo", patient)
+    assert cli.guard_study_input(path, settings) == ("demo", patient)
 
 
 def test_inventory_commands_are_research_only(monkeypatch: pytest.MonkeyPatch) -> None:

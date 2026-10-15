@@ -6,7 +6,7 @@ import ipaddress
 from collections.abc import Awaitable, Callable
 from pathlib import Path
 from threading import RLock
-from typing import Any
+from typing import Any, Literal
 from urllib.parse import urlsplit
 from uuid import UUID, uuid4
 
@@ -18,21 +18,72 @@ from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel, ConfigDict, Field
 
 from thoraxbench import __version__
-from thoraxbench.adapters.base import list_model_configs
+from thoraxbench.adapters.base import ModelConfig, list_model_configs
 from thoraxbench.adapters.factory import require_local_endpoint
-from thoraxbench.analysis import DISCLAIMER, analyze_study
+from thoraxbench.analysis import DISCLAIMER, AnalysisResult, analyze_study
 from thoraxbench.api.licenses import runtime_libraries
-from thoraxbench.cli.main import _guard_study_input
+from thoraxbench.api.model_pulls import ModelPullJobs, PullBusyError
 from thoraxbench.config import Settings, get_settings
 from thoraxbench.index import SUPPORTED, IndexEntry, load_index, open_study
 from thoraxbench.reports import render_study_report
-from thoraxbench.reports.html_report import render_html_report, require_results_path
+from thoraxbench.reports.html_report import (
+    render_comparison_report,
+    render_html_report,
+    require_results_path,
+)
 from thoraxbench.splits import CaseGuard, Phase
 from thoraxbench.study import Study, load_study_dir
+from thoraxbench.study_access import guard_study_input
 from thoraxbench.synthetic import PhantomSpec, make_phantom, write_dicom_series
 from thoraxbench.views import render_slice_png
 
 ASSETS = Path(__file__).parent
+RECOMMENDED_MODELS = {
+    "heuristic-hu",
+    "medgemma1.5-q4",
+    "medgemma1.5-q8",
+    "gemma3-4b",
+    "qwen3-vl-4b",
+}
+
+
+def _service_available(model: ModelConfig, config: Settings) -> bool:
+    endpoint = model.base_url or config.service_urls.get(model.service or "")
+    if not endpoint:
+        return False
+    try:
+        require_local_endpoint(endpoint)
+        with httpx.Client(timeout=0.5, trust_env=False, follow_redirects=False) as client:
+            response = client.get(f"{endpoint.rstrip('/')}/health")
+            response.raise_for_status()
+            body = response.json()
+            return isinstance(body, dict) and body.get("status") == "ok"
+    except httpx.HTTPError, ValueError, RuntimeError:
+        return False
+
+
+class PullBody(BaseModel):
+    """Explicit operator acknowledgement before asking Ollama to acquire weights."""
+
+    model_config = ConfigDict(extra="forbid")
+    terms_acknowledged: bool = Field(strict=True)
+
+
+class ComparisonOmission(BaseModel):
+    """Bounded display-only explanation for a model without a completed result."""
+
+    model_config = ConfigDict(extra="forbid")
+    model_id: str = Field(min_length=1, max_length=100)
+    status: Literal["skipped", "error"]
+    detail: str = Field(max_length=500)
+
+
+class CompareBody(BaseModel):
+    """Select completed local run identifiers without accepting filesystem paths."""
+
+    model_config = ConfigDict(extra="forbid")
+    result_ids: list[UUID] = Field(min_length=1, max_length=8)
+    omissions: list[ComparisonOmission] = Field(default_factory=list, max_length=8)
 
 
 class AnalyzeBody(BaseModel):
@@ -68,6 +119,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:  # noqa: PLR0915 - 
     study_lock = RLock()
     cache: dict[tuple[str, str], Study] = {}
     downloads: dict[UUID, dict[str, Path]] = {}
+    pulls = ModelPullJobs(config.ollama_url)
     demo = config.data_path("demo", "ui")
 
     @app.middleware("http")
@@ -111,7 +163,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:  # noqa: PLR0915 - 
                     raise HTTPException(404, "Create the synthetic demo first")
                 if key not in cache:
                     try:
-                        _guard_study_input(demo, config)
+                        guard_study_input(demo, config)
                         cache[key] = load_study_dir(demo, dataset="demo", case_id="phantom")
                     except (OSError, ValueError, RuntimeError) as exc:
                         raise HTTPException(403, "Synthetic demo is unavailable") from exc
@@ -206,9 +258,42 @@ def create_app(settings: Settings | None = None) -> FastAPI:  # noqa: PLR0915 - 
             "models": [
                 {
                     "id": item.id,
+                    "recommended": item.id in RECOMMENDED_MODELS,
                     "adapter": item.adapter,
                     "tag": item.tag,
+                    "license": item.license,
+                    "notes": item.notes,
+                    "source_url": (
+                        f"https://ollama.com/library/{item.tag.split(':')[0]}"
+                        if item.adapter == "ollama" and item.tag
+                        else None
+                    ),
+                    "terms_url": (
+                        "https://developers.google.com/health-ai-developer-foundations/terms"
+                        if item.family == "medgemma"
+                        else "https://ai.google.dev/gemma/terms"
+                        if item.family == "gemma3"
+                        else "https://www.apache.org/licenses/LICENSE-2.0"
+                        if item.license == "Apache-2.0"
+                        else None
+                    ),
+                    "download_supported": item.adapter == "ollama" and bool(item.tag),
+                    "setup_steps": (
+                        [
+                            "Review the model terms and verify disk space and hardware capacity.",
+                            "Start local Ollama, acknowledge applicable terms, then download.",
+                        ]
+                        if item.adapter == "ollama"
+                        else [
+                            "Obtain permitted weights and any required publisher access.",
+                            "Provision suitable hardware and start the configured local service.",
+                            "This interface cannot bypass access gates or install 3D services.",
+                        ]
+                        if item.adapter == "http_service"
+                        else ["Included deterministic baseline; no download required."]
+                    ),
                     "available": item.adapter == "heuristic"
+                    or (item.adapter == "http_service" and _service_available(item, config))
                     or (
                         item.adapter == "ollama"
                         and (item.tag if ":" in (item.tag or "") else f"{item.tag}:latest") in tags
@@ -218,6 +303,34 @@ def create_app(settings: Settings | None = None) -> FastAPI:  # noqa: PLR0915 - 
             ],
             "disclaimer": DISCLAIMER,
         }
+
+    @app.post("/api/models/{model_id}/pull")
+    def pull_model(model_id: str, body: PullBody) -> dict[str, Any]:
+        configured = {item.id: item for item in list_model_configs(config.configs_dir / "models")}
+        item = configured.get(model_id)
+        if item is None:
+            raise HTTPException(404, "Unknown model")
+        if item.adapter != "ollama" or not item.tag:
+            raise HTTPException(
+                422, "This model requires manual setup; automatic download unavailable"
+            )
+        if not body.terms_acknowledged:
+            raise HTTPException(422, "Review and acknowledge the model terms before downloading")
+        try:
+            return pulls.start(item.id, item.tag)
+        except PullBusyError as exc:
+            raise HTTPException(409, str(exc)) from exc
+        except RuntimeError as exc:
+            raise HTTPException(
+                422, "Downloads require a configured loopback Ollama endpoint"
+            ) from exc
+
+    @app.get("/api/model-pulls/{identifier}")
+    def pull_status(identifier: UUID) -> dict[str, Any]:
+        job = pulls.get(identifier)
+        if job is None:
+            raise HTTPException(404, "Unknown download job")
+        return job
 
     @app.get("/api/studies/{dataset}/{case_id}/slice/{index}.png")
     def slice_image(dataset: str, case_id: str, index: int, window: str = "lung") -> Response:
@@ -271,9 +384,42 @@ def create_app(settings: Settings | None = None) -> FastAPI:  # noqa: PLR0915 - 
             },
         }
 
+    @app.post("/api/compare")
+    def compare(body: CompareBody) -> dict[str, Any]:
+        reports: list[tuple[AnalysisResult, str]] = []
+        for identifier in dict.fromkeys(body.result_ids):
+            files = downloads.get(identifier, {})
+            try:
+                json_path, html_path = files["json"], files["html"]
+                require_results_path(json_path, config)
+                require_results_path(html_path, config)
+                reports.append(
+                    (
+                        AnalysisResult.model_validate_json(json_path.read_text(encoding="utf-8")),
+                        html_path.read_text(encoding="utf-8"),
+                    )
+                )
+            except (KeyError, OSError, ValueError) as exc:
+                raise HTTPException(404, "Completed result is unavailable") from exc
+        if len({(r.dataset, r.case_id, r.series_uid) for r, _ in reports}) != 1:
+            raise HTTPException(422, "Comparison requires results from the same study")
+        identifier = uuid4()
+        path = config.data_path("results", "ui", str(identifier), "comparison.html")
+        try:
+            require_results_path(path, config)
+        except ValueError as exc:
+            raise HTTPException(403, "Research output directory is unavailable") from exc
+        path.parent.mkdir(parents=True)
+        path.write_text(
+            render_comparison_report(reports, [item.model_dump() for item in body.omissions]),
+            encoding="utf-8",
+        )
+        downloads[identifier] = {"html": path}
+        return {"id": str(identifier), "downloads": {"html": f"/api/results/{identifier}/html"}}
+
     @app.get("/api/results/{identifier}/{kind}")
     def download(identifier: UUID, kind: str) -> FileResponse:
-        if identifier not in downloads or kind not in {"json", "markdown", "html"}:
+        if identifier not in downloads or kind not in downloads[identifier]:
             raise HTTPException(404, "Unknown result")
         path = downloads[identifier][kind]
         try:

@@ -28,10 +28,11 @@
 <li><a href="#review">Read findings, severity and review context</a></li>
 <li><a href="#commands">Repeat the workflow from the command line</a></li>
 <li><a href="#configuration">Configure paths and local models</a></li>
+<li><a href="#model-setup">Set up models and understand wait estimates</a></li>
 <li><a href="#recovery">Protect data, recover and shut down</a></li>
 </ol>
 <p class="small">Author: Marcel Petrick · GPL-3.0-or-later · Project generated with AI assistance.<br>Written in a flight-manual style with short actions and explicit checkpoints; no formal technical-English compliance claim. This manual describes the current MVP, not the planned benchmark or LAN runner.</p>
-<footer><span>ThoraxBench Local · Experimental research · Not medical advice</span><span>01 / 07</span></footer>
+<footer><span>ThoraxBench Local · Experimental research · Not medical advice</span><span>01 / 08</span></footer>
 </section>
 <section class="sheet" id="preflight">
 <span class="section-number">01 / PREFLIGHT</span><h2>Install. Verify. Start locally.</h2>
@@ -48,7 +49,7 @@ uv run thoraxbench --help</code></pre><p>Expect a version, the research disclaim
 <h3>Port 8000 is already in use</h3>
 <pre><code>uv run thoraxbench serve --port 8001</code></pre>
 <p>Open <code>http://127.0.0.1:8001</code>. The server binds to loopback. LAN access and remote inference are not supported in this MVP.</p>
-<footer><span>Research use only · Self-made tool · Findings can be wrong</span><span>02 / 07</span></footer>
+<footer><span>Research use only · Self-made tool · Findings can be wrong</span><span>02 / 08</span></footer>
 </section>
 <section class="sheet" id="workbench">
 <span class="section-number">02 / NORMAL PROCEDURE</span><h2>Complete your first browser run.</h2>
@@ -57,21 +58,22 @@ uv run thoraxbench --help</code></pre><p>Expect a version, the research disclaim
 <li><strong>Select “Create synthetic demo”.</strong><p>Expect a synthetic study with 64 axial slices. It contains simulated nodule and fluid-density regions. The images contain no patient data.</p></li>
 <li><strong>Inspect the study viewer.</strong><p>Move the slice slider. Use the Left and Right arrow keys when the slider has focus. Change the display window to Lung, Mediastinum, Bone or Abdomen. Window changes affect the viewer only.</p></li>
 <li><strong>Select “heuristic-hu” as the model.</strong><p>This baseline uses HU-volume measurements. It sends no rendered images to a vision model. The image-count control does not affect its predictions.</p></li>
-<li><strong>Select “Run analysis locally”.</strong><p>Wait for a completed result or explicit failure/abstention. Expect synthetic nodule and effusion findings on the default demo. Exact timings vary by hardware.</p></li>
+<li><strong>Select “Run analysis locally”.</strong><p>Wait for a completed result or explicit failure/abstention. “Browser request elapsed” shows waiting time, including loading, inference and reporting. It differs from recorded “Engine stages”. Expect synthetic nodule and effusion findings.</p></li>
 <li><strong>Read the status before you read the findings.</strong><p>Check study quality, the finding table, severity/review context and the English research report. Follow the interpretation checklist on the next page.</p></li>
 <li><strong>Select “Download HTML”.</strong><p>Open the saved file in a browser. Check the findings and embedded image gallery. Also save JSON for structured output and “Download report” for Markdown.</p></li>
 </ol>
 <div class="check"><strong>Checkpoint:</strong> The HTML report opens after you stop the server. It needs no external images, fonts, scripts or internet access. Missing evidence references remain explicit.</div>
+<h3>Optional: compare the recommended local models</h3>
+<p>Enable “Compare recommended local models”, then select “Compare local models”. Available <code>heuristic-hu</code>, MedGemma Q4/Q8, Gemma 3 and Qwen3-VL run sequentially; unavailable models are skipped. “Batch progress” shows the current model, not inference percent. Save per-model downloads and “Download comparison HTML”. See <a href="#model-setup">model setup and rough wait estimates</a> before a longer run.</p>
 <h3>Keyboard help and preferences</h3>
-<p>Use Tab to reach controls and help-bearing fields. Focus or hover shows translated help; Escape dismisses it. The language switch selects English or German. The theme switch selects light or dark. Both choices persist in this browser. Research reports and model prompts remain English.</p>
-<h3>About</h3>
-<p>Open About to inspect the author, application version, research purpose and installed runtime libraries with their declared licenses.</p>
+<p>Use Tab to reach controls and help-bearing fields. Focus or hover shows translated help; Escape dismisses it. The language switch selects English or German. The theme switch selects light or dark. Both choices persist in this browser. Reports and prompts remain English. About lists the author, version and library licenses.</p>
+
 <div class="notice"><strong>Privacy checkpoint:</strong> A downloaded report contains images and research identifiers. Keep real-study exports in controlled local storage. The browser may save downloads outside the repository; manage those copies as sensitive data.</div>
-<footer><span>Research use only · No diagnosis or treatment decisions</span><span>03 / 07</span></footer>
+<footer><span>Research use only · No diagnosis or treatment decisions</span><span>03 / 08</span></footer>
 </section>
 <section class="sheet" id="review">
 <span class="section-number">03 / RESULT REVIEW</span><h2>Inspect claims before conclusions.</h2>
-<p>Review every model claim against its evidence. The software cannot decide that a person is healthy, that care is unnecessary, or that a finding is real.</p>
+<p>Check every claim against evidence. The software cannot establish health, care needs or a diagnosis.</p>
 <table><thead><tr><th>Read first</th><th>What it means</th><th>Operator action</th></tr></thead><tbody>
 <tr><td>Completed</td><td>The engine returned output. This does not validate it.</td><td>Inspect QC, findings, evidence and provenance.</td></tr>
 <tr><td>Abstained / failed</td><td>No usable research reading is available.</td><td>Read the reason. Preserve the failed run. Do not interpret it as “nothing found”.</td></tr>
@@ -88,9 +90,11 @@ uv run thoraxbench --help</code></pre><p>Expect a version, the research disclaim
 <li>Heuristic reports show <strong>illustrative source-slice previews</strong>. Their source indices start at <strong>0</strong>; they are not vision-model inputs.</li>
 <li>An evidence link is a reported association, not verified localization or a segmentation. Invalid or missing references must remain unresolved.</li>
 </ul>
+<h3>Compare models without implying consensus</h3>
+<p>Compare each model column by finding, status and uncalibrated score. Keep abstentions, failures and skipped models visible. Agreement is not validation; disagreement is not an accuracy ranking. Use each model’s downloads to inspect its own images and provenance. A combined offline HTML report preserves the comparison and individual evidence reports.</p>
 <h3>Check reproducibility</h3>
-<p>Save the JSON and read the original response, QC, timings, prompt/configuration hashes and provenance. Analysis-stage timing excludes DICOM loading and reporting. A working synthetic run or local-model transport test is not a real-patient accuracy benchmark.</p>
-<footer><span>Research use only · Incorrect, incomplete or misleading findings are possible</span><span>04 / 07</span></footer>
+<p>Save JSON for original responses, QC, hashes and provenance. “Browser request elapsed” covers waiting time for the request or batch; “Current model elapsed” times the active model. “Engine stages” exclude loading and reporting. Timers do not measure inference progress. Synthetic runs and transport tests do not establish patient accuracy.</p>
+<footer><span>Research use only · Incorrect, incomplete or misleading findings are possible</span><span>04 / 08</span></footer>
 </section>
 <section class="sheet" id="commands">
 <span class="section-number">04 / COMMAND-LINE PROCEDURE</span><h2>Repeat a run and save its artifacts.</h2>
@@ -117,7 +121,7 @@ uv run thoraxbench analyze data/demo/manual \
 <h3>Available overrides</h3>
 <p><code>--model</code> selects an ID from <code>configs/models/</code>. <code>--prompt</code> selects P0–P4. <code>--strategy</code> overrides the sampling strategy. <code>--n</code> requests a positive number of sampled slices; the browser limits it to 1–16. Use <code>uv run thoraxbench analyze --help</code> for the current options.</p>
 <p class="small">HTML output must be inside the configured data directory's <code>results/</code> folder. Destinations or symlinks that escape that folder are rejected before inference. JSON and Markdown examples also stay inside ignored results storage.</p>
-<footer><span>Research use only · Synthetic demonstrations do not measure accuracy</span><span>05 / 07</span></footer>
+<footer><span>Research use only · Synthetic demonstrations do not measure accuracy</span><span>05 / 08</span></footer>
 </section>
 <section class="sheet" id="configuration">
 <span class="section-number">05 / CONFIGURATION</span><h2>Keep paths explicit and inference local.</h2>
@@ -140,10 +144,30 @@ uv run thoraxbench analyze data/demo/manual \
 uv run thoraxbench models</code></pre></li>
 </ol>
 <p class="small">Configuration files, prompts, preprocessing and sampling affect results. Preserve version control and the recorded hashes. Remote/LAN inference is a design proposal only; do not bypass the loopback guard.</p>
-<footer><span>Research use only · Local inference · No telemetry</span><span>06 / 07</span></footer>
+<footer><span>Research use only · Local inference · No telemetry</span><span>06 / 08</span></footer>
+</section>
+<section class="sheet" id="model-setup">
+<span class="section-number">06 / MODEL SETUP &amp; WAIT ESTIMATES</span><h2>Install explicitly. Expect variable waits.</h2>
+<p>Open <strong>Model availability &amp; setup</strong>. Check availability, adapter, license and provider information. “Available” means the local runtime responds; it does not establish accuracy, GPU capacity or useful predictions.</p>
+<h3>Download a configured Ollama model</h3>
+<p>Prerequisites: running loopback Ollama, network access and enough space in its model store. Weights are stored by Ollama, outside this repository’s data folder.</p>
+<ol class="steps">
+<li><strong>Open “Model terms”.</strong><p>Check the publisher’s terms and any access requirements.</p></li>
+<li><strong>Check “I reviewed and may comply with the applicable model terms”.</strong><p>Acknowledge this only when the terms permit your use.</p></li>
+<li><strong>Select “Download model weights”.</strong><p>The app asks local Ollama to pull that configured tag. Downloads never start automatically.</p></li>
+<li><strong>Inspect “Model download”.</strong><p>“Active layer bytes” reports actual current-layer bytes. It can reset between layers; it is not a whole-model percentage. Analysis and setup controls remain locked while the download is pending.</p></li>
+<li><strong>Wait for “Download finished”.</strong><p>The inventory refreshes. Confirm availability before analysis.</p></li>
+</ol>
+<div class="check"><strong>Recovery:</strong> for “Download failed”, inspect the error. Check terms/access, network, disk space and local Ollama. Retry with an explicit download action. The app has no download-cancel endpoint; closing the page does not confirm cancellation.</div>
+<h3>Set up an optional HTTP model service</h3>
+<p>Read the provider links and <strong>Provider configuration (English)</strong>. Obtain upstream access approval and permitted weights. Check hardware and dependencies. Start the provider’s compatible local service at its configured loopback URL, then select <strong>Refresh model availability</strong>. A healthy service can become available. The app does not install those services or bypass gated access.</p>
+<h3>Read the rough remaining estimate</h3>
+<p><strong>Rough remaining estimate</strong> starts with workstation guesses: <strong>1–60 seconds</strong> for the HU baseline and <strong>1–15+ minutes</strong> for vision models. Later estimates use recent local request durations for the same model and requested image count. Only numeric duration history is saved in this browser; no study identifiers are stored with it.</p>
+<p>A batch adds estimates for remaining available models. If the upper estimate is exceeded, the UI says <strong>Taking longer than estimated; still running</strong>. Hardware, input size, cold loading and generation can extend the wait. These are guesses, not measured benchmarks, guaranteed deadlines or inference-progress percentages.</p>
+<footer><span>Research use only · Terms acknowledgement does not validate model findings</span><span>07 / 08</span></footer>
 </section>
 <section class="sheet" id="recovery">
-<span class="section-number">06 / ABNORMAL PROCEDURES &amp; SHUTDOWN</span><h2>Stop safely. Keep the holdout sealed.</h2>
+<span class="section-number">07 / ABNORMAL PROCEDURES &amp; SHUTDOWN</span><h2>Stop safely. Keep the holdout sealed.</h2>
 <h3>Before any real-study workflow</h3>
 <p>Verify the specific dataset's license status with <code>uv run thoraxbench datasets</code>. Acquisition requires an approved registry entry; never infer a license from the hosting site. Acquisition automation and the benchmark runner remain unfinished.</p>
 <ol class="steps">
@@ -152,7 +176,7 @@ uv run thoraxbench models</code></pre></li>
 </ol>
 <p class="stop">Never open <code>data/sealed/</code>, inspect holdout images, or copy sealed cases into development folders. No current MVP command is an approved holdout evaluation workflow. The future benchmark requires a frozen experiment and explicit unsealing.</p>
 <table><thead><tr><th>Observed problem</th><th>Recovery action</th></tr></thead><tbody>
-<tr><td>Model unavailable</td><td>Check <code>ollama list</code>, the configured tag and loopback URL. Use <code>heuristic-hu</code> for the demo. Do not substitute a cloud endpoint.</td></tr>
+<tr><td>Model unavailable</td><td>Open Model availability &amp; setup. Check <code>ollama list</code>, the configured tag and loopback URL. Use <code>heuristic-hu</code> for the demo. Do not substitute a cloud endpoint.</td></tr>
 <tr><td>Slow run / empty or invalid output</td><td>Preserve the error and result. Try a smaller synthetic vision request. Do not turn an abstention into a negative finding.</td></tr>
 <tr><td>Study missing / guard rejection</td><td>Check the development split and index. A holdout rejection is intentional. Do not bypass it.</td></tr>
 <tr><td>Disk full / cannot write</td><td>Check <code>df -h .</code> and <code>du -sh data</code>. Review disposable generated results/caches before removing anything. Preserve raw data, manifests and split files.</td></tr>
@@ -161,7 +185,7 @@ uv run thoraxbench models</code></pre></li>
 <h3>Shutdown and handover</h3>
 <p>Press <strong>Ctrl+C</strong> in the server terminal. Completed result files remain on disk. Record the model, settings, version, result paths, warnings and next action before you hand work to another researcher. Never commit patient images, rendered CT slices, model weights or secrets.</p>
 <p class="small"><strong>Maintain this manual:</strong> edit <code>manual.html</code>, then regenerate the PDF from the repository root with <code>uv run python -m playwright pdf --paper-format A4 file://"$PWD"/manual.html manual.pdf</code>. Install Chromium with <code>uv run playwright install chromium</code> if needed. Check <code>docs/plan.md</code> for current scope; this manual contains no patient images.</p>
-<footer><span>Self-made experimental tool · Not professional medical advice · Errors possible</span><span>07 / 07</span></footer>
+<footer><span>Self-made experimental tool · Not professional medical advice · Errors possible</span><span>08 / 08</span></footer>
 </section>
 </main>
 </body>

@@ -1,6 +1,24 @@
 # How radiologists read chest CT — and what ThoraxBench should copy
 
-Research note for ThoraxBench Local (Vision.md §9, §10, §12, §19, §28). This is research material, **not medical advice**. Every factual item carries a source URL. Items marked **[unverified]** come from general domain knowledge and could not be confirmed against a primary source during this research pass. Check them before you hard-code them.
+Research note for ThoraxBench Local (Vision.md §9, §10, §12, §19, §28).
+This self-made experimental tool is **not medical advice from a qualified healthcare
+professional**. Findings and reference knowledge may be incorrect, incomplete or misleading.
+Do not use outputs for diagnosis or treatment decisions.
+
+Every factual item carries a source URL. Items marked **[unverified]** could not be confirmed
+against a primary source during this pass. Preserve those labels. The clinical tables below
+summarize research sources; they are not software-operator treatment instructions.
+
+Before implementing a research recommendation:
+
+1. Check the cited primary source.
+2. Record the applicable population and exclusions.
+3. Confirm whether the recommendation matches the current implementation.
+4. Version and hash any result-affecting transform, prompt or threshold.
+5. Verify it with synthetic tests before development experiments.
+
+**Checkpoint:** no unverified threshold becomes a validated claim. If the source or patient
+context is missing, keep the limitation explicit. Do not derive a care instruction from it.
 
 Compiled 2026-10-15.
 
@@ -213,9 +231,19 @@ Source: https://doi.org/10.1016/j.jacr.2018.04.029 (full text read via https://r
 
 ## 3. Implications for ThoraxBench preprocessing
 
-These are concrete and implementable, and each is deterministic given the canonical HU volume (Vision §9.3).
+The following are research implementation proposals, not a claim that every feature is
+implemented. Each proposed deterministic transform starts from the canonical HU volume
+(Vision §9.3). Use [the architecture](architecture.md) and [the plan](plan.md) to check scope.
+The later upstream-notebook check in [model research](model_cards.md#5-official-medgemma-15-ct-preprocessing-reference)
+supersedes the unconfirmed MedGemma window recipe retained in this historical note.
 
-1. **Render at least three windows as separate, labeled images.** Use lung 1500/−600, mediastinum 350/50, and bone 1800/400; add abdomen 400/50 for the upper-abdomen slices. For the `medgemma_ct_v1` adapter, also reproduce MedGemma's RGB encoding (2250/−100, 350/40, 80/40) exactly as the official notebook does. Do not mix the two encodings in one study. These correspond to Vision S3 (multi-window), split by adapter.
+1. **Select an adapter-specific rendering.**
+   - For separate labeled images, use lung 1500/−600, mediastinum 350/50 and bone 1800/400.
+   - Add abdomen 400/50 for upper-abdomen slices.
+   - For `medgemma_ct_v1`, verify the official notebook's RGB recipe before implementation.
+     The original proposed values here were 2250/−100, 350/40 and 80/40; the later notebook
+     check records 2048/0, 350/40 and 80/40. Keep this distinction in provenance.
+   - Do not mix encodings within one study. These are adapter-specific Vision S3 variants.
 2. **Build a body mask and a lung mask by thresholding.**
    - Body: HU > −500, largest 3D component, holes filled.
    - Lung: HU < −400 inside the body mask, with air outside the body and the trachea/main bronchi removed (largest connected low-density components touching the slice border are excluded; components above the carina are dropped).
@@ -227,7 +255,10 @@ These are concrete and implementable, and each is deterministic given the canoni
    - z_max_lung: largest lung cross-section
    - z_heart: largest soft-tissue (0–100 HU) area between the lungs
    - z_dome: where diaphragm/liver appears inside the lung outline
-   Always include these slices plus uniform samples between apex and base. Add 2–3 slices below the bases for the upper abdomen (adrenals, liver). Record the slice indices so `evidence_images` can map back to z-positions.
+   Include the selected anchors plus uniform samples between apex and base.
+   Add 2–3 slices below the bases for the upper abdomen (adrenals, liver).
+   Record source slice indices and the model-image order separately. Map `evidence_images`
+   only when the recorded view supports that association; never invent a mapping.
 4. **Add an anatomy-coverage QC check (Vision §9.5).**
    - Flag `incomplete_coverage` if the lung mask touches the first or last slice (the apex or bases were cut off).
    - Flag `thick_slices` if slice thickness is >3 mm. Small nodules and GGNs become unreliable, and Lung-RADS assumes ≤2.5 mm.
@@ -250,13 +281,21 @@ These are concrete and implementable, and each is deterministic given the canoni
 
 ## 4. Implications for prompting (Vision §19)
 
-1. **Fixed checklist order matching §1.5:** technique/quality → devices → airways → lungs → pleura → mediastinum/hila → heart/pericardium → great vessels → chest wall → bones → upper abdomen. Ask for a verdict per region, so that coverage is auditable and "satisfaction of search" (stopping after the first finding) is reduced.
+1. **Use a fixed checklist order matching §1.5.**
+   Order: technique/quality → devices → airways → lungs → pleura → mediastinum/hila →
+   heart/pericardium → great vessels → chest wall → bones → upper abdomen.
+   Ask for a verdict per region. Keep coverage auditable and test whether this reduces
+   “satisfaction of search” (stopping after the first finding).
 2. **Required negatives.** For every ontology label, the model must output present / absent / uncertain. Pertinent negatives are compulsory for the high-stakes labels: pneumothorax, pleural effusion, pericardial effusion, consolidation, mass, aortic abnormality, and fracture. A missing answer is scored as "not assessed", not as absent.
 3. **Tell the model which image is which.** Caption each image with window name, plane, slab thickness, and z-position (mm from apex, or "carina level"). Without this, a lung-window image cannot be checked for mediastinal findings, and a 10 mm MIP of a vessel can be mistaken for a nodule.
 4. **Measurement caution.**
    - Do not ask the model for sizes in mm unless pixel spacing is shown on the image (a scale bar) or stated in the prompt.
    - Prefer categorical size bins tied to guidelines: nodule <6 / 6–8 / >8 mm / mass >30 mm; effusion small / moderate / large; aorta normal / dilated / aneurysmal.
    - Wherever a deterministic measurement exists (§3.7), the measurement wins over the model's estimate.
-5. **Separate observation from interpretation (two-pass, Vision P4).** Pass 1 lists observed findings with evidence images. Pass 2 maps them to labels and to the guideline category (Fleischner/Lung-RADS/CAC-DRS). The guideline mapping can then be done by code from the structured findings, not by the model.
+5. **Separate observation from interpretation (two-pass, Vision P4).**
+   Pass 1 lists observations with evidence references. Pass 2 maps observations to labels.
+   Derive educational guideline categories (Fleischner/Lung-RADS/CAC-DRS) from structured
+   fields with explicit assumptions. Record missing eligibility/context. Do not present
+   a code-derived category as a validated patient recommendation.
 6. **Context limits.** Tell the model whether contrast was given (dissection and PE cannot be assessed without it; Munden 2018), and whether slices are thick or the scan is low-dose. Require `uncertain` or `abstain` when the needed window or plane is missing.
 7. **Urgent flags.** List the emergency findings explicitly (tension pneumothorax, large pneumothorax, large pericardial effusion with mass effect, aortic dissection/rupture signs, malpositioned tube/line) and require `urgent_flags` to be filled independently of the label list.

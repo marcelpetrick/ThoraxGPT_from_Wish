@@ -1,7 +1,9 @@
 # Model selection and evaluation
 
-> Experimental research only — not medical advice, a diagnosis, or a medical device.
-> Results require independent expert review and establish no clinical validity.
+> Research use only. This self-made experimental tool is not medical advice from a
+> qualified healthcare professional, a diagnosis, or a medical device. Available models
+> and reference knowledge may produce incorrect, incomplete or misleading findings.
+> Do not use outputs for diagnosis or treatment decisions.
 
 **Status: 2026-10-15. No model accuracy benchmark has been completed.** Models are selected
 for vision input, local execution on the RTX A2000 with 8 GB VRAM, applicable license terms,
@@ -39,8 +41,33 @@ medical specialization and Gemma lineage; package variants are listed by Ollama 
 The Gemma comparison helps investigate medical specialization but cannot isolate training
 as the only cause of a difference: checkpoints, prompts and view choices also matter.
 Q4 and Q8 should use the same cases, prompt, images and settings when testing quantization.
-Across model families, record model-specific views and compare matched image budgets where
-possible.
+Across model families, record model-specific views. Match image budgets where possible.
+
+For the current browser comparison, enable **Compare recommended local models**, then select
+**Compare local models**. Inspect failures, abstentions and skipped models beside completed
+runs. Save **Download comparison HTML** for an offline evidence review. This flow compares
+outputs; it computes no reference-label accuracy or consensus diagnosis.
+
+## Check a candidate before a run
+
+Start in the repository root with the locked environment installed.
+
+1. Read the model's terms and configuration in `configs/models/`.
+   For missing weights, use **Model availability & setup** in the UI. Ollama downloads
+   require a separate explicit action after terms acknowledgement. Optional HTTP services
+   require publisher access, compatible weights/hardware and a configured loopback service.
+2. Run `uv run thoraxbench models`.
+3. Confirm that the intended configuration is available locally.
+4. Follow the synthetic run in [the manual](../manual.html#commands).
+5. Inspect the output status, QC and structured findings.
+6. Save the JSON, Markdown and HTML.
+
+**Checkpoint:** available means locally runnable. It does not mean accurate. A usable
+synthetic response is a prerequisite to development evaluation, not an accuracy result.
+
+**Recovery:** if weights or a service are unavailable, record that prerequisite and defer
+the model. Preserve failures and abstentions. Fix prompts only on synthetic or calibration
+cases. Do not tune on internal-test or sealed cases.
 
 ## From a candidate to a measured result
 

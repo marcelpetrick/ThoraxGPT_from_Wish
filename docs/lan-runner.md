@@ -1,14 +1,27 @@
 # Tomorrow's proposal: a 40 GB VRAM runner on the LAN
 
-> Research use only. This is a design proposal, not implemented or remotely tested.
-> Model size and available VRAM do not establish medical accuracy.
+> Research use only. This self-made experimental tool is not medical advice from a
+> qualified healthcare professional, a diagnosis, or a medical device. Available models
+> and reference knowledge may produce incorrect, incomplete or misleading findings.
+> Do not use outputs for diagnosis or treatment decisions.
+
+**Status: proposal only.** No remote endpoint has been enabled or verified.
+Do not run the proposed configuration below with the current MVP. Keep loopback inference.
 
 ## What the extra VRAM enables
 
 Assume one runner with roughly 40 GB usable GPU memory. The following are candidates,
 not a performance ranking. Sizes below are approximate Ollama download sizes verified
 on 2026-10-15; runtime also needs the vision encoder, KV cache and compute buffers.
-Start with one loaded model, a bounded context and a small image count, then measure.
+For the future hardware check:
+
+1. Load one model.
+2. Set a bounded context.
+3. Select a small image count.
+4. Measure actual memory and runtime before increasing the input.
+
+**Checkpoint:** the model stays within measured GPU capacity. If it spills or fails, reduce
+the workload before evaluating another model. These checks are not authorized for today.
 
 | Candidate | Approximate package | Why evaluate it | Fit expectation to verify |
 |---|---:|---|---|
@@ -74,22 +87,31 @@ results and reports on the workstation. The workstation's development guard runs
 
 ## Implementation and verification checklist for tomorrow
 
-1. Introduce one endpoint-policy object used by every inference adapter factory;
-   allow only loopback or the exact configured LAN endpoint, reject credentials,
-   redirects, proxy forwarding and unapproved hosts. Test IPv4/IPv6 and malformed URLs.
-2. Verify server reachability, installed tags, actual digest, vision capability and
-   Ollama version. Start with the existing 4B checkpoint to isolate networking from
-   a model change. Do not silently pull or switch model weights.
-3. Record endpoint identity and server version in provenance; keep client and server
-   timing distinct. Local `nvidia-smi` describes the workstation, not the remote GPU.
-   Report remote GPU/driver/VRAM as unknown unless explicitly collected from the runner.
-4. Run a synthetic end-to-end smoke test, then calibration-only real studies; compare
-   local/LAN results with the same digest, prompt, image hashes, context and decoding.
-5. Measure actual VRAM, model residency, image count/context limits, latency, token rate,
-   schema compliance, failure/abstention rate and useful findings for each larger model.
-6. Choose configuration on calibration; evaluate on the internal development test set.
-   Run the sealed holdout only after implementing the frozen benchmark and explicit
-   unsealing. A LAN connection must never weaken that boundary.
+Prerequisite: resume this work only after the scheduled LAN implementation is authorized.
+The current release must continue to reject non-loopback endpoints.
+
+1. Add one endpoint-policy object shared by all inference adapter factories.
+2. Allow only loopback or an exact configured LAN endpoint.
+3. Reject credentials, redirects, proxy forwarding and unapproved hosts.
+4. Test IPv4, IPv6 and malformed URLs.
+5. Verify runner reachability with the existing 4B checkpoint.
+6. Record installed tags, actual digest, vision capability and Ollama version.
+7. Record endpoint identity and server version in provenance.
+8. Keep client timing separate from server timing.
+9. Run a synthetic end-to-end smoke test.
+10. Compare local and LAN results with matching digest, prompt, image hashes, context and decoding.
+11. Run only calibration cases for subsequent model/configuration development.
+12. Measure actual VRAM, residency, image/context limits, latency and token rate per candidate.
+13. Record schema compliance, failures, abstentions and useful findings.
+14. Freeze the selected configuration before internal-test evaluation.
+
+**Checkpoint:** no implicit model pull or model switch occurs. Local `nvidia-smi` describes
+only the workstation. Record remote GPU, driver and VRAM as unknown unless collected from
+the runner. Every transfer passes the development guard first.
+
+**Recovery:** on an endpoint-policy failure, reject the request. Keep the loopback default;
+do not add unrestricted URL acceptance or a cloud fallback. The sealed holdout remains
+unavailable until the frozen benchmark and explicit unsealing are implemented.
 
 No new weights, remote endpoint calls or runtime policy changes are included in today's
 documentation/UI work.

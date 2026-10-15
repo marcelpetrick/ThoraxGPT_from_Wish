@@ -14,7 +14,7 @@ from thoraxbench.cli import main as cli
 from thoraxbench.config import Settings
 from thoraxbench.perf import PerfRecord
 from thoraxbench.provenance import RunProvenance
-from thoraxbench.reports.html_report import render_html_report
+from thoraxbench.reports.html_report import render_comparison_report, render_html_report
 from thoraxbench.schemas import AnalysisRequest, Finding, FindingsReport
 from thoraxbench.study import Study, load_study_dir
 from thoraxbench.views import render_slice_png
@@ -146,6 +146,26 @@ def test_no_findings_is_explicit(result: AnalysisResult, study: Study) -> None:
     assert "No structured findings were supplied" in render_html_report(result, study)
 
 
+def test_comparison_preserves_uncertainty_missing_predictions_and_escaped_omissions(
+    result: AnalysisResult,
+) -> None:
+    result.report.findings = [Finding(label="pulmonary_nodule", present=None)]
+    missing = result.model_copy(deep=True)
+    missing.model_id = "other"
+    missing.report.findings = []
+    html = render_comparison_report(
+        [(result, "<html><body>one</body></html>"), (missing, "<html><body>two</body></html>")],
+        [{"model_id": "<script>x</script>", "status": "error", "detail": "<img src=x>"}],
+    )
+    assert "uncertain · score uncertain" in html
+    assert "Not supplied" in html
+    assert "<script>x</script>" not in html
+    assert "<img src=x>" not in html
+    assert "&lt;script&gt;x&lt;/script&gt;" in html
+    assert 'srcdoc="&lt;html&gt;' in html
+    assert "Agreement does not establish correctness" in html
+
+
 def test_review_has_visible_severity_and_scoped_guideline_context(
     result: AnalysisResult, study: Study
 ) -> None:
@@ -215,3 +235,28 @@ def test_cli_html_written_to_nested_path_even_when_abstaining(
     assert response.exit_code == 1
     assert destination.is_file()
     assert "Abstention" in destination.read_text()
+
+
+def test_comparison_keeps_every_finding_with_the_same_label(result: AnalysisResult) -> None:
+    result.report.findings = [
+        Finding(label="pulmonary_nodule", present=False, confidence=0.95),
+        Finding(label="pulmonary_nodule", present=True, confidence=0.85),
+        Finding(label="pulmonary_nodule", present=None),
+    ]
+    html = render_comparison_report([(result, "<html><body>Evidence</body></html>")], [])
+    assert "not detected · score 0.05; present · score 0.85; uncertain · score uncertain" in html
+
+
+def test_educational_context_keeps_size_specific_guidance_for_each_occurrence(
+    result: AnalysisResult, study: Study
+) -> None:
+    result.report.findings = [
+        Finding(label="pulmonary_nodule", present=True, confidence=0.9, size_mm=5),
+        Finding(label="pulmonary_nodule", present=True, confidence=0.8, size_mm=12),
+    ]
+    html = render_html_report(result, study)
+    assert html.count('class="context-card"') == 2
+    assert "Reported finding 1 · size 5.0 mm" in html
+    assert "Reported finding 2 · size 12.0 mm" in html
+    assert "No routine follow-up." in html
+    assert "Consider CT at 3 months, PET/CT, or tissue sampling." in html

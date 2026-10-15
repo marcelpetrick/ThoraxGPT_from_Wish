@@ -7,6 +7,42 @@
 
 ---
 
+## How to read and implement this specification
+
+This document defines research goals. It is not the current operator runbook.
+Use [the HTML manual](manual.html) for supported commands and
+[the plan](docs/plan.md) for implementation status.
+
+Adopted implementation decisions (2026-10-15) clarify the original proposals below:
+
+- The user created the public `ThoraxGPT_from_Wish` repository. The original private-repo
+  proposal remains historical context; public-data restrictions apply now.
+- The user dropped Docker. Run from the source checkout with Python 3.14 and `uv`.
+  The diagrams and example `container_digest` field below describe optional target
+  isolation/provenance, not a supported Docker deployment.
+- CT-RATE access is pending. LIDC-IDRI and NSCLC-Radiogenomics are the downloaded pilot.
+- The pilot uses frozen metadata-only pseudorandom patient splits independent of labels:
+  80% development (calibration/internal test), 20% sealed holdout, with whole-patient rounding.
+  Stratification and CT-RATE's official splits remain research designs for later cohorts.
+- The local UI MVP and exploratory output comparison were brought forward. Reference-scored
+  benchmarking, advanced review and the final frozen holdout evaluation remain open.
+- Inference is loopback-only. A trusted LAN runner is a separate proposal, not current behavior.
+
+Before implementing a requirement:
+
+1. Read the relevant section and its cited source.
+2. Check the current work package in `docs/plan.md`.
+3. Define the expected output and failure/abstention behavior.
+4. Implement the smallest complete change through the shared core.
+5. Verify it using synthetic tests and the repository quality gate.
+6. Record result-affecting versions and hashes in provenance.
+
+**Checkpoint:** the change preserves local inference, license approval and patient-level
+separation. A test or smoke run establishes software behavior, not medical accuracy.
+**Recovery:** preserve failures and unmet prerequisites. Never bypass a guard to finish a run.
+Use short active instructions, one action per step, exact commands and explicit checkpoints
+throughout documentation. Preserve research tables, caveats and citations.
+
 ## 1. Vision
 
 ThoraxBench Local will be an end-to-end local research platform that accepts a thoracic CT study, preprocesses it into one or more model-specific representations, asks one or more local AI models to identify abnormalities, converts the outputs into a common structured schema, and scores the outputs against reference labels, radiology reports, annotations, or segmentations.
@@ -562,15 +598,20 @@ A shared canonical representation is required before model-specific transforms.
 
 ### 9.1 Study discovery
 
-For each DICOM tree:
+For each permitted DICOM tree:
 
-1. read headers before pixel data;
-2. group by StudyInstanceUID and SeriesInstanceUID;
-3. identify CT series;
-4. exclude localizers/scouts and obviously unsuitable series;
-5. record contrast/reconstruction/kernel/slice thickness when available;
-6. select the intended chest series deterministically;
-7. retain all selection decisions in metadata.
+1. Apply the study-access guard before loading study data.
+2. Read headers before pixel data.
+3. Group instances by StudyInstanceUID and SeriesInstanceUID.
+4. Identify CT series.
+5. Exclude localizers, scouts and clearly unsuitable series.
+6. Record contrast, reconstruction, kernel and slice thickness when available.
+7. Select the intended chest series deterministically.
+8. Retain the selection decisions in metadata.
+
+**Checkpoint:** selection is reproducible and its reason is recorded. If geometry or
+coverage is inadequate, preserve QC limitations and allow abstention. Do not silently
+substitute another patient, sealed case or unsupported series.
 
 ### 9.2 Geometry
 
@@ -983,6 +1024,10 @@ No cloud inference endpoint is required.
 
 ## 18. End-to-end user workflow
 
+The following are target interfaces. `benchmark`, CLI `compare` and the example
+`--request` option are not implemented in the current MVP. Do not run them as current
+instructions. Use [the manual](manual.html#commands) for exact supported commands.
+
 Target CLI:
 
 ```bash
@@ -1011,15 +1056,20 @@ thoraxbench compare \
 
 Target local web UI:
 
-1. select/load local DICOM study;
-2. show metadata and chosen CT series;
-3. display sampled slices / 3D preview;
-4. choose model and request;
-5. run locally;
-6. display findings and confidence;
-7. overlay available reference annotations;
-8. show score when ground truth exists;
-9. export JSON/CSV/HTML benchmark report.
+1. Select a permitted local study.
+2. Inspect the metadata and chosen CT series.
+3. Inspect sampled slices or a 3D preview when supported.
+4. Select a model.
+5. Configure the request.
+6. Run locally.
+7. Inspect status, findings and uncalibrated confidence.
+8. Inspect reference overlays when implemented and available.
+9. Inspect reference-label scores when ground truth and scoring are available.
+10. Export the requested research artifacts.
+
+**Checkpoint:** unsupported target features remain clearly deferred. Current output
+comparison does not compute ground-truth accuracy or establish consensus. A failed model
+or missing reference must remain explicit.
 
 The UI must visibly state that outputs are experimental research results and not medical advice.
 
@@ -1298,7 +1348,13 @@ Goal: final benchmark tables and external-domain analysis.
 
 ## 28. Safety and intended use
 
-ThoraxBench Local is a research system.
+ThoraxBench Local is a self-made experimental research system created with AI assistance.
+It is not medical advice from a qualified healthcare professional. Available knowledge,
+models and findings may be incorrect, incomplete or misleading. Do not use outputs for
+diagnosis or treatment decisions. Every user-facing output must carry this limitation.
+
+Educational severity or typical attention is reference context. An absent, uncertain or
+low-rated finding does not establish that no professional review is needed.
 
 It must not claim:
 
@@ -1450,7 +1506,9 @@ It means:
 
 ## 33. Immediate implementation order
 
-The project should start in this order:
+This is the original research sequence. Follow `docs/plan.md` for the current task order.
+The user-approved changes above supersede the private-repo, Docker and delayed-UI proposals.
+Keep each step's outcome in the plan before starting its dependent work:
 
 ```text
 1. Create private repo + skeleton
@@ -1477,7 +1535,14 @@ This order avoids spending days downloading terabytes before the benchmark path 
 
 ## 34. Initial source registry / references
 
-These are the primary sources verified while drafting this vision. Their current terms should still be snapshotted into the repository when acquisition begins.
+These primary sources were checked while drafting the vision. Before acquisition:
+
+1. Verify the specific source's current terms.
+2. Save a terms/license snapshot and its provenance.
+3. Confirm the registry approval and access requirements.
+
+**Checkpoint:** approval applies to that collection only. If terms conflict or access is
+missing, record the unresolved prerequisite and stop acquisition.
 
 ### Models
 

@@ -2,6 +2,41 @@
 
 Verified 2026-10-15 against the official pages (TCIA collection pages + NBIA `getSeries` LicenseName/LicenseURI fields; HF dataset cards + HF API; medRxiv API for MosMedData). Machine-readable registry: `configs/datasets/*.yaml` (one entry per source, with the license decision as `status`).
 
+> Research use only. This self-made experimental tool is not professional medical advice.
+> Findings may be incorrect, incomplete or misleading. Do not use outputs for diagnosis or
+> treatment decisions.
+
+## Before using these notes
+
+The tables record source research as of 2026-10-15. Suggested statuses are research notes;
+`configs/datasets/*.yaml` is the machine-readable policy source. Do not infer approval
+from a source URL, another collection's terms or an old table entry.
+
+1. Run `uv run thoraxbench datasets` from the repository root.
+2. Inspect the intended dataset's registry entry.
+3. Verify its specific current terms before any acquisition.
+4. Check free space with `df -h .` and usage with `du -sh data`.
+5. Use the maintained split procedure before indexing an approved downloaded cohort.
+
+   ```bash
+   uv run thoraxbench split lidc_idri
+   ```
+
+6. Check the frozen development/holdout counts.
+7. Index a permitted development case.
+
+   ```bash
+   uv run thoraxbench index lidc_idri --limit 1
+   ```
+
+**Checkpoint:** a split already present must refuse replacement. Keep it. The index contains
+only permitted development cases. Never read sealed images or sealed IDs for these checks.
+
+**Recovery:** if approval, access, space or the split is missing, stop that workflow and
+record the unmet prerequisite. Do not bypass the license gate or split guard.
+The current CLI has no `acquire` or `data budget` command. The configured 10 GB budget is
+not a complete write quota for demo/analysis routes; inspect actual storage usage.
+
 ## Summary table
 
 | id | license | access | commercial | redistribution | size/patient | labels | suggested status |
@@ -291,10 +326,14 @@ Why NSCLC Radiogenomics as the external domain: CC BY 3.0 (commercial use + redi
 - `CT Images in COVID-19` is not served by NBIA (Aspera NIfTI only). `NLST` getSeries with PatientID returned an empty body — query by other filters.
 - mosmed.ai reset connections and the DeepLesion NIH Box link returned 404 on 2026-10-15; their terms are only verified from the paper (MosMed) or unverified (DeepLesion).
 - RadGenome-ChestCT: HF API says `gated: false`, license tag CC-BY-4.0, but card terms (copied from CT-RATE) forbid commercial use and redistribution -> treat as research-only. It has masks/reports only; volumes are CT-RATE (gated).
-- The repo had no .gitignore, so `data/` was not ignored; I added `data/.gitignore` (`*`). The lead should add `data/` to the repo .gitignore.
+- Historical setup: the repository initially lacked `.gitignore`, so the research pass added `data/.gitignore` (`*`). The current repository ignores `data/`; preserve that protection.
 - Selecting smallest series biases LIDC towards thicker slices; widen the size cap for Phase B.
 
-### Files
+### Historical scratchpad files
+
+These names describe the acquisition research scratchpad. They are not maintained CLI
+commands or scripts shipped at the repository root. Do not run a nonexistent `acquire.py`
+from the checkout. The acquisition port remains open in [the plan](plan.md).
 
 - `acquire.py` — resumable downloader (httpx if available, else urllib); `python3 acquire.py --data-root DATA --dataset lidc_idri|nsclc_radiogenomics [--dry-run|--manifest-only] [--workers N]`
 - `build_registry.py` — regenerates `datasets.json`; `xlsx_read.py` — stdlib xlsx reader

@@ -218,12 +218,10 @@ def _educational_context(result: AnalysisResult) -> str:
         return ""
     kb = load_clinical_kb()
     cards: list[str] = []
-    seen: set[str] = set()
-    for finding in result.report.findings:
+    for occurrence, finding in enumerate(result.report.findings, start=1):
         entry = kb.get(finding.label)
-        if entry is None or finding.label in seen or _review_status(finding) != "present":
+        if entry is None or _review_status(finding) != "present":
             continue
-        seen.add(finding.label)
         follow_up = entry.follow_up
         if finding.label == "pulmonary_nodule":
             advice = fleischner(finding.size_mm)
@@ -234,6 +232,9 @@ def _educational_context(result: AnalysisResult) -> str:
             )
         cards.append(
             f'<article class="context-card"><h3>{escape(entry.medical_term)}</h3>'
+            f"<p>Reported finding {occurrence} · size "
+            f"{finding.size_mm if finding.size_mm is not None else 'unknown'} mm · "
+            f"side {escape(finding.laterality.value)}</p>"
             f"<p>{escape(entry.plain_language)}</p>"
             f"<p><strong>Educational follow-up context</strong><br>{escape(follow_up)}</p>"
             f"<p>Reference sources: {escape(', '.join(entry.sources[:3]))}</p></article>"
@@ -293,4 +294,90 @@ def render_html_report(result: AnalysisResult, study: Study) -> str:
         f"<footer><p>{escape(result.disclaimer)}</p>"
         "<p>ThoraxBench Local · Self-contained research export · No external assets required</p>"
         "</footer></main></body></html>"
+    )
+
+
+def render_comparison_report(
+    reports: list[tuple[AnalysisResult, str]], omissions: list[dict[str, str]]
+) -> str:
+    """Compare completed local runs with their exact offline evidence reports embedded."""
+    headings = "".join(f"<th>{escape(r.model_id)}</th>" for r, _ in reports)
+    labels = sorted({f.label for r, _ in reports for f in r.report.findings})
+    rows: list[str] = []
+    for label in labels:
+        cells: list[str] = []
+        for result, _ in reports:
+            findings = [f for f in result.report.findings if f.label == label]
+            if result.report.abstain or result.raw_error:
+                text = "Unavailable — abstention or model error"
+            elif not findings:
+                text = "Not supplied"
+            else:
+                occurrences: list[str] = []
+                for finding in findings:
+                    probability = probability_of(finding)
+                    score = "uncertain" if probability is None else f"{probability:.2f}"
+                    occurrences.append(f"{_review_status(finding)} · score {score}")
+                text = "; ".join(occurrences)
+            cells.append(f"<td>{escape(text)}</td>")
+        rows.append(f"<tr><th>{escape(label)}</th>{''.join(cells)}</tr>")
+    status_rows: list[str] = []
+    embedded: list[str] = []
+    for index, (result, html) in enumerate(reports, start=1):
+        status = (
+            "Error" if result.raw_error else "Abstention" if result.report.abstain else "Completed"
+        )
+        reason = result.raw_error or "; ".join(result.report.parse_warnings)
+        status_rows.append(
+            f'<tr><th><a href="#run-{index}">{escape(result.model_id)}</a></th>'
+            f"<td>{status}</td><td>{result.perf.total_s:.3f} s</td><td>{escape(reason)}</td></tr>"
+        )
+        embedded.append(
+            f'<details id="run-{index}"><summary>{escape(result.model_id)} — '
+            f"{status}: full findings, educational severity and image evidence</summary>"
+            f'<iframe sandbox title="{escape(result.model_id, quote=True)} research report" '
+            f'srcdoc="{escape(html, quote=True)}"></iframe></details>'
+        )
+    for item in omissions:
+        status_rows.append(
+            f"<tr><th>{escape(item['model_id'])}</th><td>{escape(item['status'])}</td>"
+            f"<td>Not measured</td><td>{escape(item['detail'])}</td></tr>"
+        )
+    first = reports[0][0]
+    single = (
+        "Only one completed run is available; no cross-model comparison is possible."
+        if len(reports) == 1
+        else ""
+    )
+    return (
+        '<!doctype html><html lang="en"><head><meta charset="utf-8">'
+        '<meta name="viewport" content="width=device-width,initial-scale=1">'
+        '<meta http-equiv="Content-Security-Policy" content="default-src \'none\'; '
+        "frame-src 'self'; img-src data:; style-src 'unsafe-inline'; base-uri 'none'; "
+        "form-action 'none'\"><title>ThoraxBench model comparison</title>"
+        f"<style>{REPORT_STYLE}iframe{{display:block;width:100%;height:900px;border:0}}</style>"
+        '</head><body><main class="shell"><header class="hero">'
+        '<p class="eyebrow">ThoraxBench Local · Research comparison</p>'
+        f"<h1>Model comparison — {escape(first.case_id)}</h1>"
+        f"<p>{len(reports)} completed local run(s) · {escape(first.dataset)}</p></header>"
+        f'<p class="notice">{escape(first.disclaimer)}</p>'
+        '<section class="panel"><h2>Run status</h2>'
+        "<p>Failed and abstained outputs remain unavailable. Timings cover engine stages, "
+        "excluding DICOM loading and reporting; this is not a speed benchmark.</p>"
+        f"<p>{single}</p><div class=table-wrap><table><thead><tr><th>Model</th><th>Status</th>"
+        "<th>Engine stages</th><th>Notes</th></tr></thead><tbody>"
+        + "".join(status_rows)
+        + '</tbody></table></div></section><section class="panel">'
+        "<h2>Findings across models</h2><p>Scores are uncalibrated and not directly comparable "
+        "across models. Agreement does not establish correctness. No reference-label evaluation "
+        "or accuracy ranking is performed. Missing predictions do not establish absence. "
+        "Open each model report below for observations, educational severity "
+        "and image evidence.</p>"
+        '<div class="table-wrap"><table><thead><tr><th>Finding</th>'
+        + headings
+        + "</tr></thead><tbody>"
+        + "".join(rows)
+        + "</tbody></table></div></section>"
+        + "".join(embedded)
+        + f"<footer>{escape(first.disclaimer)}</footer></main></body></html>"
     )

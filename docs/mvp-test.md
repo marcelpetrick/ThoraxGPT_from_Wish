@@ -1,22 +1,47 @@
 # A reproducible MVP test
 
-> Research use only. These are uncalibrated experimental outputs from a synthetic
-> phantom, not medical advice, a diagnosis or evidence of clinical accuracy.
+> Research use only. This self-made experimental tool is not medical advice from a
+> qualified healthcare professional, a diagnosis, or a medical device. Available models
+> and reference knowledge may produce incorrect, incomplete or misleading findings.
+> Do not use outputs for diagnosis or treatment decisions.
 
 ![Synthetic input to saved findings and report](assets/mvp-walkthrough.svg)
 
 ## Input and command
 
-Run from the checkout with the locked dependencies installed:
+Prerequisites: `uv`, Python 3.14 and the source checkout. Start in the repository root.
+Keep that working directory throughout this procedure. Use only synthetic data.
 
-```bash
-uv sync --frozen --all-groups
-uv run thoraxbench demo-data data/demo/user-test
-uv run thoraxbench analyze data/demo/user-test --model heuristic-hu \
-  --output data/results/user-test/result.json \
-  --report data/results/user-test/report.md \
-  --html data/results/user-test/report.html
-```
+1. Install the locked dependencies.
+
+   ```bash
+   uv sync --frozen --all-groups
+   ```
+
+2. Generate the study.
+
+   ```bash
+   uv run thoraxbench demo-data data/demo/user-test
+   ```
+
+3. Run the baseline.
+
+   ```bash
+   uv run thoraxbench analyze data/demo/user-test --model heuristic-hu \
+     --output data/results/user-test/result.json \
+     --report data/results/user-test/report.md \
+     --html data/results/user-test/report.html
+   ```
+
+4. Open `data/results/user-test/report.html` in a browser.
+5. Inspect the matching JSON and Markdown files.
+
+**Checkpoint:** exit status 0, adequate QC, no abstention, and the synthetic findings listed
+below. The HTML opens offline with embedded illustrations. Timing can differ.
+
+**Recovery:** if the command fails, read the terminal reason and any saved result. Confirm
+the study directory and output paths. Do not treat failure or abstention as a negative
+finding. Keep image-bearing exports in ignored `data/results/`.
 
 The default generated phantom is 64 synthetic axial CT slices with spacing
 5.0 × 2.5 × 2.5 mm. It includes a right 12 mm nodule and a right fluid-density region.
@@ -29,6 +54,20 @@ show the actual prepared model inputs; heuristic runs show labeled source-slice 
 since that baseline operates on the HU volume. Missing or invalid evidence is never
 presented as a confirmed image association. This HTML export was added after the original
 v0.0.29 run below; use the current version to reproduce it.
+
+## Browser acceptance procedure
+
+1. Start `uv run thoraxbench serve` from the repository root.
+2. Open `http://127.0.0.1:8000`.
+3. Follow the demo, viewer, analysis and download checklist in
+   [the operator manual](../manual.html#workbench).
+4. Check the research disclaimer in the UI and downloaded HTML.
+5. Stop the server with Ctrl+C.
+6. Open the downloaded HTML again.
+
+**Checkpoint:** offline images still render. The explicit status and educational severity
+remain visible. Use mocked models for automated comparison and failure tests; never use
+patient or sealed data for browser screenshots.
 
 ## Actual recorded outcome
 
@@ -110,7 +149,7 @@ including package build, clean-wheel installation and locked-dependency audit.
 
 See the [HTML operator manual](../manual.html) or [matching PDF](../manual.pdf) for the complete
 setup and run procedure. The manual was checked at desktop/mobile widths, all navigation
-anchors resolved, and the seven-page A4 PDF was checked by text extraction and rendered-page
+anchors resolved, and the eight-page A4 PDF was checked by text extraction and rendered-page
 inspection. Neither manual contains patient images.
 
 A further Playwright smoke check exercised the user's running loopback UI at v0.1.1:

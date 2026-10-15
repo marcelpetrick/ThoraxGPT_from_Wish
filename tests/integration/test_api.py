@@ -16,6 +16,7 @@ import respx
 from fastapi.testclient import TestClient
 from typer.testing import CliRunner
 
+from thoraxbench.analysis import AnalysisResult
 from thoraxbench.api import app as api
 from thoraxbench.api.licenses import runtime_libraries
 from thoraxbench.cli import main as cli
@@ -121,6 +122,7 @@ def test_invalid_analysis_requests(client: TestClient) -> None:
 def test_models_probe_ollama_once_and_never_services(
     client: TestClient, settings: Settings
 ) -> None:
+    respx.route(path="/health").mock(return_value=httpx.Response(503))
     tags = respx.get(f"{settings.ollama_url}/api/tags").mock(
         return_value=httpx.Response(200, json={"models": [{"name": "medgemma1.5:4b-it-q4_K_M"}]})
     )
@@ -129,7 +131,10 @@ def test_models_probe_ollama_once_and_never_services(
     models = {item["id"]: item for item in response.json()["models"]}
     assert models["medgemma1.5-q4"]["available"]
     assert models["heuristic-hu"]["available"]
+    assert models["heuristic-hu"]["recommended"]
+    assert models["medgemma1.5-q4"]["recommended"]
     assert not models["ct-clip"]["available"]
+    assert not models["ct-clip"]["recommended"]
     tags.mock(side_effect=httpx.ConnectError("down"))
     assert client.get("/api/models").status_code == 200
 
@@ -139,6 +144,7 @@ def test_models_probe_ollama_once_and_never_services(
 def test_malformed_model_inventory_is_unavailable(
     client: TestClient, settings: Settings, payload: object
 ) -> None:
+    respx.route(path="/health").mock(return_value=httpx.Response(503))
     respx.get(f"{settings.ollama_url}/api/tags").mock(
         return_value=httpx.Response(200, json=payload)
     )
@@ -304,3 +310,136 @@ def test_cli_serve_binds_only_loopback(monkeypatch: pytest.MonkeyPatch) -> None:
     assert "http://127.0.0.1:8765" in result.output
     assert run.call_args.kwargs == {"host": "127.0.0.1", "port": 8765, "proxy_headers": False}
     assert CliRunner().invoke(cli.app, ["serve", "--host", "192.168.1.2"]).exit_code != 0
+
+
+def test_comparison_export_includes_completed_abstained_and_skipped_models(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    client.post("/api/demo")
+    first = client.post("/api/analyze", json={"dataset": "demo", "case_id": "phantom"}).json()
+    abstained = AnalysisResult.model_validate(first["result"])
+    abstained.model_id = "medgemma1.5-q4"
+    abstained.report.abstain = True
+    abstained.raw_error = "<script>offline</script>"
+    monkeypatch.setattr(api, "analyze_study", Mock(return_value=abstained))
+    second = client.post("/api/analyze", json={"dataset": "demo", "case_id": "phantom"}).json()
+    response = client.post(
+        "/api/compare",
+        json={
+            "result_ids": [first["id"], second["id"]],
+            "omissions": [
+                {"model_id": "gemma3-4b", "status": "skipped", "detail": "Not installed"}
+            ],
+        },
+    )
+    assert response.status_code == 200, response.text
+    html = client.get(response.json()["downloads"]["html"]).text
+    assert "Findings across models" in html
+    assert "not directly comparable" in html
+    assert "Unavailable — abstention or model error" in html
+    assert "Not installed" in html
+    assert "iframe sandbox" in html
+    assert "<script>offline</script>" not in html
+    assert client.get(f"/api/results/{response.json()['id']}/json").status_code == 404
+    single = client.post("/api/compare", json={"result_ids": [first["id"], first["id"]]}).json()
+    assert "Only one completed run" in client.get(single["downloads"]["html"]).text
+    abstained.case_id = "another-study"
+    third = client.post("/api/analyze", json={"dataset": "demo", "case_id": "phantom"}).json()
+    assert (
+        client.post("/api/compare", json={"result_ids": [first["id"], third["id"]]}).status_code
+        == 422
+    )
+
+
+def test_comparison_rejects_invalid_missing_and_escaped_results(
+    client: TestClient, settings: Settings, tmp_path: Path
+) -> None:
+    for payload in (
+        {"result_ids": []},
+        {"result_ids": ["not-uuid"]},
+        {"result_ids": [str(uuid4())] * 9},
+    ):
+        assert client.post("/api/compare", json=payload).status_code == 422
+    assert client.post("/api/compare", json={"result_ids": [str(uuid4())]}).status_code == 404
+    client.post("/api/demo")
+    result = client.post("/api/analyze", json={"dataset": "demo", "case_id": "phantom"}).json()
+    path = settings.data_path("results", "ui", result["id"], "report.html")
+    path.unlink()
+    path.symlink_to(tmp_path / "outside.html")
+    assert client.post("/api/compare", json={"result_ids": [result["id"]]}).status_code == 404
+
+
+def test_pull_requires_known_configured_ollama_model_and_explicit_terms(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from thoraxbench.api import model_pulls
+
+    monkeypatch.setattr(model_pulls, "Thread", Mock())
+    for body in (
+        {},
+        {"terms_acknowledged": False},
+        {"terms_acknowledged": 1},
+        {"terms_acknowledged": True, "tag": "arbitrary"},
+    ):
+        assert client.post("/api/models/gemma3-4b/pull", json=body).status_code == 422
+    assert (
+        client.post("/api/models/missing/pull", json={"terms_acknowledged": True}).status_code
+        == 404
+    )
+    assert (
+        client.post("/api/models/ct-clip/pull", json={"terms_acknowledged": True}).status_code
+        == 422
+    )
+    response = client.post("/api/models/gemma3-4b/pull", json={"terms_acknowledged": True})
+    assert response.status_code == 200
+    job = response.json()
+    assert job["status"] == "queued"
+    assert client.get(f"/api/model-pulls/{job['id']}").json() == job
+    assert (
+        client.post("/api/models/gemma3-4b/pull", json={"terms_acknowledged": True}).status_code
+        == 409
+    )
+    assert client.get(f"/api/model-pulls/{uuid4()}").status_code == 404
+
+
+@pytest.mark.parametrize(
+    ("payload", "available"),
+    [({"status": "ok"}, True), ({"status": "loading"}, False), ([], False), (None, False)],
+)
+@respx.mock
+def test_service_inventory_checks_configured_loopback_health(
+    client: TestClient, settings: Settings, payload: object, available: bool
+) -> None:
+    respx.get(f"{settings.ollama_url}/api/tags").mock(
+        return_value=httpx.Response(200, json={"models": []})
+    )
+    health = respx.get(f"{settings.service_urls['ct_clip']}/health").mock(
+        return_value=httpx.Response(200, json=payload)
+    )
+    respx.route(path="/health").mock(return_value=httpx.Response(503))
+    models = {item["id"]: item for item in client.get("/api/models").json()["models"]}
+    assert models["ct-clip"]["available"] is available
+    assert health.call_count == 1
+    assert not models["ct-clip"]["download_supported"]
+    assert models["gemma3-4b"]["download_supported"]
+    assert models["gemma3-4b"]["terms_url"]
+    assert models["gemma3-4b"]["source_url"].startswith("https://ollama.com/library/")
+
+
+@respx.mock
+def test_service_inventory_and_pull_reject_non_loopback(settings: Settings) -> None:
+    settings.service_urls["ct_clip"] = "https://remote.example"
+    settings = Settings(
+        repo_root=settings.repo_root,
+        data_dir=settings.data_dir,
+        ollama_url="https://remote.example",
+        service_urls=settings.service_urls,
+    )
+    respx.route(path="/health").mock(return_value=httpx.Response(503))
+    client = TestClient(api.create_app(settings))
+    models = {item["id"]: item for item in client.get("/api/models").json()["models"]}
+    assert not models["ct-clip"]["available"]
+    assert (
+        client.post("/api/models/gemma3-4b/pull", json={"terms_acknowledged": True}).status_code
+        == 422
+    )
