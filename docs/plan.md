@@ -16,6 +16,11 @@ here are binding until changed by a later commit to this file.
 
 ## Priority (user decision, 2026-10-15)
 
+**Now:** (a) test data and (b) a first runnable end-to-end prototype — `thoraxbench analyze
+<dicom-dir> --model <id>` producing findings JSON + the English Markdown clinical report on a
+real LIDC study with a local Ollama model. *Then* flesh out (benchmark, calibration, UI).
+
+
 1. **Engine first.** The end-to-end engine must work and give good, measured results before
    any UI work: ingest → preprocess → sample → infer → parse → score → clinical report.
 2. **Locally hosted models on Ollama** are the runtime that matters. MedGemma 1.5 (Q4/Q8) and
@@ -76,6 +81,13 @@ Status: ✅ done · 🔄 in progress · ⏳ open · ✖ dropped
 Updated with every commit (newest first). **If a session breaks, the next agent resumes
 from here**: read this section and *Next steps*, then `git log --oneline | head -20`.
 
+- 🔄 **Lead, now:** first end-to-end prototype — `analysis.py` (study → view → model → parsed
+  findings, perf + provenance) ✍️ written, next: `reports/study_report.py` (English Markdown:
+  medical term, plain language, severity, treatment need, prevalence, guideline follow-up) and CLI
+  commands `analyze`, `index`, `split`, `demo-data`, `models`, `datasets`.
+- ✅ **Test data available (outside Git, `data/raw/`):** LIDC-IDRI 60 patients (40 with nodules
+  ≥3 mm, 20 without) + NSCLC-Radiogenomics 27 patients with tumour SEG; synthetic DICOM phantoms
+  for tests/demos (`thoraxbench.synthetic`).
 - 🔄 **Running now:** study index build for `lidc_idri` (60) and `nsclc_radiogenomics` (27):
   loads every study once, derives reference labels (LIDC reader XML / NSCLC DICOM-SEG) and HU
   cues → `data/index/<dataset>.json` (log: `.pipeline/build_index.log`, ~15 s per study).
