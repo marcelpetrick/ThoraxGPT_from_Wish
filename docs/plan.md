@@ -64,12 +64,31 @@ Status: ✅ done · 🔄 in progress · ⏳ open · ✖ dropped
 
 ## Current activity
 
-Updated with every commit (newest first).
+Updated with every commit (newest first). **If a session breaks, the next agent resumes
+from here**: read this section and *Next steps*, then `git log --oneline | head -20`.
 
-- 🔄 Schemas (FindingsReport, Capabilities, I/O types) and the canonical ontology — the
-  contract for the parallel work packages.
-- 🔄 Background research: Ollama model survey and MedGemma pulls (WP1), dataset licenses and
-  the LIDC-IDRI pilot download (WP2), radiologist reading practice and findings knowledge base (WP13).
+- 🔄 Fan-out of parallel work packages (git worktrees, landed on `main` by the lead):
+  WP4 preprocess/sampling/views · WP5 prompts/adapters/parsing · WP7 scoring/calibration/perf.
+- 🔄 Lead: WP6 splits + sealing guard, then WP2 integration (`thoraxbench acquire`, LIDC labels).
+- 🔄 Background research (results arrive as notes and are then committed to `docs/`):
+  WP1 Ollama model survey + MedGemma 1.5 pulls → `docs/model_cards.md`;
+  WP2 dataset licenses + LIDC-IDRI pilot download into `data/raw/` → `docs/datasets.md`,
+  `configs/datasets/*.yaml`; WP13 radiologist reading practice + findings knowledge base →
+  `docs/reading_practice.md`, `src/thoraxbench/ontology/clinical_kb.yaml`.
+- ✅ Schemas + ontology (v0.0.7), DICOM loader + phantoms (v0.0.6), registry (v0.0.5),
+  architecture (v0.0.3), bootstrap (v0.0.1).
+
+## Next steps (in order)
+
+1. Land WP4/WP5/WP7 branches; WP6 splits + sealing guard.
+2. Commit research outputs (model cards, dataset registry YAMLs, reading practice, clinical KB).
+3. `thoraxbench acquire` (TCIA client, manifests, budget, de-id audit) + LIDC XML label loader;
+   build the study index for the downloaded pilot and freeze the 80/20 split.
+4. Clinical Markdown study report (WP13) + `thoraxbench analyze`.
+5. Benchmark runner, experiment configs E001–E008, `compare`, benchmark report (WP8).
+6. Web UI + Playwright e2e + real screenshot (WP9).
+7. Real runs on the development split with MedGemma Q4/Q8 + controls (WP11).
+8. `/reviewBranch`, fixes, `/githubAbout`, Vision traceability check (WP12).
 
 ## Self-review gates
 

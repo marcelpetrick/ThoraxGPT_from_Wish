@@ -5,6 +5,12 @@ ThoraxBench Local. The *why* lives in [`Vision.md`](Vision.md); the *how/when* l
 [`docs/plan.md`](docs/plan.md). If anything here conflicts with Vision.md, Vision.md wins
 and this file must be fixed.
 
+## 0. Resuming work
+
+A new session/agent starts by reading `docs/plan.md` (*Current activity* and *Next steps*),
+then `git log --oneline | head -20` and `git status`. Everything needed to continue is in the
+repository; nothing important may live only in a chat or a temp directory.
+
 ## 1. Non-negotiables
 
 1. **Research use only.** Never add text, UI, or output that claims clinical validity,
