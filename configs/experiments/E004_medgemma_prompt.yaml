@@ -1,0 +1,21 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# E004 — prompt strategy sweep (Vision §26 E004), calibration phase only. Needs Ollama.
+id: E004
+title: MedGemma prompt strategy
+description: >-
+  MedGemma 1.5 4B Q4_K_M with the default medgemma_ct_v1 view; only the prompt changes
+  (P0–P4). Restricted to the calibration phase of the development split.
+vision_ref: "Vision §26 E004"
+split: development
+phases: [calibration]
+model: medgemma1.5-q4
+datasets: [lidc_idri, nsclc_radiogenomics]
+labels: [pulmonary_nodule, pulmonary_mass]
+n_boot: 1000
+seed: 0
+variants:
+  - {id: P0, prompt: P0}
+  - {id: P1, prompt: P1}
+  - {id: P2, prompt: P2}
+  - {id: P3, prompt: P3}
+  - {id: P4, prompt: P4}

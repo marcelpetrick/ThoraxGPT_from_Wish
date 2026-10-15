@@ -1,0 +1,24 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# E001 — quantization comparison (Vision §26 E001). Needs a local Ollama server with each tag.
+id: E001
+title: MedGemma quantization
+description: >-
+  The same MedGemma 1.5 4B checkpoint as Q4_K_M, Q8_0 and BF16 with prompt P3 and
+  anatomy-balanced sampling of 32 slices. Only the quantization changes. BF16 needs more
+  VRAM than the 8 GB workstation GPU; expect it to fail or abstain there. Development split only.
+vision_ref: "Vision §3 RQ3, §26 E001"
+split: development
+phases: [calibration, internal_test]
+model: medgemma1.5-q4
+prompt: P3
+view_overrides:
+  strategy: anatomy
+  n: 32
+datasets: [lidc_idri, nsclc_radiogenomics]
+labels: [pulmonary_nodule, pulmonary_mass]
+n_boot: 1000
+seed: 0
+variants:
+  - {id: q4, model: medgemma1.5-q4}
+  - {id: q8, model: medgemma1.5-q8}
+  - {id: bf16, model: medgemma1.5-bf16}

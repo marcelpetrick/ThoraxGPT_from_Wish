@@ -1,0 +1,21 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# E000 — deterministic HU-heuristic pipeline baseline on the development split (WP11).
+# Measures the index → analysis → parse → scoring → report pipeline, not model accuracy.
+# Numbered E000 so that E001–E008 keep the Vision §26 numbering.
+id: E000
+title: Heuristic HU pipeline baseline
+description: >-
+  Deterministic Hounsfield-unit rules (heuristic-hu) scored against the indexed
+  study-level reference labels of all development patients of LIDC-IDRI and
+  NSCLC-Radiogenomics. Pipeline baseline of a non-learned control; not model accuracy.
+vision_ref: "Vision §13 Task A/B/E/G, §24, §25; plan WP8 + WP11"
+split: development
+phases: [calibration, internal_test]
+model: heuristic-hu
+datasets: [lidc_idri, nsclc_radiogenomics]
+labels: [pulmonary_nodule, pulmonary_mass]
+thresholds:
+  pulmonary_nodule: 0.5
+  pulmonary_mass: 0.5
+n_boot: 1000
+seed: 0

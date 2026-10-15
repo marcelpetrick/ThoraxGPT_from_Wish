@@ -9,6 +9,7 @@ import typer
 
 from thoraxbench import __version__
 from thoraxbench.cli.acquire import acquire
+from thoraxbench.cli.benchmark import benchmark
 from thoraxbench.cli.privacy import privacy_app
 from thoraxbench.config import get_settings
 from thoraxbench.splits import Phase
@@ -25,6 +26,7 @@ app = typer.Typer(
     help="ThoraxBench Local — research-only thoracic-CT AI benchmark. Not medical advice.",
     no_args_is_help=True,
 )
+app.command()(benchmark)
 app.command()(acquire)
 app.add_typer(privacy_app)
 

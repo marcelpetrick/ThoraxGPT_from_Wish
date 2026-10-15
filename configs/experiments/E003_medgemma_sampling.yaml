@@ -1,0 +1,25 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# E003 — sampling strategy sweep (Vision §26 E003). Needs a local Ollama server.
+# Vision names map to strategy ids: uniform → uniform, lung-range → lung_extent,
+# anatomy-balanced → anatomy, two-stage candidate selection → two_stage.
+id: E003
+title: MedGemma sampling strategy
+description: >-
+  MedGemma 1.5 4B Q4_K_M with prompt P3 and 24 slices; only the slice-selection strategy
+  changes. Development split only.
+vision_ref: "Vision §26 E003"
+split: development
+phases: [calibration, internal_test]
+model: medgemma1.5-q4
+prompt: P3
+view_overrides:
+  n: 24
+datasets: [lidc_idri, nsclc_radiogenomics]
+labels: [pulmonary_nodule, pulmonary_mass]
+n_boot: 1000
+seed: 0
+variants:
+  - {id: uniform, view_overrides: {strategy: uniform}}
+  - {id: lung_extent, view_overrides: {strategy: lung_extent}}
+  - {id: anatomy, view_overrides: {strategy: anatomy}}
+  - {id: two_stage, view_overrides: {strategy: two_stage}}

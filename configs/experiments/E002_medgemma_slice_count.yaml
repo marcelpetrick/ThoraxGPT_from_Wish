@@ -1,0 +1,25 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# E002 — slice count sweep (Vision §26 E002). Needs a local Ollama server with the tag.
+id: E002
+title: MedGemma slice count
+description: >-
+  MedGemma 1.5 4B Q4_K_M with prompt P3 and anatomy-balanced sampling; only the number of
+  sampled slices changes (8/16/24/32/48/64). Development split only.
+vision_ref: "Vision §26 E002"
+split: development
+phases: [calibration, internal_test]
+model: medgemma1.5-q4
+prompt: P3
+view_overrides:
+  strategy: anatomy
+datasets: [lidc_idri, nsclc_radiogenomics]
+labels: [pulmonary_nodule, pulmonary_mass]
+n_boot: 1000
+seed: 0
+variants:
+  - {id: n8, view_overrides: {n: 8}}
+  - {id: n16, view_overrides: {n: 16}}
+  - {id: n24, view_overrides: {n: 24}}
+  - {id: n32, view_overrides: {n: 32}}
+  - {id: n48, view_overrides: {n: 48}}
+  - {id: n64, view_overrides: {n: 64}}
