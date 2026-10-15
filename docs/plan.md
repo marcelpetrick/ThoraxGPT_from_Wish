@@ -76,6 +76,16 @@ Status: ✅ done · 🔄 in progress · ⏳ open · ✖ dropped
 Updated with every commit (newest first). **If a session breaks, the next agent resumes
 from here**: read this section and *Next steps*, then `git log --oneline | head -20`.
 
+- 🔄 **Running now:** study index build for `lidc_idri` (60) and `nsclc_radiogenomics` (27):
+  loads every study once, derives reference labels (LIDC reader XML / NSCLC DICOM-SEG) and HU
+  cues → `data/index/<dataset>.json` (log: `.pipeline/build_index.log`, ~15 s per study).
+  Code: `src/thoraxbench/index.py`, `labels/nsclc.py` (being committed with tests).
+- ⛔ **Blocker waiting for the user:** the root partition `/` is 100 % full because the system
+  Ollama service stores models in `/usr/share/ollama/.ollama/models`. Fix (needs sudo, run once):
+  `sudo scripts/move_ollama_models_to_home.sh` → models move to `/home/ollama/models` via
+  `OLLAMA_MODELS`. The `gemma3:4b-it-q4_K_M` pull failed for that reason; retry it afterwards.
+  MedGemma 1.5 Q4/Q8 are already pulled and usable.
+- ✅ LIDC reader-XML parser → consensus lesions + study labels (`labels/lidc.py`).
 - ✅ WP4 sampling S1–S6 + MIP slabs, views (MedGemma RGB per official notebook, lung, multi-window,
   contact sheet, CT-CLIP/M3D tensors), `Study` with HU volume cache; heuristic baseline wired to
   real HU cues. Smoke-tested on a real LIDC study (load 5 s, cues 10 s, view 1.5 s).
