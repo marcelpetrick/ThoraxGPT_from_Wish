@@ -34,8 +34,11 @@ from thoraxbench.schemas import (
 from thoraxbench.study import Study
 
 DISCLAIMER = (
-    "Experimental research output of ThoraxBench Local - not medical advice, not a diagnosis, "
-    "not a medical device. Any finding must be confirmed by a qualified radiologist."
+    "Research use only. ThoraxBench Local is a self-made experimental research tool, "
+    "not medical advice from a qualified healthcare professional, not a diagnosis, "
+    "and not a medical device. Outputs use available models and reference knowledge but "
+    "may be incorrect, incomplete or misleading. Do not use them for diagnosis or treatment "
+    "decisions. Any finding requires independent review by a qualified radiologist."
 )
 
 
@@ -52,6 +55,7 @@ class AnalysisResult(BaseModel):
     raw_text: str
     raw_error: str | None = None
     raw_meta: dict[str, Any] = Field(default_factory=dict)
+    prepared_images: list[bytes] = Field(default_factory=list, exclude=True, repr=False)
     image_captions: list[str] = Field(default_factory=list)
     slice_indices: list[int] = Field(default_factory=list)
     view_meta: dict[str, Any] = Field(default_factory=dict)
@@ -157,6 +161,7 @@ def analyze_study(
         raw_text=raw.text,
         raw_error=raw.error,
         raw_meta=raw.meta | {"model_identity": identity},
+        prepared_images=prepared.images,
         image_captions=prepared.image_captions,
         slice_indices=prepared.slice_indices,
         view_meta={k: v for k, v in prepared.meta.items() if k != "cues"},

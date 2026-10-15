@@ -1,0 +1,73 @@
+<!doctype html>
+<!-- SPDX-License-Identifier: GPL-3.0-or-later -->
+<!-- Copyright (C) 2026 Marcel Petrick <mail@marcelpetrick.it> -->
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>ThoraxBench Local · Research workbench</title>
+  <link rel="stylesheet" href="/static/app.css">
+  <script src="/static/app.js" defer></script>
+</head>
+<body>
+  <a href="#main" class="skip-link" data-tip="skipTip" data-i18n="skip">Skip to workspace</a>
+  <aside class="sidebar">
+    <a class="brand" href="/" data-tip="brandTip"><span class="brand-mark" aria-hidden="true">TB</span><span>ThoraxBench<small data-i18n="brandLocal">LOCAL RESEARCH</small></span></a>
+    <div class="nav-caption" data-i18n="workspace">Workspace</div>
+    <nav aria-label="Main navigation" data-aria="navigation">
+      <a href="/" id="nav-analysis" class="nav-item active" data-tip="analysisTip"><span aria-hidden="true">◫</span><span data-i18n="analysis">Analysis</span></a>
+      <a href="/about" id="nav-about" class="nav-item" data-tip="aboutTip"><span aria-hidden="true">ⓘ</span><span data-i18n="about">About</span></a>
+    </nav>
+    <div class="sidebar-bottom"><span class="local-dot" aria-hidden="true"></span><span tabindex="0" data-tip="localTip" data-i18n="local">Runs on your workstation</span><p data-i18n="privacy">Local inference. No telemetry.</p></div>
+  </aside>
+  <div class="app-shell">
+    <header class="topbar"><div class="breadcrumb">ThoraxBench Local <span>/</span> <span id="page-crumb" data-i18n="analysis">Analysis</span></div><div class="preferences">
+      <button id="language-toggle" class="preference" type="button" aria-pressed="false" data-tip="languageTip" data-aria="languageAria">EN <span aria-hidden="true">/ DE</span></button>
+      <button id="theme-toggle" class="preference" type="button" aria-pressed="false" data-tip="themeTip" data-aria="themeAria"><span aria-hidden="true">☀</span> <span data-i18n="light">Light</span></button>
+    </div></header>
+    <div class="research-banner"><span aria-hidden="true">ⓘ</span><strong data-i18n="research">Research use only</strong><span data-i18n="disclaimer">Self-made experimental research tool. Not medical advice from a qualified healthcare professional, a diagnosis, or a medical device. Findings may be incorrect, incomplete or misleading; do not use for diagnosis or treatment decisions.</span></div>
+    <main id="main" tabindex="-1">
+      <section id="analysis-page">
+        <div class="page-heading"><div><div class="eyebrow" data-i18n="eyebrow">LOCAL RESEARCH WORKBENCH</div><h1 data-i18n="heading">A study. A model. Inspectable results.</h1><p data-i18n="intro">Explore a synthetic demo or a development study with the same engine as the CLI.</p></div><span class="badge" tabindex="0" data-tip="holdoutTip" data-i18n="holdout">Sealed holdout protected</span></div>
+        <div id="notice" class="notice" role="status" tabindex="0" data-tip="noticeTip" aria-live="polite" hidden></div>
+        <div class="workspace-grid">
+          <section class="panel setup-panel" aria-labelledby="input-heading">
+            <div class="section-heading"><span class="step-number">1</span><h2 id="input-heading" data-i18n="inputHeading">Choose a study</h2></div>
+            <p class="muted" data-i18n="inputIntro">Only synthetic and permitted development studies appear here.</p>
+            <label for="study-select" tabindex="0" data-tip="studyTip" data-i18n="study">Study</label>
+            <select id="study-select" data-tip="studyTip"><option value="" data-i18n="loading">Loading…</option></select>
+            <div class="study-facts"><span id="study-phase" class="badge" tabindex="0" data-tip="phaseTip">—</span><span id="study-qc" class="badge" tabindex="0" data-tip="qcTip">—</span><span id="study-slices" class="badge" tabindex="0" data-tip="slicesTip">—</span></div>
+            <button id="create-demo" class="button secondary full" type="button" data-tip="demoTip"><span aria-hidden="true">＋</span><span data-i18n="createDemo">Create synthetic demo</span></button>
+            <div class="section-divider"></div>
+            <div class="section-heading"><span class="step-number">2</span><h2 data-i18n="modelHeading">Select a local model</h2></div>
+            <label for="model-select" tabindex="0" data-tip="modelTip" data-i18n="model">Model</label>
+            <select id="model-select" data-tip="modelTip"><option value="heuristic-hu">heuristic-hu</option></select>
+            <p class="model-note" id="model-status" tabindex="0" data-tip="availabilityTip" data-i18n="modelNote">Availability is not benchmark performance.</p>
+            <label for="image-count" tabindex="0" data-tip="imagesTip" data-i18n="imageCount">Images for vision models</label>
+            <input id="image-count" type="number" min="1" max="16" value="4" data-tip="imagesTip">
+            <p class="muted small" data-i18n="baselineNote">The heuristic baseline uses HU measurements; it does not send images to a vision model.</p>
+            <button id="run-analysis" class="button primary full" type="button" data-tip="runTip" disabled><span aria-hidden="true">▷</span><span data-i18n="run">Run analysis locally</span></button>
+            <p class="muted small" data-i18n="runtimeNote">Vision models can take several minutes. Failed or inadequate inputs abstain.</p>
+          </section>
+          <section class="panel viewer-panel" aria-labelledby="viewer-heading">
+            <div class="viewer-heading"><div><h2 id="viewer-heading" data-i18n="viewerHeading">Study viewer</h2><p class="muted small" data-i18n="viewerNote">Axial DICOM slice · research inspection</p></div><span class="badge" id="slice-counter" tabindex="0" data-tip="sliceTip">— / —</span></div>
+            <div class="image-stage"><img id="ct-image" alt="Axial CT research slice" data-alt="sliceAlt" hidden><div id="viewer-empty" class="viewer-empty"><div class="empty-illustration" aria-hidden="true"><span></span><span></span></div><strong data-i18n="viewerEmpty">Your study appears here</strong><p data-i18n="viewerEmptyNote">Create a synthetic demo to try the complete pipeline.</p></div></div>
+            <div class="viewer-controls"><div><label for="window-select" tabindex="0" data-tip="windowTip" data-i18n="window">Window</label><select id="window-select" data-tip="windowTip"><option value="lung" data-i18n="lung">Lung</option><option value="mediastinum" data-i18n="soft">Mediastinum</option><option value="bone" data-i18n="bone">Bone</option><option value="abdomen" data-i18n="abdomen">Abdomen</option></select></div><div class="slice-control"><label for="slice-slider" tabindex="0" data-tip="sliceTip" data-i18n="slice">Slice</label><input id="slice-slider" type="range" min="0" max="0" value="0" data-tip="sliceTip" disabled></div></div>
+          </section>
+        </div>
+        <section class="panel results-panel" aria-labelledby="results-heading"><div class="results-heading"><div class="section-heading"><span class="step-number">3</span><h2 id="results-heading" data-i18n="resultsHeading">Inspect the outcome</h2></div><div class="downloads"><a id="download-json" tabindex="0" class="button secondary" data-tip="jsonTip" aria-disabled="true" data-i18n="downloadJson">Download JSON</a><a id="download-report" tabindex="0" class="button secondary" data-tip="reportTip" aria-disabled="true" data-i18n="downloadReport">Download report</a><a id="download-html" tabindex="0" class="button secondary" data-tip="htmlTip" aria-disabled="true" data-i18n="downloadHtml">Download HTML</a></div></div>
+          <div id="results-empty" class="results-empty"><strong data-i18n="resultsEmpty">Ready when you are.</strong><p data-i18n="resultsEmptyNote">Run a study to inspect findings, timing, provenance and the English research report.</p></div>
+          <div id="results-content" hidden><p class="muted small export-note" tabindex="0" data-tip="evidenceTip" data-i18n="htmlNote">The standalone HTML report combines input images, findings and reported evidence references. References are not verified localization.</p><div class="metrics"><div tabindex="0" data-tip="resultModelTip"><span data-i18n="model">Model</span><strong id="metric-model">—</strong></div><div tabindex="0" data-tip="timingTip"><span data-i18n="engineTime">Engine stages</span><strong id="metric-time">—</strong></div><div tabindex="0" data-tip="resultStatusTip"><span data-i18n="status">Status</span><strong id="metric-status">—</strong></div><div tabindex="0" data-tip="findingCountTip"><span data-i18n="findingCount">Findings returned</span><strong id="metric-findings">—</strong></div></div>
+          <p class="result-caution" tabindex="0" data-tip="scoresTip" data-i18n="scoresNotice">Uncalibrated model scores are not validated probabilities. Accuracy remains unmeasured.</p>
+          <div class="table-scroll"><table id="findings-table" aria-label="Findings"><thead><tr><th tabindex="0" data-tip="findingTip" data-i18n="finding">Finding</th><th tabindex="0" data-tip="presenceTip" data-i18n="presence">Presence</th><th tabindex="0" data-tip="scoreTip" data-i18n="score">Presence score</th><th tabindex="0" data-tip="sideTip" data-i18n="side">Side</th><th tabindex="0" data-tip="sizeTip" data-i18n="size">Size</th></tr></thead><tbody id="findings-body"></tbody></table></div>
+          <details id="report-details"><summary data-tip="reportBodyTip" data-i18n="reportHeading">English research report</summary><p class="muted small" data-i18n="reportLanguage">The reproducible research report stays in English. The interface language does not change model prompts or results.</p><pre id="report-content"></pre></details></div>
+        </section>
+      </section>
+      <section id="about-page" hidden><div class="page-heading"><div><div class="eyebrow" data-i18n="aboutEyebrow">TRANSPARENT BY DESIGN</div><h1 data-i18n="aboutHeading">About ThoraxBench Local</h1><p data-i18n="aboutIntro">A local laboratory for reproducible thoracic CT model research.</p></div></div><div class="about-grid"><section class="panel about-card"><h2 data-i18n="project">The project</h2><p data-i18n="projectText">Inspect the path from DICOM input to model output, with explicit quality checks and provenance. This MVP supports individual study exploration; comparative benchmarking is still pending.</p><dl><div><dt tabindex="0" data-tip="authorTip" data-i18n="author">Author</dt><dd id="about-author">Marcel Petrick</dd></div><div><dt tabindex="0" data-tip="versionTip" data-i18n="version">Version</dt><dd id="about-version">—</dd></div><div><dt tabindex="0" data-tip="licenseTip" data-i18n="license">Project license</dt><dd id="about-license">GPL-3.0-or-later</dd></div></dl><p class="muted small" data-i18n="aiNote">Self-made with AI assistance and to the best of our knowledge. Errors and omissions remain possible; research outputs require independent evaluation.</p></section><section class="panel about-card"><h2 data-i18n="libraries">Libraries &amp; licenses</h2><p class="muted" data-i18n="librariesNote">Installed runtime dependencies and their declared licenses.</p><div class="table-scroll"><table id="libraries-table" aria-label="Dependency licenses"><thead><tr><th tabindex="0" data-tip="libraryTip" data-i18n="library">Library</th><th tabindex="0" data-tip="versionTip" data-i18n="version">Version</th><th tabindex="0" data-tip="licenseTip" data-i18n="licenseShort">License</th></tr></thead><tbody id="libraries-body"></tbody></table></div></section></div></section>
+      <footer><span data-i18n="footer">Research use only · Local inference · No telemetry</span><span>ThoraxBench Local</span></footer>
+    </main>
+  </div>
+  <div id="tooltip" class="tooltip" role="tooltip" hidden></div>
+</body>
+</html>

@@ -13,17 +13,42 @@ repository; nothing important may live only in a chat or a temp directory.
 
 ## 0.1 Current priority
 
-Engine first: the end-to-end pipeline must work with **locally hosted Ollama models** and
-give measured, reproducible results before UI work starts. See `docs/plan.md` → *Priority*.
-The current MVP is the CLI `demo-data` → `analyze`
-path; validate synthetic studies and local Ollama before expanding benchmark/UI scope.
-Create development/sealed splits before real-study indexing or analysis.
+The CLI engine and frozen pilot holdout are available. The **local UI MVP** is implemented
+(2026-10-15): maintain its tested research workflow around the existing engine and keep
+model-quality limitations visible. Benchmark and advanced review work remain open.
+See `docs/plan.md` → *Priority*.
+Keep `manual.html` and `manual.pdf` synchronized with user-facing configuration and commands.
+
+UI defaults are **English and light mode**, independent of browser preferences. Offer
+persistent English/German and light/dark switches. Every action, field label and result
+metric needs concise translated help via accessible hover/focus tooltips. The About page
+names Marcel Petrick as author, explains the research purpose, and lists used libraries,
+installed versions and license information. UI text is translated; generated research
+reports remain English until separately specified.
+
+Use synthetic studies for browser tests and screenshots. Do not commit patient images or
+rendered CT slices. Test the complete demo → viewer → analysis → result/download flow,
+keyboard help, preference persistence and both UI languages/themes with Playwright.
+Offer self-contained HTML exports with embedded previews and experimental findings. Use
+actual prepared model images; label heuristic source-slice previews as illustrations. Model
+image numbers follow one-based captions; heuristic source slice indices are zero-based.
+Never invent finding-to-image associations when evidence is absent or invalid. HTML must
+escape model text, work offline, and remain under ignored `data/results/`; validate
+export destinations before inference and recheck download paths against symlink escapes.
+Model failures/abstentions must remain explicit; never present smoke tests as accuracy
+benchmarks. Create development/sealed splits before real-study indexing or analysis.
+
+A possible **40 GB VRAM runner and LAN inference** is documentation-only for tomorrow.
+Keep the current loopback endpoint guard intact; implementation and remote verification
+follow the proposed design in `docs/lan-runner.md` when resumed.
 
 ## 1. Non-negotiables
 
 1. **Research use only.** Never add text, UI, or output that claims clinical validity,
    diagnosis, treatment suitability, or medical-device status (Vision §28). Every
-   user-facing output carries the research-only disclaimer.
+   user-facing output carries the research-only disclaimer, identifies this as a self-made
+   experimental tool, and states that findings may be incorrect, incomplete or misleading
+   and are not professional medical advice or a basis for diagnosis/treatment decisions.
 2. **No medical data in Git.** DICOM, NIfTI, rendered slices, model weights, archives and
    secrets never get committed. `scripts/check_no_medical_data.sh` enforces this in the
    pipeline. Raw data lives in `data/` (git-ignored, 10 GB budget).

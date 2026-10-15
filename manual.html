@@ -1,0 +1,168 @@
+<!doctype html>
+<!-- SPDX-License-Identifier: GPL-3.0-or-later -->
+<!-- Copyright (C) 2026 Marcel Petrick <mail@marcelpetrick.it> -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'">
+<meta name="author" content="Marcel Petrick">
+<title>ThoraxBench Local — Operator flight manual</title>
+<style>
+:root{--ink:#152e3b;--muted:#506473;--teal:#006c70;--line:#d6e1e6;--paper:#fff;--pale:#eaf4f4;--amber:#fff2d8}*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:#e6edf0;color:var(--ink);font:15px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif}.sheet{position:relative;max-width:980px;margin:30px auto;padding:48px 58px;background:var(--paper);border-radius:14px;box-shadow:0 12px 45px #19334416}.eyebrow{font-size:11px;letter-spacing:.18em;text-transform:uppercase;font-weight:750;color:var(--teal);margin:0 0 15px}h1{font-size:56px;line-height:1.04;letter-spacing:-.05em;margin:16px 0 24px}h2{font-size:32px;line-height:1.12;letter-spacing:-.03em;margin:0 0 22px}h3{font-size:17px;margin:24px 0 8px}p{margin:8px 0 13px}a{color:var(--teal);text-underline-offset:3px}a:focus-visible{outline:3px solid #ad6c00;outline-offset:4px}.lead{font-size:20px;color:var(--muted);max-width:700px}.badge{display:inline-block;background:var(--pale);border-radius:99px;padding:5px 12px;font-size:12px;font-weight:700}.hero{padding:28px;border-radius:12px;background:var(--ink);color:white;margin:28px 0}.hero p{color:#d6e8ee}.hero strong{color:#a5e5d9}.hero code{color:var(--ink)}.notice{border-left:4px solid #b87916;background:var(--amber);padding:16px 19px;border-radius:0 8px 8px 0;font-size:14px}.check{border-left:4px solid var(--teal);background:var(--pale);padding:12px 16px;margin:15px 0;font-size:14px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.card{padding:17px 19px;border:1px solid var(--line);border-radius:10px}.card h3{margin:0 0 8px}.contents{padding-left:24px}.contents li{margin:9px 0}.steps{padding-left:23px}.steps>li{padding:0 0 7px 6px;margin:9px 0}.steps strong{color:var(--teal)}code{font:12px/1.5 ui-monospace,"DejaVu Sans Mono",monospace;overflow-wrap:anywhere;background:#edf2f5;padding:2px 4px;border-radius:3px}pre{font:12px/1.55 ui-monospace,"DejaVu Sans Mono",monospace;white-space:pre-wrap;overflow-wrap:anywhere;padding:16px 18px;background:#142e3b;color:#ecf7fa;border-radius:8px;margin:10px 0 16px}pre code{background:none;padding:0;color:inherit}table{border-collapse:collapse;width:100%;font-size:13px;margin:12px 0 16px}th{text-align:left;background:var(--pale);font-weight:700}th,td{padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}td:first-child{font-weight:600}ul{padding-left:21px}li{margin:5px 0}.small{font-size:12px;color:var(--muted)}footer{display:flex;justify-content:space-between;border-top:1px solid var(--line);padding-top:13px;margin-top:28px;font-size:10px;color:var(--muted)}.section-number{display:inline-block;color:var(--teal);margin-bottom:10px;font-size:12px;font-weight:750;letter-spacing:.12em}.stop{font-weight:700;color:#884a0a}.sequence{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:22px 0}.sequence span{padding:8px 11px;background:var(--pale);border-radius:6px;font-size:13px;font-weight:650}@media(max-width:650px){.sheet{margin:12px;padding:28px 22px}h1{font-size:40px}h2{font-size:28px}.grid{grid-template-columns:1fr}th,td{padding:8px 5px;font-size:12px}pre{padding:12px;font-size:11px}}@page{size:A4;margin:0}@media print{html{scroll-behavior:auto}body{background:white;font-size:9pt;line-height:1.38;-webkit-print-color-adjust:exact;print-color-adjust:exact}.sheet{width:210mm;max-width:none;min-height:297mm;margin:0;padding:16mm 18mm 14mm;box-shadow:none;border-radius:0;break-after:page}.sheet:last-child{break-after:auto}h1{font-size:43pt}h2{font-size:25pt}h3{font-size:12pt;margin-top:15px}.lead{font-size:14pt}.eyebrow,.section-number{font-size:8pt}.notice,.check{font-size:9pt;padding:11px 13px}.small{font-size:8pt}table{font-size:8.5pt}th,td{padding:8px}pre,code{font-size:8pt}pre{padding:12px 14px}.hero{margin:22px 0;padding:23px}.grid{gap:13px}.card{padding:14px}.card,pre,tr,.notice,.check{break-inside:avoid}h2,h3{break-after:avoid}footer{font-size:7pt;margin-top:18px}.steps>li{margin:6px 0;padding-bottom:3px}p{margin:6px 0 10px}h2{margin-bottom:18px}#configuration th:first-child{width:43%}#configuration td code{font-size:7.3pt}.contents li{margin:11px 0}}
+</style>
+</head>
+<body>
+<main>
+<section class="sheet" id="start">
+<p class="eyebrow">ThoraxBench Local / Operator flight manual / 15 October 2026</p>
+<span class="badge">Local research workbench · UI MVP</span>
+<h1>Run the workflow.<br>Check the evidence.<br>Keep the limits visible.</h1>
+<p class="lead">A practical manual for setup, the first synthetic run, result review, and recovery. Follow one action at a time. Check the expected result before you continue.</p>
+<div class="hero"><strong>First successful flight</strong><p>Install the locked environment. Start the local server. Create a synthetic study. Run <code>heuristic-hu</code>. Open the HTML research report.</p><p>No patient data, model download, or AI server is needed for this first run.</p></div>
+<div class="notice"><strong>Research use only.</strong> This is a self-made experimental tool created with AI assistance, to the best of our knowledge. It is not medical advice from a qualified healthcare professional, a diagnosis, or a medical device. Findings may be incorrect, incomplete or misleading. Do not use the output for diagnosis or treatment decisions.</div>
+<h3>Choose your checklist</h3>
+<ol class="contents">
+<li><a href="#preflight">Preflight: install and start</a></li>
+<li><a href="#workbench">The browser workflow: input to offline report</a></li>
+<li><a href="#review">Read findings, severity and review context</a></li>
+<li><a href="#commands">Repeat the workflow from the command line</a></li>
+<li><a href="#configuration">Configure paths and local models</a></li>
+<li><a href="#recovery">Protect data, recover and shut down</a></li>
+</ol>
+<p class="small">Author: Marcel Petrick · GPL-3.0-or-later · Project generated with AI assistance.<br>Written in a flight-manual style with short actions and explicit checkpoints; no formal technical-English compliance claim. This manual describes the current MVP, not the planned benchmark or LAN runner.</p>
+<footer><span>ThoraxBench Local · Experimental research · Not medical advice</span><span>01 / 07</span></footer>
+</section>
+<section class="sheet" id="preflight">
+<span class="section-number">01 / PREFLIGHT</span><h2>Install. Verify. Start locally.</h2>
+<p>Use a terminal on the computer that will run the software. The commands below assume a source checkout and <code>uv</code>. Replace the example path with your checkout path. If <code>uv</code> is missing, follow the <a href="https://docs.astral.sh/uv/getting-started/installation/">official uv installation instructions</a> first.</p>
+<ol class="steps">
+<li><strong>Open the repository directory.</strong><pre><code>cd /home/mpetrick/repos/ThoraxGPT_from_Wish</code></pre></li>
+<li><strong>Install the locked Python environment.</strong><pre><code>uv sync --frozen --all-groups</code></pre><p>Python 3.14 or newer is required. <code>uv</code> can provision the requested Python environment. Initial installation needs package access; inference stays local.</p></li>
+<li><strong>Check the installed command.</strong><pre><code>uv run thoraxbench --version
+uv run thoraxbench --help</code></pre><p>Expect a version, the research disclaimer, and the command list.</p></li>
+<li><strong>Start the workbench.</strong><pre><code>uv run thoraxbench serve</code></pre><p>Leave this terminal open. Open <a href="http://127.0.0.1:8000">http://127.0.0.1:8000</a> on the same computer.</p></li>
+</ol>
+<div class="check"><strong>Checkpoint:</strong> The Analysis page appears in English and light mode. The page shows the research disclaimer. A new installation may have no studies yet. This is expected.</div>
+<div class="grid"><div class="card"><h3>Required for the demo</h3><p>A supported Python environment, the locked dependencies, a browser, and enough free disk space for synthetic data and outputs.</p></div><div class="card"><h3>Optional for vision models</h3><p>A local Ollama installation and compatible model weights. The deterministic <code>heuristic-hu</code> baseline works without them.</p></div></div>
+<h3>Port 8000 is already in use</h3>
+<pre><code>uv run thoraxbench serve --port 8001</code></pre>
+<p>Open <code>http://127.0.0.1:8001</code>. The server binds to loopback. LAN access and remote inference are not supported in this MVP.</p>
+<footer><span>Research use only · Self-made tool · Findings can be wrong</span><span>02 / 07</span></footer>
+</section>
+<section class="sheet" id="workbench">
+<span class="section-number">02 / NORMAL PROCEDURE</span><h2>Complete your first browser run.</h2>
+<div class="sequence"><span>Create demo</span> → <span>Inspect study</span> → <span>Run locally</span> → <span>Review</span> → <span>Export</span></div>
+<ol class="steps">
+<li><strong>Select “Create synthetic demo”.</strong><p>Expect a synthetic study with 64 axial slices. It contains simulated nodule and fluid-density regions. The images contain no patient data.</p></li>
+<li><strong>Inspect the study viewer.</strong><p>Move the slice slider. Use the Left and Right arrow keys when the slider has focus. Change the display window to Lung, Mediastinum, Bone or Abdomen. Window changes affect the viewer only.</p></li>
+<li><strong>Select “heuristic-hu” as the model.</strong><p>This baseline uses HU-volume measurements. It sends no rendered images to a vision model. The image-count control does not affect its predictions.</p></li>
+<li><strong>Select “Run analysis locally”.</strong><p>Wait for a completed result or explicit failure/abstention. Expect synthetic nodule and effusion findings on the default demo. Exact timings vary by hardware.</p></li>
+<li><strong>Read the status before you read the findings.</strong><p>Check study quality, the finding table, severity/review context and the English research report. Follow the interpretation checklist on the next page.</p></li>
+<li><strong>Select “Download HTML”.</strong><p>Open the saved file in a browser. Check the findings and embedded image gallery. Also save JSON for structured output and “Download report” for Markdown.</p></li>
+</ol>
+<div class="check"><strong>Checkpoint:</strong> The HTML report opens after you stop the server. It needs no external images, fonts, scripts or internet access. Missing evidence references remain explicit.</div>
+<h3>Keyboard help and preferences</h3>
+<p>Use Tab to reach controls and help-bearing fields. Focus or hover shows translated help; Escape dismisses it. The language switch selects English or German. The theme switch selects light or dark. Both choices persist in this browser. Research reports and model prompts remain English.</p>
+<h3>About</h3>
+<p>Open About to inspect the author, application version, research purpose and installed runtime libraries with their declared licenses.</p>
+<div class="notice"><strong>Privacy checkpoint:</strong> A downloaded report contains images and research identifiers. Keep real-study exports in controlled local storage. The browser may save downloads outside the repository; manage those copies as sensitive data.</div>
+<footer><span>Research use only · No diagnosis or treatment decisions</span><span>03 / 07</span></footer>
+</section>
+<section class="sheet" id="review">
+<span class="section-number">03 / RESULT REVIEW</span><h2>Inspect claims before conclusions.</h2>
+<p>Review every model claim against its evidence. The software cannot decide that a person is healthy, that care is unnecessary, or that a finding is real.</p>
+<table><thead><tr><th>Read first</th><th>What it means</th><th>Operator action</th></tr></thead><tbody>
+<tr><td>Completed</td><td>The engine returned output. This does not validate it.</td><td>Inspect QC, findings, evidence and provenance.</td></tr>
+<tr><td>Abstained / failed</td><td>No usable research reading is available.</td><td>Read the reason. Preserve the failed run. Do not interpret it as “nothing found”.</td></tr>
+<tr><td>Present / not detected / uncertain</td><td>The model's reported presence status.</td><td>Treat negative and uncertain output as fallible.</td></tr>
+<tr><td>Presence score</td><td>Uncalibrated support for presence; not measured accuracy.</td><td>Do not treat 0.79 as a validated 79% probability.</td></tr>
+<tr><td>Severity / typical attention</td><td>Educational reference context, not validated triage.</td><td>Check its assumptions and sources. Do not derive personal medical instructions.</td></tr>
+</tbody></table>
+<h3>Severity and “should this be checked?”</h3>
+<p>The reference scale runs from <strong>incidental → low → moderate → high → critical</strong>. Typical attention uses <strong>routine, soon, urgent, emergency</strong>. These describe general reference knowledge for a reported label. They do not establish the severity or urgency of an actual person's condition.</p>
+<div class="notice"><strong>No automatic clearance:</strong> An absent, low-rated, unknown or uncertain finding does not establish that no professional review is needed. The tool cannot answer whether a person should be checked. Its output is not advice from a healthcare practitioner.</div>
+<h3>Check image evidence</h3>
+<ul>
+<li>Vision-model reports show the actual prepared input images. <strong>Image 1</strong> is the first model image. A sampled image set may miss other parts of the study.</li>
+<li>Heuristic reports show <strong>illustrative source-slice previews</strong>. Their source indices start at <strong>0</strong>; they are not vision-model inputs.</li>
+<li>An evidence link is a reported association, not verified localization or a segmentation. Invalid or missing references must remain unresolved.</li>
+</ul>
+<h3>Check reproducibility</h3>
+<p>Save the JSON and read the original response, QC, timings, prompt/configuration hashes and provenance. Analysis-stage timing excludes DICOM loading and reporting. A working synthetic run or local-model transport test is not a real-patient accuracy benchmark.</p>
+<footer><span>Research use only · Incorrect, incomplete or misleading findings are possible</span><span>04 / 07</span></footer>
+</section>
+<section class="sheet" id="commands">
+<span class="section-number">04 / COMMAND-LINE PROCEDURE</span><h2>Repeat a run and save its artifacts.</h2>
+<p>Run these commands from the repository root. Keep the working directory unchanged between steps. These examples use only synthetic data.</p>
+<ol class="steps">
+<li><strong>Create a fresh synthetic study.</strong><pre><code>uv run thoraxbench demo-data data/demo/manual</code></pre></li>
+<li><strong>Run the deterministic baseline.</strong><pre><code>uv run thoraxbench analyze data/demo/manual \
+  --model heuristic-hu \
+  --output data/results/manual/result.json \
+  --report data/results/manual/report.md \
+  --html data/results/manual/report.html</code></pre></li>
+<li><strong>Open the saved HTML file.</strong><p>Open <code>data/results/manual/report.html</code> in your browser. Inspect the matching JSON and Markdown files in the same folder.</p></li>
+</ol>
+<div class="check"><strong>Checkpoint:</strong> A successful run returns exit status 0. A failed run or abstention returns a nonzero status. When a result exists, saved artifacts explain the abstention. Failures before result creation may produce only an error message.</div>
+<h3>Optional: run a local vision model</h3>
+<p>First check availability. A configured model is not necessarily installed, licensed for your intended use, or accurate.</p>
+<pre><code>uv run thoraxbench models
+uv run thoraxbench analyze data/demo/manual \
+  --model medgemma1.5-q4 --n 4 \
+  --output data/results/manual/vision.json \
+  --report data/results/manual/vision.md \
+  --html data/results/manual/vision.html</code></pre>
+<p>The model must already exist in local Ollama. Larger image requests may take minutes. Empty predictions, truncated output, invalid responses and unsuitable inputs can cause abstention.</p>
+<h3>Available overrides</h3>
+<p><code>--model</code> selects an ID from <code>configs/models/</code>. <code>--prompt</code> selects P0–P4. <code>--strategy</code> overrides the sampling strategy. <code>--n</code> requests a positive number of sampled slices; the browser limits it to 1–16. Use <code>uv run thoraxbench analyze --help</code> for the current options.</p>
+<p class="small">HTML output must be inside the configured data directory's <code>results/</code> folder. Destinations or symlinks that escape that folder are rejected before inference. JSON and Markdown examples also stay inside ignored results storage.</p>
+<footer><span>Research use only · Synthetic demonstrations do not measure accuracy</span><span>05 / 07</span></footer>
+</section>
+<section class="sheet" id="configuration">
+<span class="section-number">05 / CONFIGURATION</span><h2>Keep paths explicit and inference local.</h2>
+<p>Set environment variables before starting the command or server. Existing data and manifests do not move when you change a setting.</p>
+<table><thead><tr><th>Environment variable</th><th>Default / role</th></tr></thead><tbody>
+<tr><td><code>THORAXBENCH_DATA_DIR</code></td><td><code>&lt;checkout&gt;/data</code>. Raw data, caches, splits, sealed IDs, demos and results. Keep medical data outside Git.</td></tr>
+<tr><td><code>THORAXBENCH_OLLAMA_URL</code></td><td><code>http://localhost:11434</code>. Only loopback inference endpoints are accepted.</td></tr>
+<tr><td><code>THORAXBENCH_DATA_BUDGET_GB</code></td><td><code>10.0</code> decimal GB. Configured data budget; inspect actual usage before writing. Current analysis/demo routes do not provide a complete quota enforcement system.</td></tr>
+<tr><td><code>THORAXBENCH_CT_CLIP_URL</code><br><code>THORAXBENCH_M3D_URL</code></td><td><code>http://localhost:8011</code> / <code>:8012</code>. Optional CT-CLIP / M3D services.</td></tr>
+<tr><td><code>THORAXBENCH_CT_CHAT_URL</code><br><code>THORAXBENCH_RADFM_URL</code><br><code>THORAXBENCH_HUATUO_URL</code></td><td><code>http://localhost:8013</code> / <code>:8014</code> / <code>:8015</code>. Optional services; not installed by the MVP.</td></tr>
+</tbody></table>
+<pre><code>THORAXBENCH_OLLAMA_URL=http://127.0.0.1:11434 \
+  uv run thoraxbench serve --port 8000</code></pre>
+<h3>Model setup</h3>
+<ol class="steps">
+<li><strong>Inspect the model YAML.</strong><p>Find its adapter, tag, view and prompt under <code>configs/models/</code>. Example: <code>medgemma1.5-q4</code> expects Ollama tag <code>medgemma1.5:4b-it-q4_K_M</code>.</p></li>
+<li><strong>Check model terms and hardware needs.</strong><p>See <code>docs/model_cards.md</code> and <code>docs/model_selection.md</code>. A model ID is not a download guarantee. Gated terms remain separate from dataset licenses.</p></li>
+<li><strong>Start the local model service.</strong><p>If Ollama is installed but not running, start it using your local installation's service controls or <code>ollama serve</code>. If it is already running, use that instance.</p></li>
+<li><strong>Check the installed tags.</strong><pre><code>ollama list
+uv run thoraxbench models</code></pre></li>
+</ol>
+<p class="small">Configuration files, prompts, preprocessing and sampling affect results. Preserve version control and the recorded hashes. Remote/LAN inference is a design proposal only; do not bypass the loopback guard.</p>
+<footer><span>Research use only · Local inference · No telemetry</span><span>06 / 07</span></footer>
+</section>
+<section class="sheet" id="recovery">
+<span class="section-number">06 / ABNORMAL PROCEDURES &amp; SHUTDOWN</span><h2>Stop safely. Keep the holdout sealed.</h2>
+<h3>Before any real-study workflow</h3>
+<p>Verify the specific dataset's license status with <code>uv run thoraxbench datasets</code>. Acquisition requires an approved registry entry; never infer a license from the hosting site. Acquisition automation and the benchmark runner remain unfinished.</p>
+<ol class="steps">
+<li><strong>Freeze the patient split before indexing or analysis.</strong><pre><code>uv run thoraxbench split lidc_idri</code></pre><p>Run this only for an approved, already downloaded cohort that has no split yet. Existing frozen splits refuse replacement. Do not regenerate them.</p></li>
+<li><strong>Index only permitted development cases.</strong><pre><code>uv run thoraxbench index lidc_idri --limit 1</code></pre><p>Indexed development studies appear in the browser. The browser has no arbitrary-folder upload flow. The CLI can read a permitted study directory through its guards.</p></li>
+</ol>
+<p class="stop">Never open <code>data/sealed/</code>, inspect holdout images, or copy sealed cases into development folders. No current MVP command is an approved holdout evaluation workflow. The future benchmark requires a frozen experiment and explicit unsealing.</p>
+<table><thead><tr><th>Observed problem</th><th>Recovery action</th></tr></thead><tbody>
+<tr><td>Model unavailable</td><td>Check <code>ollama list</code>, the configured tag and loopback URL. Use <code>heuristic-hu</code> for the demo. Do not substitute a cloud endpoint.</td></tr>
+<tr><td>Slow run / empty or invalid output</td><td>Preserve the error and result. Try a smaller synthetic vision request. Do not turn an abstention into a negative finding.</td></tr>
+<tr><td>Study missing / guard rejection</td><td>Check the development split and index. A holdout rejection is intentional. Do not bypass it.</td></tr>
+<tr><td>Disk full / cannot write</td><td>Check <code>df -h .</code> and <code>du -sh data</code>. Review disposable generated results/caches before removing anything. Preserve raw data, manifests and split files.</td></tr>
+<tr><td>Old download link stops working</td><td>Download links are registered for the running server process. After restart, open the saved files under <code>data/results/ui/</code> directly or rerun the study.</td></tr>
+</tbody></table>
+<h3>Shutdown and handover</h3>
+<p>Press <strong>Ctrl+C</strong> in the server terminal. Completed result files remain on disk. Record the model, settings, version, result paths, warnings and next action before you hand work to another researcher. Never commit patient images, rendered CT slices, model weights or secrets.</p>
+<p class="small"><strong>Maintain this manual:</strong> edit <code>manual.html</code>, then regenerate the PDF from the repository root with <code>uv run python -m playwright pdf --paper-format A4 file://"$PWD"/manual.html manual.pdf</code>. Install Chromium with <code>uv run playwright install chromium</code> if needed. Check <code>docs/plan.md</code> for current scope; this manual contains no patient images.</p>
+<footer><span>Self-made experimental tool · Not professional medical advice · Errors possible</span><span>07 / 07</span></footer>
+</section>
+</main>
+</body>
+</html>

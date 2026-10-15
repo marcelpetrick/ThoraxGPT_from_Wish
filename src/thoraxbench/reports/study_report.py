@@ -41,9 +41,9 @@ def severity_of(entry: ClinicalEntry, finding: Finding) -> tuple[Severity, str]:
 
 def probability_of(finding: Finding) -> float | None:
     """P(present) implied by one finding (``None`` when the model was uncertain)."""
-    if finding.present is None:
+    if finding.present is None or finding.confidence is None:
         return None
-    conf = 1.0 if finding.confidence is None else finding.confidence
+    conf = finding.confidence
     return conf if finding.present else 1.0 - conf
 
 
@@ -101,7 +101,8 @@ def _finding_section(entry: ClinicalEntry, f: Finding) -> list[str]:
     if f.size_mm is not None:
         evidence.append(f"size about {f.size_mm:.0f} mm ({size_bin(f.size_mm)})")
     if f.evidence_images:
-        evidence.append(f"images {', '.join(str(i) for i in f.evidence_images[:8])}")
+        kind = "source slice indices (zero-based)" if f.source == "heuristic" else "images"
+        evidence.append(f"{kind} {', '.join(str(i) for i in f.evidence_images[:8])}")
     follow = _cell(entry.follow_up)
     if f.label == "pulmonary_nodule":
         advice = fleischner(f.size_mm)

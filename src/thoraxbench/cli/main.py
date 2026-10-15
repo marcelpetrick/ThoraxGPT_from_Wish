@@ -13,7 +13,11 @@ from thoraxbench.config import Settings, get_settings
 from thoraxbench.splits import CaseGuard, Phase, SealedAccessError
 from thoraxbench.splits.split import SplitManifest
 
-DISCLAIMER = "Research use only. Experimental output; not medical advice or a diagnosis."
+DISCLAIMER = (
+    "Research use only. Self-made experimental research tool; not medical advice from a "
+    "qualified healthcare professional, a diagnosis, or a medical device. Findings may be "
+    "incorrect, incomplete or misleading. Do not use for diagnosis or treatment decisions."
+)
 
 app = typer.Typer(
     name="thoraxbench",
@@ -112,14 +116,23 @@ def analyze(
     n_images: Annotated[int | None, typer.Option("--n", min=1, help="Number of slices.")] = None,
     output: Annotated[Path | None, typer.Option(help="Write the result JSON here.")] = None,
     report: Annotated[Path | None, typer.Option(help="Write the Markdown report here.")] = None,
+    html: Annotated[
+        Path | None, typer.Option(help="Write an embedded-image HTML report under data/results/.")
+    ] = None,
 ) -> None:
     """Analyse one local DICOM study with one local model; print the clinical report."""
     from thoraxbench.analysis import analyze_study  # noqa: PLC0415 - keep CLI start fast
     from thoraxbench.reports import render_study_report  # noqa: PLC0415
+    from thoraxbench.reports.html_report import (  # noqa: PLC0415 - report only
+        render_html_report,
+        require_results_path,
+    )
     from thoraxbench.study import load_study_dir  # noqa: PLC0415
 
     try:
         settings = get_settings()
+        if html:
+            require_results_path(html, settings)
         dataset, case_id = _guard_study_input(study_dir, settings)
         study = load_study_dir(study_dir, dataset=dataset, case_id=case_id)
         overrides: dict[str, object] = {}
@@ -135,6 +148,9 @@ def analyze(
         if report:
             report.parent.mkdir(parents=True, exist_ok=True)
             report.write_text(markdown, encoding="utf-8")
+        if html:
+            html.parent.mkdir(parents=True, exist_ok=True)
+            html.write_text(render_html_report(result, study), encoding="utf-8")
         typer.echo(markdown)
     except (OSError, ValueError, RuntimeError, KeyError) as exc:
         typer.echo(f"Analysis failed: {exc}\n{DISCLAIMER}", err=True)
@@ -224,3 +240,18 @@ def datasets() -> None:
 
     for entry in load_registry(get_settings().configs_dir / "datasets").values():
         typer.echo(f"{entry.status.value:24} {entry.id:26} {entry.license}")
+
+
+@app.command()
+def serve(
+    port: Annotated[
+        int, typer.Option(min=1024, max=65535, help="Local web interface port.")
+    ] = 8000,
+) -> None:
+    """Open the research review interface on this computer's loopback network."""
+    import uvicorn  # noqa: PLC0415 - web dependencies are loaded only for serve
+
+    from thoraxbench.api.app import create_app  # noqa: PLC0415 - web startup only
+
+    typer.echo(f"ThoraxBench Local: http://127.0.0.1:{port}\n{DISCLAIMER}")
+    uvicorn.run(create_app(), host="127.0.0.1", port=port, proxy_headers=False)

@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- SPDX-License-Identifier: GPL-3.0-or-later -->
+<!-- Copyright (C) 2026 Marcel Petrick <mail@marcelpetrick.it> -->
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="680" viewBox="0 0 1500 680" role="img" aria-labelledby="title description">
+  <title id="title">ThoraxBench Local: a synthetic study becomes inspectable research output</title>
+  <desc id="description">Code-drawn schematic synthetic CT, not a real or rendered patient image. A 64-slice DICOM phantom passes development access checks, geometry and quality control, then deterministic HU preprocessing and the local heuristic. The recorded synthetic run reports a right pulmonary nodule of 12 mm with uncalibrated score 0.79 and right pleural effusion with score 1.00. Findings JSON and a Markdown report are saved. Analysis stages took 0.465 seconds, excluding DICOM loading, report rendering, and provenance collection. Research use only, not medical advice or a diagnosis.</desc>
+  <defs>
+    <linearGradient id="background" x2="1" y2="1"><stop stop-color="#0b1528"/><stop offset="1" stop-color="#13243d"/></linearGradient>
+    <linearGradient id="slice" x2="0" y2="1"><stop stop-color="#33485f"/><stop offset="1" stop-color="#1b2d43"/></linearGradient>
+    <linearGradient id="body" x2="0" y2="1"><stop stop-color="#8fa5b7"/><stop offset="1" stop-color="#4f687e"/></linearGradient>
+    <pattern id="grid" width="18" height="18" patternUnits="userSpaceOnUse"><path d="M18 0H0V18" fill="none" stroke="#56708b" stroke-opacity=".13"/></pattern>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="m1 1 7 4-7 4" fill="none" stroke="#67d7cf" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></marker>
+    <style>
+      text{font-family:Inter,Segoe UI,Arial,sans-serif;fill:#ecf3fa}
+      .eyebrow{font-size:13px;font-weight:700;letter-spacing:2px;fill:#83e4db}
+      .title{font-size:34px;font-weight:700;letter-spacing:-.7px}
+      .sub{font-size:17px;fill:#b5c6d7}
+      .card{fill:#14273d;stroke:#314b65;stroke-width:1.2}
+      .heading{font-size:21px;font-weight:700}
+      .label{font-size:15px;fill:#b5c6d7}
+      .small{font-size:13px;fill:#a8bfd0}
+      .value{font-size:17px;font-weight:600}
+      .mono{font-family:Consolas,DejaVu Sans Mono,monospace;font-size:14px;fill:#b3eee6}
+      .step{font-size:16px;font-weight:650}
+    </style>
+  </defs>
+  <rect width="1500" height="680" rx="22" fill="url(#background)"/>
+  <rect width="1500" height="680" rx="22" fill="url(#grid)"/>
+  <text x="48" y="46" class="eyebrow">THORAXBENCH LOCAL / TESTABLE MVP</text>
+  <text x="48" y="94" class="title">From a synthetic study to inspectable findings</text>
+  <text x="48" y="126" class="sub">One local command. Structured evidence, a readable report, and recorded provenance.</text>
+  <rect x="1259" y="43" width="193" height="37" rx="18" fill="#173e43" stroke="#326866"/>
+  <circle cx="1280" cy="61" r="4" fill="#83e4db"/><text x="1294" y="67" font-size="14" fill="#a5f4e8">OFFLINE HEURISTIC</text>
+
+  <!-- Input: deliberately schematic, entirely drawn from SVG primitives. -->
+  <rect x="48" y="168" width="387" height="412" rx="18" class="card"/>
+  <text x="72" y="204" class="eyebrow">01 / INPUT</text>
+  <text x="72" y="237" class="heading">Synthetic DICOM study</text>
+  <rect x="82" y="276" width="310" height="195" rx="12" fill="#20364d" stroke="#405972"/>
+  <rect x="76" y="269" width="310" height="195" rx="12" fill="#253c53" stroke="#4a647c"/>
+  <rect x="70" y="262" width="310" height="195" rx="12" fill="url(#slice)" stroke="#57728a"/>
+  <path d="M91 285h15m-15 0v15m267-15h-15m15 0v15M91 434h15m-15 0v-15m267 15h-15m15 0v-15" fill="none" stroke="#91adbf" stroke-width="1.4"/>
+  <ellipse cx="225" cy="359" rx="111" ry="78" fill="url(#body)"/>
+  <ellipse cx="225" cy="359" rx="98" ry="67" fill="#3e576e"/>
+  <path d="M207 309c-17-18-49-10-57 17-13 40-5 70 22 77 22 6 37-3 38-25l-3-69z" fill="#101f31" stroke="#7a94a7"/>
+  <path d="M241 309c17-18 49-10 57 17 13 40 5 70-22 77-22 6-37-3-38-25l3-69z" fill="#101f31" stroke="#7a94a7"/>
+  <ellipse cx="225" cy="403" rx="12" ry="11" fill="#c9d6de"/>
+  <path d="M153 387c12 12 28 17 49 7l-3 9c-20 11-39 1-46-16z" fill="#66d9d0" opacity=".8"/>
+  <circle cx="176" cy="343" r="7" fill="#f6bd72"/>
+  <circle cx="176" cy="343" r="13" fill="none" stroke="#f6bd72" stroke-width="1.3" stroke-dasharray="3 3"/>
+  <text x="86" y="287" font-size="11" fill="#b5c6d7">R</text><text x="358" y="287" font-size="11" fill="#b5c6d7">L</text>
+  <text x="72" y="499" class="value">64 slices</text><text x="180" y="499" class="label">/ 5 mm slice spacing</text>
+  <text x="72" y="527" class="small">Code-drawn schematic synthetic CT.</text>
+  <text x="72" y="548" class="small">Not a real CT or rendered patient image.</text>
+
+  <path d="M446 374h35" fill="none" stroke="#67d7cf" stroke-width="2.5" marker-end="url(#arrow)"/>
+
+  <!-- Processing: the actual baseline path, separate from the VLM image path. -->
+  <rect x="495" y="168" width="450" height="412" rx="18" class="card"/>
+  <text x="519" y="204" class="eyebrow">02 / PROCESSING</text>
+  <text x="519" y="237" class="heading">Guard, measure, infer</text>
+  <path d="M548 283v205" stroke="#355773" stroke-width="2"/>
+  <circle cx="548" cy="288" r="15" fill="#1b454d" stroke="#67d7cf"/><path d="m542 288 4 4 8-9" fill="none" stroke="#83e4db" stroke-width="2"/>
+  <text x="579" y="285" class="step">Development access guard</text>
+  <text x="579" y="307" class="small">Sealed holdout patients stay blocked.</text>
+  <circle cx="548" cy="354" r="15" fill="#1b454d" stroke="#67d7cf"/><path d="m542 354 4 4 8-9" fill="none" stroke="#83e4db" stroke-width="2"/>
+  <text x="579" y="351" class="step">DICOM geometry + quality control</text>
+  <text x="579" y="373" class="small">Load HU volume; inadequate input abstains.</text>
+  <circle cx="548" cy="420" r="15" fill="#1b454d" stroke="#67d7cf"/><path d="M541 423v-4m7 4v-10m7 10v-7" stroke="#83e4db" stroke-width="2"/>
+  <text x="579" y="417" class="step">Deterministic HU preprocessing</text>
+  <text x="579" y="439" class="small">Lung regions, dense candidates, fluid cues.</text>
+  <circle cx="548" cy="486" r="15" fill="#1b454d" stroke="#67d7cf"/><path d="m541 486 5 5 9-10" fill="none" stroke="#83e4db" stroke-width="2"/>
+  <text x="579" y="483" class="step">Local heuristic-hu baseline</text>
+  <text x="579" y="505" class="small">Fixed rules → parsed findings → research report</text>
+  <rect x="519" y="520" width="402" height="40" rx="7" fill="#20374e"/>
+  <text x="533" y="537" class="small">Timed analysis stages: <tspan fill="#83e4db" font-weight="700">0.465 s</tspan></text>
+  <text x="533" y="553" class="small">Excludes DICOM loading, report and provenance.</text>
+
+  <path d="M956 374h35" fill="none" stroke="#67d7cf" stroke-width="2.5" marker-end="url(#arrow)"/>
+
+  <!-- Outcome: values recorded from the synthetic CLI smoke run. -->
+  <rect x="1005" y="168" width="447" height="412" rx="18" class="card"/>
+  <text x="1029" y="204" class="eyebrow">03 / OUTCOME</text>
+  <text x="1029" y="237" class="heading">Recorded synthetic run</text>
+  <rect x="1029" y="264" width="399" height="86" rx="10" fill="#263646" stroke="#715b43"/>
+  <circle cx="1050" cy="289" r="5" fill="#f6bd72"/>
+  <text x="1065" y="295" class="step">Pulmonary nodule</text>
+  <text x="1045" y="326" class="label">Right · 12 mm</text><text x="1409" y="326" text-anchor="end" class="value" fill="#f6bd72">score 0.79</text>
+  <rect x="1029" y="362" width="399" height="86" rx="10" fill="#1b3944" stroke="#386568"/>
+  <circle cx="1050" cy="387" r="5" fill="#83e4db"/>
+  <text x="1065" y="393" class="step">Pleural effusion</text>
+  <text x="1045" y="424" class="label">Right</text><text x="1409" y="424" text-anchor="end" class="value" fill="#83e4db">score 1.00</text>
+  <text x="1029" y="474" class="small">Uncalibrated heuristic scores; accuracy unmeasured.</text>
+  <path d="M1030 497h398" stroke="#314b65"/>
+  <text x="1029" y="516" class="mono">result.json</text><text x="1150" y="516" class="label">findings · QC · timings · hashes</text>
+  <text x="1029" y="537" class="mono">report.md</text><text x="1150" y="537" class="label">readable research report</text>
+  <text x="1029" y="558" class="mono">report.html</text><text x="1150" y="558" class="label">embedded images · evidence</text>
+
+  <path d="M48 610h1404" stroke="#314b65"/>
+  <text x="48" y="639" font-size="14" font-weight="700" fill="#83e4db">RESEARCH USE ONLY</text>
+  <text x="229" y="639" font-size="14" fill="#b5c6d7">Experimental predictions. Not medical advice, a diagnosis, or a medical device.</text>
+  <text x="1452" y="639" text-anchor="end" font-size="13" fill="#8ea7bd">Synthetic smoke test · 2026-10-15</text>
+</svg>

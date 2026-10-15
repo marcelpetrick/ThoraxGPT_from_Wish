@@ -302,3 +302,32 @@ flowchart LR
 | Privacy | No telemetry; logs redact paths/DICOM values; only de-identified research data. |
 | Extensibility | New model = YAML in `configs/models/` + adapter class; new dataset = YAML + label loader. |
 | Testing | Synthetic DICOM phantoms; Ollama mocked via `respx`; Playwright for the UI. |
+
+
+## 8. Local GUI MVP and illustrated exports
+
+The current workbench is a thin FastAPI interface over `analysis.analyze_study` and the
+same development guards as the CLI. Local vanilla JavaScript drives the slice slider,
+model invocation and preference switches; all templates/styles/scripts are packaged
+assets. There is no external frontend framework, CDN or telemetry. English/light are
+first-visit defaults; English/German and light/dark preferences persist in browser storage.
+The About endpoint derives runtime library versions and license declarations from installed
+package metadata.
+
+`AnalysisResult.prepared_images` retains actual prepared bytes only in memory and is
+excluded from JSON serialization. Illustrated HTML exports embed those PNG bytes alongside
+captions and finding references. HU-baseline previews are derived from source slice indices
+and clearly marked as explanatory views. Missing or out-of-range evidence stays unresolved.
+All model text is escaped; self-contained HTML needs no network asset requests. Derived
+images and complete exports stay in ignored `data/results/`, never Git.
+
+See [UI proposals and verification](ui.md) and the [actual synthetic test record](mvp-test.md).
+The [40 GB VRAM/LAN design](lan-runner.md) is a proposal for tomorrow; the implemented
+endpoint policy remains loopback-only.
+
+Operator documentation ships at repository root as [`manual.html`](../manual.html) and
+[`manual.pdf`](../manual.pdf), with configuration and operational checklists. These contain
+no study images. Per-run HTML remains under ignored `data/results/`: it presents findings,
+educational severity/attention and evidence galleries, while preserving uncertainty and
+explicit self-made-tool/fallibility disclaimers. No severity is assigned to absent or
+uncertain findings; educational context cannot establish whether care is needed.

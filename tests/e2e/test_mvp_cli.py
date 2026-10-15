@@ -274,3 +274,24 @@ def test_index_passes_limit_and_progress_and_handles_errors(
     assert "Cannot build index: freeze a split first" in failed.output
     assert mock.call_args.kwargs["limit"] is None
     assert runner.invoke(cli.app, ["index", "lidc_idri", "--limit", "0"]).exit_code == 2
+
+
+def test_html_export_is_confined_to_results_before_loading(
+    phantom: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    settings = Settings(data_dir=tmp_path / "data")
+    monkeypatch.setattr(cli, "get_settings", lambda: settings)
+    html_path = settings.data_path("results", "demo", "report.html")
+    invocation = runner.invoke(cli.app, ["analyze", str(phantom), "--html", str(html_path)])
+    assert invocation.exit_code == 0, invocation.output
+    html = html_path.read_text()
+    assert "data:image/png;base64," in html
+    assert "not medical advice" in html
+    outside = tmp_path / "public.html"
+    monkeypatch.setattr(
+        "thoraxbench.study.load_study_dir", lambda *_args, **_kwargs: pytest.fail("study read")
+    )
+    rejected = runner.invoke(cli.app, ["analyze", str(phantom), "--html", str(outside)])
+    assert rejected.exit_code == 1
+    assert "results" in rejected.output
+    assert not outside.exists()

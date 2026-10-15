@@ -34,11 +34,20 @@ def result() -> AnalysisResult:
     )
 
 
+def test_heuristic_evidence_names_source_slices(result: AnalysisResult) -> None:
+    result.report.findings = [
+        Finding(label="pulmonary_nodule", source="heuristic", evidence_images=[22])
+    ]
+    text = render_study_report(result)
+    assert "source slice indices (zero-based) 22" in text
+    assert "images 22" not in text
+
+
 @pytest.mark.parametrize(
     ("present", "confidence", "probability", "status"),
     [
-        (True, None, 1.0, "present"),
-        (False, None, 0.0, "not detected"),
+        (True, None, None, "uncertain"),
+        (False, None, None, "uncertain"),
         (True, 0.5, 0.5, "present"),
         (False, 0.8, 0.2, "not detected"),
         (None, 0.9, None, "uncertain"),
