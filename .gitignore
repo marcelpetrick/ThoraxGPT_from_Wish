@@ -38,3 +38,6 @@ build/
 /results/
 /.pipeline/
 /test-results/
+
+# agent worktrees / local tool state
+/.claude/
