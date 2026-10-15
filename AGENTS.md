@@ -27,7 +27,8 @@ and this file must be fixed.
 ## 2. Workflow
 
 * Work directly on `main`. One logical change per commit (atomic).
-* Commit only through `scripts/commit.sh "<type>(<scope>): <message>"`. It bumps the
+* Commit only through `scripts/commit.sh "<type>(<scope>): <message>"` (add `--staged` to
+  commit just the staged hunks; the rest is stashed while the gate runs). It bumps the
   version (patch by default, `--minor` for a major feature), runs `./localPipeline.sh`,
   commits only when the pipeline is green, and pushes.
 * **Living docs:** `README.md`, `AGENTS.md` and `docs/plan.md` are updated *in the same
