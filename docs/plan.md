@@ -75,6 +75,9 @@ from here**: read this section and *Next steps*, then `git log --oneline | head 
   WP2 dataset licenses + LIDC-IDRI pilot download into `data/raw/` → `docs/datasets.md`,
   `configs/datasets/*.yaml`; WP13 radiologist reading practice + findings knowledge base →
   `docs/reading_practice.md`, `src/thoraxbench/ontology/clinical_kb.yaml`.
+- ✅ WP13 research: `docs/reading_practice.md`, clinical knowledge base + Fleischner/Lung-RADS
+  rules (`ontology/clinical.py`, `ontology/guidelines.py`); report rendering still open.
+- ✅ WP6 splits + sealed guard (`splits/`).
 - ✅ Schemas + ontology (v0.0.7), DICOM loader + phantoms (v0.0.6), registry (v0.0.5),
   architecture (v0.0.3), bootstrap (v0.0.1).
 

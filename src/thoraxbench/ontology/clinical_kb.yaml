@@ -1,0 +1,761 @@
+# ThoraxBench Local — chest CT findings knowledge base (research use only; NOT medical advice)
+# One entry per ontology label (Vision.md §12). Compiled 2026-10-15.
+# Field conventions:
+#   typical_severity: incidental | low | moderate | high | critical
+#     incidental = usually no clinical consequence; low = worth noting, rarely acted on;
+#     moderate = usually prompts follow-up/work-up; high = likely significant disease needing work-up/treatment;
+#     critical = potentially life-threatening, immediate action.
+#   urgency: routine | soon | urgent | emergency  (urgency of clinical communication / action in a typical case)
+#   treatment_typically_needed: never | sometimes | usually
+#   ct_rate_label: exact CT-RATE label string (verified against CT-CLIP scripts/zero_shot.py:
+#     https://github.com/ibrahimethemhamamci/CT-CLIP/blob/main/scripts/zero_shot.py ) or null.
+#   deterministic_hints: HU/geometry cues computable from the canonical HU volume. Items tagged [heuristic]
+#     are engineering proposals, not validated diagnostic criteria.
+#   "[unverified]" marks statements from general knowledge not confirmed against a source in this pass.
+meta:
+  version: 0.1
+  disclaimer: >-
+    Research output of an experimental system. Not a diagnosis, not medical advice, not clinically validated
+    (Vision.md §28). Any finding must be confirmed by a qualified radiologist/physician.
+  ct_rate_labels_source: https://github.com/ibrahimethemhamamci/CT-CLIP/blob/main/scripts/zero_shot.py
+  ct_rate_label_extraction_note: >-
+    CT-RATE labels were produced by a RadBERT classifier fine-tuned on 1,000 manually labelled reports and applied
+    to the remaining reports; 'Lung opacity' groups several opacity terms and 'Lung nodule' merges lung and fissural
+    nodules (https://arxiv.org/html/2403.17834).
+
+findings:
+
+  - id: pulmonary_nodule
+    medical_term: Pulmonary nodule
+    synonyms: [lung nodule, solitary pulmonary nodule, micronodule, ground-glass nodule, part-solid nodule, subsolid nodule]
+    plain_language: >-
+      A small, roughly round spot in the lung measuring up to 3 cm. Most are harmless, for example scars from old
+      infections, but a small share can be an early cancer, so size and appearance decide whether a repeat scan is advised.
+    typical_severity: low
+    severity_modifiers:
+      - "Size: <6 mm usually no follow-up; 6–8 mm short-interval CT; >8 mm consider CT at 3 months, PET-CT or biopsy (Fleischner 2017)"
+      - "Spiculated/irregular margin, upper-lobe location, growth ≥1.5 mm, smoker/older patient raise risk"
+      - "Part-solid nodules with a solid component ≥6 mm are more suspicious than pure ground-glass nodules"
+      - "Benign calcification patterns (central, diffuse, popcorn, laminated) or fat lower risk (Lung-RADS 1)"
+    urgency: routine
+    treatment_typically_needed: sometimes
+    treatment_note: Most nodules need no treatment; a minority need follow-up CT, PET-CT or tissue sampling and, if malignant, treatment.
+    follow_up: >-
+      Incidental (age ≥35, no known cancer, not immunocompromised): Fleischner Society 2017. Solid single
+      <6 mm, no routine follow-up (optional 12 months if high risk); 6–8 mm, CT at 6–12 months then 18–24 months;
+      >8 mm, CT at 3 months, PET-CT or tissue sampling. Subsolid: pure GGN ≥6 mm, CT at 6–12 months then every 2 years
+      to 5 years; part-solid ≥6 mm, CT at 3–6 months then annually for 5 years. Screening LDCT: Lung-RADS v2022 (category 2 to 4X).
+    prevalence: >-
+      Nodules (4–30 mm) were reported in 24% (2006) rising to 31% (2012) of all chest CTs in a US integrated health
+      system (Gould 2015); the great majority are benign.
+    ct_rate_label: Lung nodule
+    deterministic_hints:
+      - "Candidate blobs: connected components inside the lung mask with HU > -300 (solid) or -750…-300 (subsolid) [heuristic], volume 15–14,000 mm³ (≈3–30 mm), sphericity high; exclude tubular (vessel) components across ≥3 consecutive slices"
+      - "Size bins from equivalent diameter: <6 / 6–8 / >8 mm (Fleischner thresholds); volume <100 / 100–250 / >250 mm³"
+      - "Calcified nodule: max HU >200 within nodule [heuristic] → likely benign granuloma"
+      - "Use 5–10 mm MIP slabs on lung window for visual detection"
+    sources:
+      - https://radiopaedia.org/articles/fleischner-society-pulmonary-nodule-recommendations-1
+      - https://doi.org/10.1148/radiol.2017161659
+      - https://radiopaedia.org/articles/lung-rads
+      - https://pubmed.ncbi.nlm.nih.gov/26214244/
+      - https://gravitas.acr.org/PPTS/DownloadPreviewDocument?DocId=13
+
+  - id: pulmonary_mass
+    medical_term: Pulmonary mass
+    synonyms: [lung mass, lung tumour, lung lesion >3 cm]
+    plain_language: >-
+      A solid lump in the lung larger than 3 cm. Lung cancer is the most common cause, although infections and other
+      benign conditions can also look like this, so it nearly always needs prompt further tests.
+    typical_severity: high
+    severity_modifiers:
+      - "Spiculation, invasion of chest wall/mediastinum, associated lymphadenopathy, pleural effusion or bone lesions suggest malignancy/advanced stage"
+      - "Cavitation with thick (>15 mm) wall favours malignancy"
+      - "Airway obstruction with distal collapse"
+    urgency: soon
+    treatment_typically_needed: usually
+    treatment_note: Usually requires diagnostic work-up (contrast CT, PET-CT, biopsy) and disease-specific treatment.
+    follow_up: >-
+      Not a surveillance finding; Fleischner 2017 recommends PET-CT/tissue sampling already for solid nodules >8 mm;
+      Lung-RADS 4B (solid ≥15 mm) → diagnostic CT, PET-CT and/or tissue sampling.
+    prevalence: >-
+      No reliable population figure found; lung cancer is the most common cause of a pulmonary mass (Radiopaedia).
+    ct_rate_label: null
+    deterministic_hints:
+      - "Connected soft-tissue component (HU -100…+100 [heuristic]) inside or abutting the lung mask with equivalent diameter >30 mm"
+      - "Distinguish from consolidation: mass is convex/space-occupying, no air bronchograms (lung-window review) [heuristic]"
+    sources:
+      - https://radiopaedia.org/articles/lung-mass
+      - https://pubmed.ncbi.nlm.nih.gov/18195376/
+      - https://radiopaedia.org/articles/lung-rads
+
+  - id: consolidation
+    medical_term: Pulmonary consolidation
+    synonyms: [airspace consolidation, airspace opacity, lobar consolidation, pneumonic infiltrate]
+    plain_language: >-
+      Part of the lung where the air spaces are filled with fluid, pus, blood or cells, so it looks solid on the scan.
+      The commonest cause is pneumonia, but bleeding, fluid overload or, more rarely, tumour can look the same.
+    typical_severity: moderate
+    severity_modifiers:
+      - "Multilobar/bilateral extent, cavitation, associated effusion/empyema"
+      - "Persistent consolidation after treatment (possible underlying tumour)"
+      - "Clinical context (fever, immunosuppression)"
+    urgency: soon
+    treatment_typically_needed: usually
+    treatment_note: Often reflects infection treated with antibiotics; non-infective causes need targeted treatment.
+    follow_up: >-
+      No single imaging guideline; clinical follow-up. Lung-RADS category 0 if consolidation suggests infection on a
+      screening CT (repeat LDCT 1–3 months). Persistent consolidation should be re-imaged to exclude underlying
+      malignancy [unverified common practice].
+    prevalence: >-
+      Common but strongly population-dependent (very frequent in inpatient/ED CT, uncommon in screening); no robust
+      single figure found.
+    ct_rate_label: Consolidation
+    deterministic_hints:
+      - "Lung-mask voxels with HU > -100 forming confluent regions ≥1 cm³ after vessel removal (morphological opening) [heuristic]"
+      - "Internal air bronchograms: tubular < -900 HU structures inside the dense region [heuristic]"
+      - "Lung mask will under-segment dense lung at -400 HU threshold — compare convex hull of lung vs mask to recover it"
+    sources:
+      - https://radiopaedia.org/articles/consolidation
+      - https://radiopaedia.org/articles/lung-rads
+
+  - id: ground_glass_opacity
+    medical_term: Ground-glass opacity (GGO)
+    synonyms: [ground-glass opacification, ground-glass attenuation, GGN (if nodular)]
+    plain_language: >-
+      A hazy, slightly whiter area of lung on CT through which vessels and airways can still be seen. It is a
+      non-specific sign: infection, fluid, bleeding or inflammation can cause it, and a persistent, focal patch can
+      occasionally be an early, slow-growing cancer.
+    typical_severity: low
+    severity_modifiers:
+      - "Diffuse/extensive and acute → infection, oedema, haemorrhage, ARDS (may be severe)"
+      - "Persistent focal nodular GGO ≥6 mm → Fleischner subsolid nodule pathway"
+      - "Associated reticulation/traction bronchiectasis → fibrotic ILD"
+    urgency: routine
+    treatment_typically_needed: sometimes
+    treatment_note: Depends entirely on cause; acute diffuse GGO often needs treatment, small persistent GGNs usually only surveillance.
+    follow_up: >-
+      Nodular GGO: Fleischner 2017 (pure GGN ≥6 mm: CT 6–12 months, then every 2 years to 5 years) or Lung-RADS v2022
+      (GGN <30 mm = category 2). Diffuse GGO: clinical correlation; ILD work-up if chronic (Fleischner ILA 2020).
+    prevalence: >-
+      Pure GGNs are usually indolent: in screening cohorts ~90% of pure GGNs did not grow on long-term follow-up and
+      8.6% of incidental pGGNs <10 mm grew over 5 years. Overall prevalence of GGO on CT not established in sources found.
+    ct_rate_label: Lung opacity
+    deterministic_hints:
+      - "Lung-mask voxels in -750…-300 HU [heuristic], excluding vessels, as % of lung volume; local clusters ≥5 mm"
+      - "Highly sensitive to inspiration level, dependent atelectasis and noise/kernel; compare ventral vs dorsal distribution"
+    sources:
+      - https://radiopaedia.org/articles/ground-glass-opacification-3
+      - https://radiopaedia.org/articles/fleischner-society-pulmonary-nodule-recommendations-1
+      - https://radiopaedia.org/articles/lung-rads
+      - https://pubmed.ncbi.nlm.nih.gov/39389342/
+      - https://pubs.rsna.org/doi/10.1148/radiol.253139
+
+  - id: atelectasis
+    medical_term: Atelectasis
+    synonyms: [lung collapse, linear/plate/discoid atelectasis, subsegmental atelectasis, dependent atelectasis, lobar collapse, rounded atelectasis]
+    plain_language: >-
+      A part of the lung that is not fully inflated. Small strips at the lung bottoms are very common and usually
+      harmless, for example from shallow breathing; collapse of a whole lobe can mean an airway is blocked and needs checking.
+    typical_severity: incidental
+    severity_modifiers:
+      - "Lobar or whole-lung collapse"
+      - "Obstructive (resorptive) collapse without air bronchograms → look for central obstructing mass or mucus plug"
+      - "Compressive/passive collapse from large effusion or pneumothorax"
+    urgency: routine
+    treatment_typically_needed: sometimes
+    treatment_note: Minor/dependent atelectasis needs nothing; obstructive or lobar collapse requires treating the cause (e.g., bronchoscopy).
+    follow_up: >-
+      No specific guideline; dependent/linear atelectasis needs no follow-up. Prone images help separate dependent
+      atelectasis from interstitial disease (ACR HRCT practice parameter).
+    prevalence: "Linear (plate) atelectasis is described as very common (Radiopaedia); no numeric figure found."
+    ct_rate_label: Atelectasis
+    deterministic_hints:
+      - "Dense (HU > -100) band-like/wedge regions in dependent (posterior) lung bases with volume loss: fissure/diaphragm/mediastinum shifted towards the lesion [heuristic]"
+      - "Ipsilateral lung volume (lung mask) markedly lower than contralateral (>25% asymmetry) [heuristic]"
+    sources:
+      - https://radiopaedia.org/articles/atelectasis
+      - https://gravitas.acr.org/PPTS/DownloadPreviewDocument?DocId=83
+
+  - id: emphysema
+    medical_term: Pulmonary emphysema
+    synonyms: [centrilobular emphysema, panlobular emphysema, paraseptal emphysema, bullous emphysema, COPD (related)]
+    plain_language: >-
+      Permanent damage to the tiny air sacs in the lungs, so that small holes appear in the lung tissue. It is mostly
+      caused by smoking, cannot be reversed, and can cause breathlessness; it also raises lung cancer risk.
+    typical_severity: moderate
+    severity_modifiers:
+      - "Fleischner visual grade: trace < mild < moderate < confluent < advanced destructive (centrilobular); paraseptal mild vs substantial"
+      - "Quantitative %LAA-950: <5% none/minimal, 5–<10% mild, ≥10% emphysema-predominant (study-specific bands)"
+      - "Large bullae (pneumothorax risk), panlobular lower-zone pattern in young patient (α1-antitrypsin deficiency)"
+    urgency: routine
+    treatment_typically_needed: sometimes
+    treatment_note: Tissue loss is irreversible; management is smoking cessation, inhalers, rehabilitation, oxygen, rarely lung volume reduction/transplant — guided by symptoms and lung function.
+    follow_up: >-
+      No imaging surveillance guideline; recommend clinical assessment/spirometry and smoking cessation. Grade with the
+      Fleischner Society 2015 COPD statement (Lynch et al.). Lung cancer screening eligibility per local programme.
+    prevalence: >-
+      Emphysema on baseline LDCT in 30.7% of NLST screening participants (82% without prior COPD diagnosis) and 23.8%
+      in I-ELCAP; centrilobular emphysema is a common incidental finding in asymptomatic older adults.
+    ct_rate_label: Emphysema
+    deterministic_hints:
+      - "%LAA-950: share of lung-mask voxels ≤ -950 HU on inspiratory CT (most accepted threshold); report with kernel and slice thickness because noise/sharp kernels inflate it"
+      - "Upper/lower-zone %LAA ratio separates centrilobular (upper) from panlobular (lower) [heuristic]"
+      - "Bullae: connected components ≤ -950 HU >10 mm diameter [heuristic]"
+      - "MinIP slabs <10 mm help visual assessment (ACR thoracic CT PP)"
+    sources:
+      - https://radiopaedia.org/articles/emphysema
+      - https://pmc.ncbi.nlm.nih.gov/articles/PMC4613878
+      - https://www.springermedicine.com/pdf/10.3348/jksr.2018.78.1.1
+      - https://respiratory-research.biomedcentral.com/articles/10.1186/s12931-014-0127-9/tables/1
+      - https://pmc.ncbi.nlm.nih.gov/articles/PMC10112413/
+      - https://gravitas.acr.org/PPTS/DownloadPreviewDocument?DocId=13
+
+  - id: fibrosis_interstitial
+    medical_term: Pulmonary fibrosis / interstitial lung abnormality (ILA) / interstitial lung disease
+    synonyms: [ILA, ILD, fibrotic sequelae, reticulation, honeycombing, traction bronchiectasis, UIP pattern, pulmonary fibrotic sequela, scarring]
+    plain_language: >-
+      Scarring or inflammation of the lung's supporting tissue. Small, isolated scars are often left over from old
+      infections and are harmless; widespread scarring at the lung edges and bases can be an early or established
+      chronic lung disease that may slowly worsen and should be seen by a lung specialist.
+    typical_severity: moderate
+    severity_modifiers:
+      - "Subpleural fibrotic ILA (traction bronchiectasis, honeycombing) progresses more often and carries higher mortality than non-subpleural ILA"
+      - "Extent (≥5% of a lung zone defines ILA; more extensive = clinically significant ILD)"
+      - "Focal post-infectious scar (CT-RATE 'fibrotic sequela') is usually insignificant"
+    urgency: routine
+    treatment_typically_needed: sometimes
+    treatment_note: Focal scars need nothing; ILD may need antifibrotic/immunosuppressive treatment and specialist care. ILAs raise risk of pneumonitis from chemo-, immuno- and radiotherapy.
+    follow_up: >-
+      Fleischner Society ILA position paper 2020: confirm with thin-section CT (<1.5 mm, prone ± expiratory),
+      assess causes/exposures, refer clinically significant cases to pulmonology; monitor fibrotic subtypes. ACR lung
+      incidental-findings white paper (Munden 2021).
+    prevalence: "ILA in 4–9% of smokers and 2–7% of non-smokers aged >60; progression ~20% over 2 years to 48% over 5 years."
+    ct_rate_label: Pulmonary fibrotic sequela
+    deterministic_hints:
+      - "Subpleural (within 1 cm of chest wall) basal voxels in -700…-200 HU with high local texture variance [heuristic]"
+      - "Lung volume reduction and basal predominance; honeycomb cysts = clustered < -900 HU cysts 3–10 mm at the pleura [heuristic]"
+      - "Exclude dependent density: compare with prone series if available"
+    sources:
+      - https://pmc.ncbi.nlm.nih.gov/articles/PMC7970441/
+      - https://doi.org/10.1016/j.jacr.2021.04.014
+      - https://gravitas.acr.org/PPTS/DownloadPreviewDocument?DocId=83
+
+  - id: bronchiectasis
+    medical_term: Bronchiectasis
+    synonyms: [bronchial dilatation, cylindrical/varicose/cystic bronchiectasis, traction bronchiectasis]
+    plain_language: >-
+      The breathing tubes (bronchi) are permanently widened, which makes it harder to clear mucus and leads to
+      repeated chest infections and cough. Mild forms are often found by chance and may cause no symptoms.
+    typical_severity: moderate
+    severity_modifiers:
+      - "Extent (number of lobes), cystic/varicose > cylindrical"
+      - "Mucus plugging, wall thickening, associated mosaic attenuation/air trapping"
+      - "Traction bronchiectasis within fibrosis indicates fibrotic ILD"
+    urgency: routine
+    treatment_typically_needed: sometimes
+    treatment_note: Symptomatic bronchiectasis is managed with airway clearance, prompt antibiotics, sometimes long-term antibiotics; surgery rarely.
+    follow_up: "No imaging surveillance guideline; clinical (pulmonology) evaluation if symptomatic. Classified in Fleischner 2015 COPD statement."
+    prevalence: >-
+      Claims-based 52–1,106 per 100,000 adults, rising steeply with age (up to ~800 per 100,000 at ≥75 y); CT-detected
+      11.6% in a US screening cohort (I-ELCAP) and 9.1% in a Japanese health-check cohort.
+    ct_rate_label: Bronchiectasis
+    deterministic_hints:
+      - "Bronchoarterial ratio >1.5 (airway lumen diameter / adjacent artery diameter) — needs airway + vessel segmentation [phase 2]"
+      - "Airway lumen (< -900 HU tubular structure) visible within 1 cm of costal pleura [heuristic]"
+    sources:
+      - https://radiopaedia.org/articles/bronchiectasis
+      - https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7153864/
+      - https://pmc.ncbi.nlm.nih.gov/articles/PMC3425339
+      - https://www.jstage.jst.go.jp/article/tjem/222/4/222_4_237/_article
+
+  - id: cavitation
+    medical_term: Pulmonary cavity
+    synonyms: [cavitating lesion, cavitary nodule, lung abscess (cause), cavitating mass]
+    plain_language: >-
+      A hollow, air-filled space inside a lung lesion, surrounded by a thick wall. It forms when the centre of a
+      lesion breaks down, for example in tuberculosis, abscess or some cancers, and therefore usually needs investigation.
+    typical_severity: high
+    severity_modifiers:
+      - "Wall thickness ≤4 mm usually benign; >15 mm usually malignant (overlap in between)"
+      - "Air-fluid level (abscess), multiplicity (septic emboli, GPA), upper-lobe location with tree-in-bud (TB)"
+    urgency: soon
+    treatment_typically_needed: usually
+    treatment_note: Underlying infection or malignancy almost always requires work-up and treatment; infectious TB has public-health implications.
+    follow_up: "No dedicated guideline; diagnostic work-up. Thick-walled/multilocular cysts are Lung-RADS 4A on screening."
+    prevalence: "No population figure found; uncommon on routine CT."
+    ct_rate_label: null
+    deterministic_hints:
+      - "Air pocket (< -900 HU) fully enclosed (in 3D) by soft tissue (> -100 HU) inside a lesion; wall thickness = distance transform of the soft-tissue shell [heuristic]"
+    sources:
+      - https://radiopaedia.org/articles/pulmonary-cavity-1
+      - https://radiopaedia.org/articles/lung-rads
+
+  - id: pleural_effusion
+    medical_term: Pleural effusion
+    synonyms: [hydrothorax, haemothorax (blood), empyema (pus), pleural fluid]
+    plain_language: >-
+      Fluid collected in the space between the lung and the chest wall. Small amounts are common, for example with
+      heart failure or after infection; large or one-sided effusions without explanation usually need the fluid
+      tested and sometimes drained.
+    typical_severity: moderate
+    severity_modifiers:
+      - "Size: small (1st AP quartile, ≤3 cm depth), moderate (2nd quartile, ≤10 cm), large (3rd–4th quartile, >10 cm)"
+      - "Density ~35–70 HU suggests haemothorax; loculation/pleural enhancement/split-pleura suggests empyema"
+      - "Pleural nodularity → possible malignant effusion; mass effect/mediastinal shift"
+    urgency: soon
+    treatment_typically_needed: sometimes
+    treatment_note: Treat underlying cause; large symptomatic, infected or unexplained effusions are aspirated/drained.
+    follow_up: >-
+      BTS Guideline for Pleural Disease 2023 (undiagnosed unilateral effusion → diagnostic aspiration). Size per
+      Moy et al. 2012 CT method.
+    prevalence: "Common; no single CT prevalence found. Heart failure and malignancy are frequent causes and older patients are over-represented."
+    ct_rate_label: Pleural effusion
+    deterministic_hints:
+      - "Voxels 0–20 HU (working window; extend to 20–70 HU to catch blood) in the dependent pleural space between lung mask and chest wall, crescentic, posterior [heuristic]"
+      - "Maximal AP depth (mm) and AP quartile on the largest slice above the diaphragm dome → small/moderate/large (Moy)"
+      - "Volume via region growing, as % of hemithorax (<20% / 20–40% / >40%)"
+      - "Mean HU 35–70 → flag possible haemothorax; fat density (-90…-115 HU) → chylous/pseudochylous"
+    sources:
+      - https://radiopaedia.org/articles/pleural-effusion
+      - https://www.auntminnie.com/clinical-news/ct/article/15604281/technique-categorizes-pleural-effusion-size-at-ct
+      - https://radiopaedia.org/articles/hemothorax-1
+      - https://www.brit-thoracic.org.uk/clinical-resources/guidelines/pleural-disease
+
+  - id: pneumothorax
+    medical_term: Pneumothorax
+    synonyms: [collapsed lung, tension pneumothorax, hydropneumothorax, occult pneumothorax]
+    plain_language: >-
+      Air has leaked into the space between the lung and the chest wall, so the lung partly collapses. A small one may
+      heal on its own, but a large or "tension" pneumothorax can quickly interfere with breathing and circulation and is an emergency.
+    typical_severity: high
+    severity_modifiers:
+      - "Tension physiology: contralateral mediastinal shift, ipsilateral diaphragm depression/inversion → critical/emergency"
+      - "Size (BTS ≥2 cm at hilum on radiograph = large), symptoms, underlying lung disease (secondary), mechanical ventilation"
+      - "Bilateral; associated haemothorax"
+    urgency: urgent
+    treatment_typically_needed: sometimes
+    treatment_note: Small, minimally symptomatic primary pneumothorax may be observed (BTS 2023, regardless of size); otherwise aspiration or chest drain; tension requires immediate decompression.
+    follow_up: "BTS Guideline for Pleural Disease 2023; follow-up imaging to confirm resolution if managed conservatively."
+    prevalence: >-
+      Primary spontaneous pneumothorax ~7–28 per 100,000 per year in men and ~1–6 per 100,000 in women; lifetime risk
+      ~12% in smokers vs 0.1% in non-smokers (Radiopaedia).
+    ct_rate_label: null
+    deterministic_hints:
+      - "Air (< -950 HU) between the lung mask (visceral pleura) and the chest wall, non-dependent (anterior in supine), without lung vessels crossing it [heuristic]"
+      - "Maximal rim depth in mm; ipsilateral lung volume reduction; mediastinal centroid shift to the contralateral side → tension flag [heuristic]"
+      - "Do not confuse with bullae (vessels/septa at margin) or skin folds"
+    sources:
+      - https://radiopaedia.org/articles/pneumothorax
+      - https://www.ncbi.nlm.nih.gov/pmc/articles/PMC11037506/
+      - https://pmc.ncbi.nlm.nih.gov/articles/PMC7066360/figure/Fig7
+      - https://ncbi.nlm.nih.gov/books/NBK441885
+
+  - id: pleural_thickening
+    medical_term: Pleural thickening / pleural plaque / pleural mass
+    synonyms: [pleural plaques, calcified pleural plaques, diffuse pleural thickening, pleural nodularity, mesothelioma (cause), apical cap]
+    plain_language: >-
+      The thin lining around the lungs has become thicker. Most often this is a scar from old inflammation or past
+      asbestos exposure (plaques) and harmless, but irregular, nodular or all-round thickening can be a sign of tumour.
+    typical_severity: low
+    severity_modifiers:
+      - "Malignant features (Leung): circumferential, nodular, parietal thickness >1 cm, mediastinal pleural involvement"
+      - "Calcified discrete plaques (asbestos exposure) usually benign; diffuse thickening may restrict breathing"
+    urgency: routine
+    treatment_typically_needed: sometimes
+    treatment_note: Benign plaques need no treatment; suspicious thickening requires biopsy/oncology work-up.
+    follow_up: "No dedicated surveillance guideline; suspicious features → contrast CT/PET-CT/biopsy (BTS pleural malignancy pathway)."
+    prevalence: "Pleural plaques ~20% in reviewed (selected) pleural-disease cohorts; population figure not established in sources found."
+    ct_rate_label: null
+    deterministic_hints:
+      - "Soft-tissue (> 0 HU) layer >3 mm [heuristic] between lung mask and rib/intercostal muscle; calcified plaque = >130 HU along pleura"
+      - "Circumferential involvement including mediastinal surface → flag"
+    sources:
+      - https://pubmed.ncbi.nlm.nih.gov/2106209/
+      - https://pmc.ncbi.nlm.nih.gov/articles/PMC7717031
+      - https://mattioli1885journals.com/index.php/actabiomedica/article/download/5558/4129/17841
+
+  - id: lymphadenopathy
+    medical_term: Mediastinal / hilar lymphadenopathy
+    synonyms: [enlarged lymph nodes, lymph node enlargement, adenopathy]
+    plain_language: >-
+      Lymph glands in the centre of the chest are larger than usual. This is often a reaction to infection,
+      inflammation, heart failure or lung disease, but can also be due to lymphoma or spread of cancer, so larger
+      nodes or nodes without an obvious reason may need further tests.
+    typical_severity: moderate
+    severity_modifiers:
+      - "Short axis ≥10 mm historically abnormal; incidental nodes <15 mm with no other findings need no further evaluation (ACR 2018)"
+      - "Necrosis, conglomerate nodes, >2 cm, known malignancy, B symptoms raise concern"
+      - "Explainable disease (ILD, sarcoid, heart failure, emphysema) lowers concern"
+    urgency: routine
+    treatment_typically_needed: sometimes
+    treatment_note: Usually observation or treat the underlying disease; unexplained enlarged nodes may need PET-CT, follow-up CT or EBUS biopsy.
+    follow_up: "ACR Incidental Findings white paper, mediastinal (Munden 2018): <15 mm short axis, no other findings → no work-up; otherwise follow-up CT, PET-CT or sampling."
+    prevalence: "Incidental enlarged mediastinal nodes in ~1–6% of screening chest CTs."
+    ct_rate_label: Lymphadenopathy
+    deterministic_hints:
+      - "Soft-tissue (20–80 HU) ovoid components in mediastinal fat (-150…-50 HU background) with short-axis ≥10 mm [heuristic; requires excluding vessels — easier on contrast CT]"
+      - "Calcified nodes >130 HU → old granulomatous disease (benign) [heuristic]"
+    sources:
+      - https://doi.org/10.1016/j.jacr.2018.04.029
+      - https://rebuild.professionalradiology.com/media/user/resources/PIIS1546144018305301.pdf
+      - https://radiopaedia.org/articles/lymphadenopathy
+
+  - id: mediastinal_mass
+    medical_term: Mediastinal mass
+    synonyms: [anterior/prevascular mediastinal mass, thymoma, thymic lesion, mediastinal cyst, retrosternal goitre, neurogenic tumour]
+    plain_language: >-
+      A lump in the central part of the chest between the lungs. Many are harmless (cysts, normal thymus, an extended
+      thyroid gland), but some are tumours such as thymoma or lymphoma, so their location and content guide what to do next.
+    typical_severity: moderate
+    severity_modifiers:
+      - "Solid soft-tissue, invasion, associated lymphadenopathy or effusion → aggressive neoplasm"
+      - "Purely cystic (fluid density), fat-containing or thyroid-continuous → usually benign"
+      - "Posterior compartment → neurogenic, MRI"
+    urgency: soon
+    treatment_typically_needed: sometimes
+    treatment_note: Cysts and thymic hyperplasia often need nothing; solid tumours usually need resection or oncologic therapy.
+    follow_up: "ACR white paper (Munden 2018): localise compartment, assess texture; MRI (posterior, or indeterminate cystic/solid), PET-CT or short-term CT."
+    prevalence: "Prevascular masses in 0.4% (ELCAP smokers) to 0.9% (Framingham) of chest CTs."
+    ct_rate_label: null
+    deterministic_hints:
+      - "Space-occupying non-vascular soft-tissue or fluid component in the mediastinum >2 cm [heuristic]; mean HU 0–20 cystic, >20 solid, fat < -50"
+    sources:
+      - https://doi.org/10.1016/j.jacr.2018.04.029
+      - https://rebuild.professionalradiology.com/media/user/resources/PIIS1546144018305301.pdf
+
+  - id: cardiomegaly
+    medical_term: Cardiomegaly
+    synonyms: [enlarged heart, cardiac enlargement, increased cardiothoracic ratio]
+    plain_language: >-
+      The heart looks larger than normal. This can reflect heart muscle disease, valve problems, long-standing high
+      blood pressure or fluid around the heart; on a CT not designed for the heart this impression is approximate and
+      is usually checked with an ultrasound of the heart (echocardiogram).
+    typical_severity: moderate
+    severity_modifiers:
+      - "Associated pericardial or pleural effusions, pulmonary oedema (septal thickening, GGO) suggest decompensated heart failure"
+      - "Marked enlargement; specific chamber dilatation"
+    urgency: routine
+    treatment_typically_needed: sometimes
+    treatment_note: The underlying cardiac condition may need treatment; echocardiography is the usual next step.
+    follow_up: "No CT-specific guideline; clinical correlation and echocardiography."
+    prevalence: "No reliable CT prevalence found; CT-based cardiothoracic ratio is poorly validated (AUC 0.70 for LVH)."
+    ct_rate_label: Cardiomegaly
+    deterministic_hints:
+      - "Axial cardiothoracic ratio: max transverse cardiac diameter (outer myocardium/pericardium) ÷ max inner thoracic diameter; ≥0.5 suggests enlargement (radiograph-derived threshold) — soft finding"
+      - "Heart volume from segmentation (e.g., TotalSegmentator) normalised to thoracic volume [phase 2]"
+    sources:
+      - https://www.ncbi.nlm.nih.gov/books/NBK542296/
+      - https://vivo.weill.cornell.edu/display/pubid22261772
+      - https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5579422/
+
+  - id: pericardial_effusion
+    medical_term: Pericardial effusion
+    synonyms: [fluid around the heart, haemopericardium, pericardial fluid]
+    plain_language: >-
+      Extra fluid in the sac around the heart. Small amounts are common and often harmless; larger amounts can come
+      from inflammation, kidney failure, cancer or heart disease and, if they build up quickly, can squeeze the heart (tamponade).
+    typical_severity: low
+    severity_modifiers:
+      - "Size by depth: <10 mm small, 10–20 mm moderate, >20 mm large (>500 mL)"
+      - "High density (blood), pericardial thickening >3–4 mm or nodularity"
+      - "Signs of tamponade (clinical diagnosis) → critical"
+    urgency: routine
+    treatment_typically_needed: sometimes
+    treatment_note: Small asymptomatic effusions are managed conservatively; large or symptomatic ones need echocardiography and possibly pericardiocentesis.
+    follow_up: "ACR white paper (Munden 2018): report fluid estimated >50 mL; unexplained → consider MRI or short-term CT; echocardiography for haemodynamic assessment."
+    prevalence: "'Common on CT' (Munden 2018); no numeric figure found. 15–30 mL is normal, up to 50 mL may be physiologic."
+    ct_rate_label: Pericardial effusion
+    deterministic_hints:
+      - "Fluid-density (0–20 HU working window; 20–70 HU = possible blood) rim between epicardial and pericardial fat around the heart; maximal depth in mm → small/moderate/large"
+      - "Do not count pericardial recesses (superior recess near aorta) as effusion/nodes"
+    sources:
+      - https://radiopaedia.org/articles/pericardial-effusion
+      - https://doi.org/10.1016/j.jacr.2018.04.029
+
+  - id: aortic_abnormality
+    medical_term: Thoracic aortic dilatation / aneurysm (and other aortic abnormality)
+    synonyms: [aortic ectasia, ascending aortic aneurysm, dilated aorta, aortic dissection, penetrating ulcer, intramural haematoma]
+    plain_language: >-
+      The main artery leaving the heart is wider than normal (or, rarely, its wall is torn). Mild widening is common
+      with age and blood pressure and is watched with repeat scans; a large aneurysm carries a risk of rupture and may need surgery.
+    typical_severity: moderate
+    severity_modifiers:
+      - "Diameter: above normal (≈ >4 cm ascending [unverified]) = dilated; ≈5.0 cm ascending / 4.0 cm descending = aneurysm; ≥5.5 cm high rupture risk"
+      - "Rapid growth ≥0.3 cm/yr over 2 years or ≥0.5 cm in 1 year"
+      - "Connective-tissue disease (Marfan), bicuspid valve"
+      - "Dissection/rupture signs → critical (usually not assessable without contrast)"
+    urgency: routine
+    treatment_typically_needed: sometimes
+    treatment_note: Dilatation → blood-pressure control and surveillance; surgery at ~5.0–5.5 cm or rapid growth; dissection is an emergency.
+    follow_up: "ACR white paper (Munden 2018) for reporting; 2022 ACC/AHA Aortic Disease Guideline for surveillance and surgical thresholds."
+    prevalence: "Aortic disease incidentally detected on up to 3.4% of chest CTs (mostly aneurysms)."
+    ct_rate_label: null
+    deterministic_hints:
+      - "Aorta segmentation (e.g., TotalSegmentator) + centreline → max orthogonal diameter of ascending and descending aorta [phase 2]"
+      - "Contrast flag: blood-pool mean HU >150 [heuristic]; without contrast, dissection cannot be excluded — state as limitation"
+      - "Displaced intimal calcification (inward shift of wall calcium) can hint at dissection on non-contrast CT [unverified]"
+    sources:
+      - https://doi.org/10.1016/j.jacr.2018.04.029
+      - https://www.acc.org/Latest-in-Cardiology/ten-points-to-remember/2022/11/01/12/21/2022-Guideline-on-Aortic-Disease-2-gl-ad
+
+  - id: coronary_calcification
+    medical_term: Coronary artery calcification (CAC)
+    synonyms: [coronary artery wall calcification, coronary calcium, calcified coronary plaque]
+    plain_language: >-
+      Calcium deposits in the walls of the heart's own arteries, a sign of hardening of the arteries
+      (atherosclerosis). It does not mean a blockage by itself, but it signals a higher risk of heart attack, so it is
+      worth discussing cholesterol, blood pressure and other risk factors with a doctor.
+    typical_severity: low
+    severity_modifiers:
+      - "Visual grade none/mild/moderate/severe (CAC-DRS V0–V3) or Agatston 0 / 1–99 / 100–299 / ≥300 (A0–A3)"
+      - "Number of vessels involved (CAC-DRS N modifier), left main involvement"
+      - "Heavy/severe CAC should be further evaluated (ACR 2018)"
+    urgency: routine
+    treatment_typically_needed: sometimes
+    treatment_note: Often prompts cardiovascular risk-factor management (e.g., statins) by the treating physician; CAC-DRS links categories to statin/aspirin suggestions.
+    follow_up: "SCCT/STR 2016 guideline: report CAC on every non-contrast chest CT; grade with CAC-DRS (visual on non-gated CT); ACR 2018 white paper; UK BSCI/BSTI consensus."
+    prevalence: "CAC on 53% of non-cardiac CTs in patients without known CAD; 41% of patients >40 years."
+    ct_rate_label: Coronary artery wall calcification
+    deterministic_hints:
+      - "Voxels ≥130 HU (Agatston threshold), connected component area ≥1 mm² [unverified min-area convention], located along coronary courses on the heart surface (exclude aortic wall, valve annulus, bone)"
+      - "Agatston-like score = Σ area × density weight (130–199:1, 200–299:2, 300–399:3, ≥400:4); non-gated and non-3 mm slices bias it — report as an estimate plus V0–V3 bin"
+    sources:
+      - https://radiopaedia.org/articles/coronary-artery-calcium-data-and-reporting-system-cac-drs
+      - https://radiopaedia.org/articles/agatston-score
+      - https://doi.org/10.1016/j.jcct.2016.11.003
+      - https://doi.org/10.1016/j.jacr.2018.04.029
+      - https://pmc.ncbi.nlm.nih.gov/articles/PMC7774698
+
+  - id: arterial_wall_calcification
+    medical_term: Arterial wall calcification (non-coronary; e.g., thoracic aortic calcification)
+    synonyms: [aortic calcification, atherosclerotic calcification, vascular calcification, aortic arch calcification]
+    plain_language: >-
+      Calcium deposits in the walls of large arteries such as the aorta. It is a very common sign of age-related
+      hardening of the arteries and usually just supports a general check of cardiovascular risk factors.
+    typical_severity: incidental
+    severity_modifiers:
+      - "Extensive calcification at a young age; heavy thoracic aortic calcium (e.g., TAC ≥500) associated with higher CVD and mortality risk"
+      - "Porcelain aorta (circumferential ascending calcification) matters before cardiac surgery [unverified]"
+    urgency: routine
+    treatment_typically_needed: never
+    treatment_note: Not treated itself; may prompt cardiovascular risk-factor assessment.
+    follow_up: "No dedicated guideline; cardiovascular risk assessment with the treating physician."
+    prevalence: "Thoracic aortic calcification in 28% of MESA adults aged 45–84; aortic arch calcium in 62% of ELSA-Brasil participants (mean age 56)."
+    ct_rate_label: Arterial wall calcification
+    deterministic_hints:
+      - "Voxels ≥130 HU in the aortic wall ring (aorta mask dilated minus eroded) [heuristic]; report calcified volume/Agatston-like score per segment (ascending, arch, descending)"
+    sources:
+      - https://www.ncbi.nlm.nih.gov/pmc/articles/PMC8158124/
+      - https://utsouthwestern.elsevierpure.com/en/publications/association-of-thoracic-aortic-calcium-with-incident-cardiovascul
+      - https://radiopaedia.org/articles/agatston-score
+
+  - id: hiatal_hernia
+    medical_term: Hiatus (hiatal) hernia
+    synonyms: [hiatus hernia, sliding hiatal hernia, paraoesophageal hernia, intrathoracic stomach]
+    plain_language: >-
+      Part of the stomach has slid up through the opening in the diaphragm into the chest. Small sliding hernias are
+      very common, especially with age, and often cause no problems or only heartburn; large ones can rarely twist or block.
+    typical_severity: incidental
+    severity_modifiers:
+      - "Paraoesophageal (types II–IV) or large hernia; whole-stomach or other organ herniation"
+      - "Signs of volvulus/obstruction → urgent"
+    urgency: routine
+    treatment_typically_needed: sometimes
+    treatment_note: Sliding hernias usually need nothing or reflux treatment; symptomatic paraoesophageal hernias are often repaired surgically.
+    follow_up: "No imaging surveillance guideline; clinical evaluation if symptomatic."
+    prevalence: "~10% under 40 rising to ~30–50% over 50–70 years; ~10% on imaging studies, 20–30% at endoscopy; sliding type ~90–95%."
+    ct_rate_label: Hiatal hernia
+    deterministic_hints:
+      - "Air-containing (< -900 HU) or fat/fluid-filled stomach component above the diaphragmatic hiatus in the posterior mediastinum [heuristic]; crural separation >15 mm"
+    sources:
+      - https://radiopaedia.org/articles/hiatus-hernia
+
+  - id: mosaic_attenuation
+    medical_term: Mosaic attenuation pattern
+    synonyms: [mosaic perfusion, mosaic oligaemia, air trapping (cause), patchwork attenuation]
+    plain_language: >-
+      The lung looks patchy, with areas of darker and lighter lung side by side. It can come from small-airway
+      disease (trapped air), problems with blood flow in the lung vessels (such as old clots), or patchy
+      inflammation; extra breath-out images can help tell which.
+    typical_severity: low
+    severity_modifiers:
+      - "Smaller vessels in dark areas + enlarged central pulmonary arteries → vascular cause (e.g., CTEPH)"
+      - "Air trapping on expiration + bronchial wall thickening → small-airways disease"
+      - "Three-density pattern → hypersensitivity pneumonitis"
+    urgency: routine
+    treatment_typically_needed: sometimes
+    treatment_note: Depends on underlying airway, vascular or infiltrative cause.
+    follow_up: "No dedicated guideline; expiratory CT (ACR HRCT practice parameter) and clinical work-up."
+    prevalence: "No population prevalence found."
+    ct_rate_label: Mosaic attenuation pattern
+    deterministic_hints:
+      - "Bimodal lung-parenchyma HU histogram / high regional variance of mean HU across lobules on inspiration [heuristic]"
+      - "If expiratory series exists: %voxels ≤ -856 HU on expiration (air-trapping surrogate)"
+      - "Only valid on full-inspiration CT"
+    sources:
+      - https://radiopaedia.org/articles/mosaic-attenuation
+      - https://pmc.ncbi.nlm.nih.gov/articles/PMC5736979
+      - https://gravitas.acr.org/PPTS/DownloadPreviewDocument?DocId=83
+
+  - id: peribronchial_thickening
+    medical_term: Peribronchial thickening (bronchial wall thickening)
+    synonyms: [peribronchial cuffing, bronchial wall thickening, airway wall thickening, tram-track sign]
+    plain_language: >-
+      The walls of the breathing tubes look thicker than usual. This is common with asthma, bronchitis, smoking,
+      infections or fluid overload, and is usually a mild, non-specific finding.
+    typical_severity: low
+    severity_modifiers:
+      - "Diffuse with mucus plugging/bronchiectasis; associated with pulmonary oedema (septal thickening, effusions)"
+    urgency: routine
+    treatment_typically_needed: sometimes
+    treatment_note: Treated through the underlying airway disease (e.g., asthma/COPD therapy) if symptomatic.
+    follow_up: "No dedicated guideline; airway wall thickening is a Fleischner 2015 COPD CT feature."
+    prevalence: "Not established in sources found (common in airway disease and smokers)."
+    ct_rate_label: Peribronchial thickening
+    deterministic_hints:
+      - "Wall thickness / total airway diameter ratio from airway segmentation, or Pi10 [phase 2]"
+    sources:
+      - https://radiopaedia.org/articles/peribronchial-cuffing
+      - https://pmc.ncbi.nlm.nih.gov/articles/PMC4613878
+
+  - id: interlobular_septal_thickening
+    medical_term: Interlobular septal thickening
+    synonyms: [septal lines, Kerley lines (radiograph), smooth/nodular/irregular septal thickening, crazy paving (with GGO)]
+    plain_language: >-
+      The thin walls that divide the lung into small units are thickened, which shows up as a fine net of lines.
+      Fluid overload from the heart is a common cause; other causes include infection, scarring and, less often,
+      spread of cancer through the lung's lymph channels.
+    typical_severity: moderate
+    severity_modifiers:
+      - "Smooth + effusions/cardiomegaly → pulmonary oedema"
+      - "Nodular/beaded, unilateral → lymphangitic carcinomatosis (serious)"
+      - "Irregular with distortion → fibrosis"
+    urgency: routine
+    treatment_typically_needed: sometimes
+    treatment_note: Depends on cause (e.g., diuretics for oedema).
+    follow_up: "No dedicated guideline; clinical correlation."
+    prevalence: "Not established in sources found."
+    ct_rate_label: Interlobular septal thickening
+    deterministic_hints:
+      - "Thin linear structures (-500…0 HU) 1–2 cm long perpendicular to the pleura in the lung periphery (Hessian/ridge filter) [heuristic]"
+    sources:
+      - https://radiopaedia.org/articles/interlobular-septal-thickening
+
+  - id: lung_opacity
+    medical_term: Lung opacity (non-specific pulmonary opacity)
+    synonyms: [pulmonary opacity, parenchymal opacity, infiltrate, density, opacification]
+    plain_language: >-
+      A general term for an area of lung that looks whiter (denser) than normal air-filled lung. It is not a
+      diagnosis in itself; it can be anything from a harmless scar or mild inflammation to pneumonia.
+    typical_severity: low
+    severity_modifiers:
+      - "Extent, density (consolidation > GGO), persistence, associated mass or lymphadenopathy"
+    urgency: routine
+    treatment_typically_needed: sometimes
+    treatment_note: Depends on what the opacity represents; ThoraxBench should resolve it to a more specific label where possible.
+    follow_up: "Map to the specific entity (nodule → Fleischner/Lung-RADS; consolidation/GGO → clinical follow-up)."
+    prevalence: "Umbrella label; CT-RATE groups several opacity terms under it."
+    ct_rate_label: Lung opacity
+    deterministic_hints:
+      - "Union of GGO-range (-750…-300 HU) and consolidation-range (> -100 HU) clusters inside the lung mask, excluding vessels [heuristic]"
+    sources:
+      - https://arxiv.org/html/2403.17834
+      - https://radiopaedia.org/articles/ground-glass-opacification-3
+      - https://radiopaedia.org/articles/consolidation
+
+  - id: fracture
+    medical_term: Fracture (rib, sternum, vertebra, clavicle, scapula)
+    synonyms: [rib fracture, vertebral compression fracture, healed fracture, callus, flail chest]
+    plain_language: >-
+      A break in a bone of the chest such as a rib or vertebra. Old, healed rib fractures are common and harmless;
+      new fractures can be painful and, if several ribs or the spine are involved, may need further care. Collapsed
+      vertebrae without injury can point to bone thinning (osteoporosis).
+    typical_severity: moderate
+    severity_modifiers:
+      - "Acute vs healed (callus); number and contiguity (≥3 contiguous ribs broken twice = flail chest)"
+      - "Ribs 1–3 (high-energy, vessel/plexus injury), ribs 10–12 (liver/spleen/kidney injury)"
+      - "Associated pneumothorax/haemothorax; pathological fracture through a lesion"
+      - "Vertebral compression fracture → osteoporosis work-up"
+    urgency: soon
+    treatment_typically_needed: sometimes
+    treatment_note: Most rib fractures are managed with pain control; flail chest may need surgical fixation; incidental vertebral fractures warrant osteoporosis assessment.
+    follow_up: "No imaging surveillance guideline; incidental vertebral fractures should be reported (often missed) and referred for bone-health assessment."
+    prevalence: "Rib fractures in ~50% of blunt thoracic trauma; vertebral fractures in 9.5% of patients on chest/abdominal CT but only 14.6% reported."
+    ct_rate_label: null
+    deterministic_hints:
+      - "Bone mask (>200 HU); rib centreline discontinuities on bone window; vertebral body height loss (anterior/posterior height ratio <0.8 [heuristic]) on sagittal reformat"
+    sources:
+      - https://radiopaedia.org/articles/rib-fractures
+      - https://www.qxmd.com/r/18164889
+      - https://air.unipr.it/handle/11381/2536128
+
+  - id: osseous_lesion
+    medical_term: Suspicious osseous lesion (lytic, sclerotic or mixed bone lesion)
+    synonyms: [bone lesion, bone metastasis, lytic lesion, sclerotic lesion, enostosis (bone island), haemangioma]
+    plain_language: >-
+      A spot in a bone that looks different from normal bone. Most are harmless (for example a "bone island" or
+      vertebral haemangioma), but some can be cancer that has spread to the bone, so the appearance and the
+      patient's history decide whether more tests are needed.
+    typical_severity: moderate
+    severity_modifiers:
+      - "Aggressive features: cortical destruction, soft-tissue component, pain, multiple lesions, known cancer"
+      - "Sclerotic lesion mean density <885 HU (max <1058 HU) favours metastasis over bone island (Ulano 2016)"
+      - "Pathological fracture"
+    urgency: soon
+    treatment_typically_needed: sometimes
+    treatment_note: Benign lesions need nothing; suspicious lesions need further imaging or biopsy and oncology referral.
+    follow_up: "Bone-RADS (Society of Skeletal Radiology 2022): 1 leave alone, 2 other modality, 3 follow-up imaging, 4 biopsy/oncology referral."
+    prevalence: "No population figure found in sources; common incidental finding category."
+    ct_rate_label: null
+    deterministic_hints:
+      - "Within bone mask: focal regions with HU >2 SD from vertebral/rib trabecular mean [heuristic]; sclerotic lesion mean HU vs 885 HU threshold; lytic focus <100 HU inside trabecular bone [heuristic]"
+    sources:
+      - https://link.springer.com/doi/10.1007/s00256-022-04022-8
+      - https://www.auntminnie.com/clinical-news/ct/article/15615587/ct-separates-bone-mets-from-benign-lesions
+      - https://www.ncbi.nlm.nih.gov/pmc/articles/PMC12344047/
+
+  - id: chest_wall_abnormality
+    medical_term: Chest wall abnormality
+    synonyms: [chest wall mass, soft-tissue mass, lipoma, gynaecomastia, breast mass, axillary lymphadenopathy, subcutaneous emphysema, pectus excavatum]
+    plain_language: >-
+      Something unusual in the skin, fat, muscles or breast tissue of the chest wall. Many such findings are harmless
+      (for example a fatty lump or a chest-shape variant), but a new solid lump, a breast mass or air under the skin
+      can need further checks.
+    typical_severity: low
+    severity_modifiers:
+      - "Solid enhancing mass, bone destruction, axillary nodes, breast mass (→ breast imaging)"
+      - "Subcutaneous emphysema (air leak/trauma), fat-density lipoma usually benign"
+    urgency: routine
+    treatment_typically_needed: sometimes
+    treatment_note: Depends on nature; benign variants need nothing.
+    follow_up: "No unified guideline; breast findings → dedicated breast imaging; review chest wall with appropriate windows (ACR thoracic CT practice parameter)."
+    prevalence: "Not established in sources found."
+    ct_rate_label: null
+    deterministic_hints:
+      - "Body-mask outer shell (skin to rib cage): air pockets < -900 HU (subcutaneous emphysema); fat-density masses (-120…-80 HU) vs soft-tissue masses (20–80 HU) breaking left/right symmetry [heuristic]"
+    sources:
+      - https://gravitas.acr.org/PPTS/DownloadPreviewDocument?DocId=13
+
+  - id: medical_device
+    medical_term: Medical device / support material
+    synonyms: [medical material, central venous catheter, port, pacemaker, ICD, endotracheal tube, chest drain, sternotomy wires, prosthetic valve, stent, surgical clips]
+    plain_language: >-
+      Man-made items placed in the body, such as catheters, pacemakers, tubes, wires or clips from earlier surgery.
+      They are usually expected; what matters is whether a tube or line sits in the right position.
+    typical_severity: incidental
+    severity_modifiers:
+      - "Malposition (e.g., CVC tip outside low SVC/cavoatrial junction, ETT in a main bronchus, drain in fissure/lung) → urgent"
+      - "Device complication (lead fracture, thrombus, pneumothorax after insertion)"
+    urgency: routine
+    treatment_typically_needed: sometimes
+    treatment_note: Correctly placed devices need nothing; malpositioned intravascular catheters are generally removed and repositioned.
+    follow_up: "No surveillance guideline; position checks per device type."
+    prevalence: "Dataset- and setting-dependent (common in inpatient/ICU CT); keep separate from pathology scoring (Vision §12)."
+    ct_rate_label: Medical material
+    deterministic_hints:
+      - "Metal: voxels > ~2000–3000 HU (Radiopaedia: metal >3000 HU) with streak artefact; tubes: thin cylindrical structures of plastic/contrast-stripe density along airway or veins [heuristic]"
+    sources:
+      - https://radiopaedia.org/articles/hounsfield-unit
+      - https://radiopaedia.org/articles/cvc-position-on-chest-x-ray-summary
+      - https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4644031/
