@@ -34,6 +34,10 @@ and this file must be fixed.
 * **Living docs:** `README.md`, `AGENTS.md` and `docs/plan.md` are updated *in the same
   commit* as any change that affects what they describe (features, commands, scripts,
   pipeline stages, status of work packages). A commit that leaves them stale is incomplete.
+* **Plan log:** `docs/plan.md` → *Current activity* names what is being worked on right now
+  and is updated with every commit; the work-package table status (✅ 🔄 ⏳ ✖) too.
+* **Review before every commit:** re-read the diff, reconsider the design against
+  Vision.md and `docs/architecture.md`, check edge cases and tests, refine, *then* commit.
 * Conventional commit types: `feat fix docs test refactor perf build ci chore style`.
 * GitHub Actions (`.github/workflows/local-pipeline.yml`) run `./localPipeline.sh`. Keep
   both green; never skip a stage to get a commit through.
@@ -66,6 +70,8 @@ and this file must be fixed.
 | Path | Content |
 |---|---|
 | `src/thoraxbench/` | the framework (CLI, ingest, dicom, preprocess, sampling, adapters, schemas, splits, scoring, calibration, reports, api/web UI) |
+| `src/thoraxbench/ontology/labels.yaml` | canonical label ontology with native-term mappings (packaged data) |
+| `src/thoraxbench/synthetic.py` | synthetic DICOM phantoms for tests and demos |
 | `configs/` | datasets registry, models, prompts, preprocessing, experiments (YAML) |
 | `manifests/` | acquisition manifests, split manifests (IDs/hashes only), model manifests |
 | `scripts/` | small documented helper scripts (see `scripts/README.md`) |

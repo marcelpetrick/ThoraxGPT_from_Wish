@@ -62,6 +62,15 @@ Status: ✅ done · 🔄 in progress · ⏳ open · ✖ dropped
 | 🔄 WP13 | Radiologist-style reading research → preprocessing (windows, MIP, coronal, HU cues) and the per-study English Markdown clinical report (term, plain language, severity, treatment need, prevalence, follow-up) | user request | research agent + lead |
 | ⏳ WP12 | `/reviewBranch`, fixes, `/githubAbout`, final Vision checklist | all | lead |
 
+## Current activity
+
+Updated with every commit (newest first).
+
+- 🔄 Schemas (FindingsReport, Capabilities, I/O types) and the canonical ontology — the
+  contract for the parallel work packages.
+- 🔄 Background research: Ollama model survey and MedGemma pulls (WP1), dataset licenses and
+  the LIDC-IDRI pilot download (WP2), radiologist reading practice and findings knowledge base (WP13).
+
 ## Self-review gates
 
 * After every work package: full `./localPipeline.sh` green, then commit and push.

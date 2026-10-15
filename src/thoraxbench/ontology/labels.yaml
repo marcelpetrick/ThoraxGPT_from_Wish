@@ -1,0 +1,57 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Canonical ThoraxBench abnormality ontology (Vision §12), version 1.
+# native: mapping back to each dataset's own terms so no false precision is introduced.
+version: "1"
+labels:
+  - {id: pulmonary_nodule, name: Pulmonary nodule, category: lung_parenchyma, core: true,
+     native: {ct_rate: Lung nodule, lidc_idri: "nodule >= 3 mm (any reader)"}}
+  - {id: pulmonary_mass, name: Pulmonary mass, category: lung_parenchyma, core: true,
+     native: {lidc_idri: "nodule > 30 mm", nsclc_radiogenomics: "primary tumor (GTV)"}}
+  - {id: consolidation, name: Consolidation, category: lung_parenchyma, core: true,
+     native: {ct_rate: Consolidation}}
+  - {id: ground_glass_opacity, name: Ground-glass opacity, category: lung_parenchyma, core: true,
+     native: {ct_rate: Lung opacity}}
+  - {id: lung_opacity, name: Lung opacity (unspecified), category: lung_parenchyma, core: false,
+     native: {ct_rate: Lung opacity}}
+  - {id: atelectasis, name: Atelectasis, category: lung_parenchyma, core: true,
+     native: {ct_rate: Atelectasis}}
+  - {id: emphysema, name: Emphysema, category: lung_parenchyma, core: true,
+     native: {ct_rate: Emphysema}}
+  - {id: fibrosis_interstitial, name: Fibrosis / interstitial abnormality, category: lung_parenchyma,
+     core: true, native: {ct_rate: Pulmonary fibrotic sequela}}
+  - {id: bronchiectasis, name: Bronchiectasis, category: lung_parenchyma, core: true,
+     native: {ct_rate: Bronchiectasis}}
+  - {id: cavitation, name: Cavitation, category: lung_parenchyma, core: false, native: {}}
+  - {id: mosaic_attenuation, name: Mosaic attenuation, category: lung_parenchyma, core: false,
+     native: {ct_rate: Mosaic attenuation pattern}}
+  - {id: peribronchial_thickening, name: Peribronchial thickening, category: lung_parenchyma,
+     core: false, native: {ct_rate: Peribronchial thickening}}
+  - {id: interlobular_septal_thickening, name: Interlobular septal thickening,
+     category: lung_parenchyma, core: false, native: {ct_rate: Interlobular septal thickening}}
+  - {id: pleural_effusion, name: Pleural effusion, category: pleura, core: true,
+     native: {ct_rate: Pleural effusion}}
+  - {id: pneumothorax, name: Pneumothorax, category: pleura, core: true, native: {}}
+  - {id: pleural_thickening, name: Pleural thickening / mass, category: pleura, core: false,
+     native: {}}
+  - {id: lymphadenopathy, name: Mediastinal / hilar lymphadenopathy, category: mediastinum,
+     core: true, native: {ct_rate: Lymphadenopathy}}
+  - {id: mediastinal_mass, name: Mediastinal mass, category: mediastinum, core: false, native: {}}
+  - {id: cardiomegaly, name: Cardiomegaly, category: cardiovascular, core: true,
+     native: {ct_rate: Cardiomegaly}}
+  - {id: pericardial_effusion, name: Pericardial effusion, category: cardiovascular, core: true,
+     native: {ct_rate: Pericardial effusion}}
+  - {id: aortic_abnormality, name: Aortic abnormality, category: cardiovascular, core: false,
+     native: {}}
+  - {id: coronary_calcification, name: Coronary artery calcification, category: cardiovascular,
+     core: true, native: {ct_rate: Coronary artery wall calcification}}
+  - {id: arterial_wall_calcification, name: Arterial wall calcification, category: cardiovascular,
+     core: true, native: {ct_rate: Arterial wall calcification}}
+  - {id: hiatal_hernia, name: Hiatal hernia, category: upper_abdomen, core: true,
+     native: {ct_rate: Hiatal hernia}}
+  - {id: fracture, name: Fracture, category: skeletal_chest_wall, core: false, native: {}}
+  - {id: osseous_lesion, name: Suspicious osseous lesion, category: skeletal_chest_wall, core: false,
+     native: {}}
+  - {id: chest_wall_abnormality, name: Chest-wall abnormality, category: skeletal_chest_wall,
+     core: false, native: {}}
+  - {id: medical_device, name: Medical device / material, category: devices, core: false,
+     scored: false, native: {ct_rate: Medical material}}
