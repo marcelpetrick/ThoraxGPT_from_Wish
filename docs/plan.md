@@ -67,6 +67,8 @@ Status: ✅ done · 🔄 in progress · ⏳ open · ✖ dropped
 Updated with every commit (newest first). **If a session breaks, the next agent resumes
 from here**: read this section and *Next steps*, then `git log --oneline | head -20`.
 
+- 🔄 Wrap-up requested by the user: all workers commit their green state; the lead lands each
+  branch with `scripts/land_branch.sh <branch>`.
 - 🔄 Fan-out of parallel work packages (git worktrees, landed on `main` by the lead):
   WP4 preprocess/sampling/views · WP5 prompts/adapters/parsing · WP7 scoring/calibration/perf.
 - 🔄 Lead: WP6 splits + sealing guard, then WP2 integration (`thoraxbench acquire`, LIDC labels).
