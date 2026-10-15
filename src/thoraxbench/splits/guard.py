@@ -4,7 +4,8 @@
 
 Any code that iterates over cases asks a :class:`CaseGuard` which IDs it may use. Requests
 for sealed cases fail with :class:`SealedAccessError` unless an experiment configuration was
-**frozen** first (``thoraxbench freeze``) and the caller passes the matching freeze record.
+**frozen** first (:func:`freeze_experiment`; not yet exposed in the CLI) and the caller passes
+the matching freeze record.
 Freezing records the config hash; changing the config afterwards invalidates the freeze, so
 nobody can tune on the sealed set and re-run (Vision §2.4, §14, §19).
 """
@@ -73,7 +74,7 @@ def verify_freeze(config_path: Path, experiment_id: str, data_dir: Path) -> Free
     """
     path = _freeze_path(data_dir, experiment_id)
     if not path.exists():
-        msg = f"experiment {experiment_id} is not frozen; run 'thoraxbench freeze' first"
+        msg = f"experiment {experiment_id} is not frozen; freezing is not yet exposed in the CLI"
         raise SealedAccessError(msg)
     record = FreezeRecord.model_validate_json(path.read_text(encoding="utf-8"))
     if record.config_sha256 != config_sha256(config_path):

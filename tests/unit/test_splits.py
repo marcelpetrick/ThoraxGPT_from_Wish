@@ -107,7 +107,7 @@ def test_save_load_and_guard(tmp_path: Path) -> None:
 
     config = tmp_path / "exp.yaml"
     config.write_text("model: x\n")
-    with pytest.raises(SealedAccessError, match="not frozen"):
+    with pytest.raises(SealedAccessError, match="not frozen; freezing is not yet exposed"):
         verify_freeze(config, "E1", data)
     record = freeze_experiment(config, "E1", data)
     assert freeze_experiment(config, "E1", data) == record
