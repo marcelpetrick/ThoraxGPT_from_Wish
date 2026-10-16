@@ -264,9 +264,12 @@ def _settle(page: Page) -> None:
 def _save(target: Page | Locator, path: Path, *, full_page: bool = False) -> None:
     style = "#tooltip{display:none!important}"
     if isinstance(target, Page):
-        target.screenshot(
-            path=path, full_page=full_page, animations="disabled", caret="hide", style=style
-        )
+        if full_page and target.viewport_size:
+            # Chromium's full_page capture misplaces position:fixed elements (sidebar, skip
+            # link); grow the viewport to the document height instead.
+            height = int(target.evaluate("document.documentElement.scrollHeight"))
+            target.set_viewport_size({"width": target.viewport_size["width"], "height": height})
+        target.screenshot(path=path, animations="disabled", caret="hide", style=style)
     else:
         target.screenshot(path=path, animations="disabled", caret="hide", style=style)
     size = path.stat().st_size
@@ -282,13 +285,16 @@ def _close(page: Page) -> None:
 def _run_heuristic(page: Page, wait_ms: int) -> None:
     """Run the real heuristic analysis with fixed browser wait and engine timings."""
     pending: list[Route] = []
-    page.route("**/api/analyze", pending.append)
+    # Playwright cannot wrap a bound builtin such as list.append as a route handler.
+    page.route("**/api/analyze", lambda route: pending.append(route))  # noqa: PLW0108
     _freeze_clock(page)
     page.locator("#run-analysis").click()
     _wait_until(page, lambda: bool(pending), "the analysis request was not sent")
     page.clock.fast_forward(wait_ms)
     _fulfill_real(pending.pop())
-    expect(page.locator("#download-json")).to_be_visible(timeout=TIMEOUT_MS)
+    expect(page.locator("#download-json")).to_have_attribute(
+        "aria-disabled", "false", timeout=TIMEOUT_MS
+    )
     expect(page.locator("#metric-time")).to_have_text(f"{FIXED_ENGINE_S:.3f} s")
     page.unroute("**/api/analyze")
 
@@ -327,7 +333,7 @@ def shot_results(browser: Browser, address: str, path: Path) -> None:
     _create_demo(page)
     _run_heuristic(page, wait_ms=1_800)
     expect(page.locator("#findings-table")).to_contain_text("pulmonary nodule")
-    expect(page.locator(".result-caution").first).to_be_visible()
+    expect(page.locator("#results-content .result-caution")).to_be_visible()
     _settle(page)
     _save(page, path, full_page=True)
     _close(page)
@@ -385,7 +391,8 @@ def shot_comparison(browser: Browser, address: str, path: Path) -> None:
         lambda route: route.fulfill(json={"downloads": {"html": "/mock/comparison.html"}}),
     )
     pending: list[Route] = []
-    page.route("**/api/analyze", pending.append)
+    # Playwright cannot wrap a bound builtin such as list.append as a route handler.
+    page.route("**/api/analyze", lambda route: pending.append(route))  # noqa: PLW0108
     _freeze_clock(page)
     page.locator("#compare-models").check()
     page.locator("#run-analysis").click()
