@@ -143,3 +143,69 @@ def test_sealed_tampering_detected(tmp_path: Path) -> None:
     paths["sealed"].write_text(json.dumps(sealed))
     with pytest.raises(ValueError, match="sealed split"):
         load_split(data, manifests, "ds", include_sealed=True)
+
+
+@pytest.mark.parametrize("dataset", ["../sealed/ds", "/tmp/ds", "..", "a/b", "", "../ds"])
+def test_unsafe_split_identifiers_are_refused_before_reads(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, dataset: str
+) -> None:
+    def forbidden_read(*_args: object, **_kwargs: object) -> str:
+        pytest.fail("An unsafe split identifier must be rejected before file reads")
+
+    monkeypatch.setattr(Path, "read_text", forbidden_read)
+    with pytest.raises(ValueError, match="safe split key"):
+        CaseGuard.load(tmp_path / "data", tmp_path / "manifests", dataset)
+
+
+@pytest.mark.parametrize("kind", ["development", "manifest", "directory"])
+def test_split_symlink_escape_is_refused_before_reads(tmp_path: Path, kind: str) -> None:
+    data, manifests = tmp_path / "data", tmp_path / "manifests"
+    paths = save_split(make_split(_cases(), "ds"), data, manifests)
+    if kind == "directory":
+        paths["development"].unlink()
+        (data / "splits").rmdir()
+        (data / "splits").symlink_to(data / "sealed", target_is_directory=True)
+    else:
+        paths[kind].unlink()
+        paths[kind].symlink_to(paths["sealed"])
+    with pytest.raises(ValueError, match="escapes its designated directory"):
+        load_split(data, manifests, "ds", include_sealed=False)
+
+
+def test_split_manifest_identity_mismatch_stops_before_development_read(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    data, manifests = tmp_path / "data", tmp_path / "manifests"
+    paths = save_split(make_split(_cases(), "ds"), data, manifests)
+    manifest = json.loads(paths["manifest"].read_text())
+    manifest["dataset"] = "other"
+    paths["manifest"].write_text(json.dumps(manifest))
+    original = Path.read_text
+
+    def read_manifest_only(path: Path, *args: object, **kwargs: object) -> str:
+        assert path == paths["manifest"]
+        return original(path, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "read_text", read_manifest_only)
+    with pytest.raises(ValueError, match="requested identity"):
+        load_split(data, manifests, "ds", include_sealed=False)
+
+
+@pytest.mark.parametrize("experiment", ["../E1", "/tmp/E1", "..", ""])
+def test_unsafe_freeze_identifiers_are_refused(tmp_path: Path, experiment: str) -> None:
+    config = tmp_path / "experiment.yaml"
+    config.write_text("model: synthetic")
+    with pytest.raises(ValueError, match="safe freeze key"):
+        freeze_experiment(config, experiment, tmp_path / "data")
+    with pytest.raises(ValueError, match="safe freeze key"):
+        verify_freeze(config, experiment, tmp_path / "data")
+
+
+def test_freeze_symlink_escape_is_refused(tmp_path: Path) -> None:
+    config = tmp_path / "experiment.yaml"
+    config.write_text("model: synthetic")
+    folder = tmp_path / "data" / "sealed" / "freeze"
+    folder.mkdir(parents=True)
+    (folder / "E1.json").symlink_to(config)
+    with pytest.raises(ValueError, match="escapes its designated directory"):
+        verify_freeze(config, "E1", tmp_path / "data")

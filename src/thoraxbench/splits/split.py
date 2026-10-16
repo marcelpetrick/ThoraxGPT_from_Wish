@@ -16,6 +16,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
 import stat
 from collections import defaultdict
 from datetime import UTC, datetime
@@ -165,11 +166,18 @@ def make_split(
 
 def split_paths(data_dir: Path, manifests_dir: Path, dataset: str) -> dict[str, Path]:
     """Locations of the development file, the sealed file and the committed manifest."""
-    return {
-        "development": data_dir / "splits" / f"{dataset}.json",
-        "sealed": data_dir / "sealed" / f"{dataset}.json",
-        "manifest": manifests_dir / "splits" / f"{dataset}.json",
+    if re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.-]*", dataset) is None:
+        raise ValueError("dataset identifier is not a safe split key")
+    folders = {
+        "development": data_dir.resolve() / "splits",
+        "sealed": data_dir.resolve() / "sealed",
+        "manifest": manifests_dir.resolve() / "splits",
     }
+    paths = {kind: folder / f"{dataset}.json" for kind, folder in folders.items()}
+    for kind, path in paths.items():
+        if not path.resolve().is_relative_to(folders[kind]):
+            raise ValueError(f"{kind} split path escapes its designated directory")
+    return paths
 
 
 def save_split(
@@ -225,6 +233,8 @@ def load_split(
     """
     paths = split_paths(data_dir, manifests_dir, dataset)
     manifest = SplitManifest.model_validate_json(paths["manifest"].read_text(encoding="utf-8"))
+    if manifest.dataset != dataset:
+        raise ValueError("stored split dataset differs from its requested identity")
     dev = json.loads(paths["development"].read_text(encoding="utf-8"))
     files = [dev]
     if include_sealed:

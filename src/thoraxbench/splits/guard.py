@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -40,7 +41,13 @@ def config_sha256(config_path: Path) -> str:
 
 
 def _freeze_path(data_dir: Path, experiment_id: str) -> Path:
-    return data_dir / "sealed" / "freeze" / f"{experiment_id}.json"
+    if re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.-]*", experiment_id) is None:
+        raise ValueError("experiment identifier is not a safe freeze key")
+    folder = data_dir.resolve() / "sealed" / "freeze"
+    path = folder / f"{experiment_id}.json"
+    if not path.resolve().is_relative_to(folder):
+        raise ValueError("freeze path escapes its designated directory")
+    return path
 
 
 def freeze_experiment(config_path: Path, experiment_id: str, data_dir: Path) -> FreezeRecord:
