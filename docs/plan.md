@@ -107,9 +107,15 @@ Status: ✅ done · 🔄 in progress · ⏳ open · ✖ dropped
   delegated the decisions to the agent. Order:
   1. ✅ Commit the parallel work in logical gated commits (split guards, inadequate-study
      abstention, model manifests, cohort exports/compare, UX implementation).
-  2. 🔄 Verify the eight UX findings against their acceptance checks; fix gaps; record
-     evidence per finding in the UX review. Tooltip: 650 ms show delay, 180 ms hover grace,
-     per-trigger stable descriptions — kept (typical 500–800 ms range).
+  2. ✅ Verified the eight UX findings against their acceptance checks (2026-10-16). Evidence
+     per finding is in the UX review (Markdown and HTML). New browser checks:
+     `tests/e2e/test_web_ui_acceptance.py` (10 tests) beside `tests/e2e/test_web_ui.py` (20).
+     Gaps fixed: refresh/search reset the slice and could keep a removed study's stale
+     position; the empty library suggested only the demo; unavailable models were not
+     selectable, so selection could not lead to their setup row; Escape-dismissed help
+     reopened on pointer jitter; leaving the tooltip skipped the hover grace. Added a
+     translated running-request notice on other pages. Tooltip: 650 ms show delay, 180 ms
+     hover grace, per-trigger stable descriptions — kept (typical 500–800 ms range).
   3. 🔄 Real-data recognition check, calibration phase only, from an isolated clean checkout.
      Observed so far: the v0.3.16 cue ablation (`E001-cue-ablation`, 2 calibration cases ×
      with/without cues, 9 anatomy images) produced **4/4 abstentions**: MedGemma Q4 returned
@@ -137,8 +143,8 @@ Status: ✅ done · 🔄 in progress · ⏳ open · ✖ dropped
   identity and translated finding names. Add library-source health/count metadata and
   shared report-derived educational display codes. Refresh synthetic screenshots and
   README snippets after implementation. Run synthetic browser flows in both languages,
-  both themes and mobile, plus the full gate and self-review. Do not claim UX completion
-  before these checks pass.
+  both themes and mobile, plus the full gate and self-review. The eight findings are
+  verified (completion plan item 2); the screenshot and manual refresh is item 6.
 - ✅ **Local preview for the user:** stable v0.3.15 runs on loopback port 8000 from
   `.pipeline/calibration-clean`, with the repository's original `data/` library. The
   inventory contains 48 LIDC-IDRI and 22 NSCLC development studies plus the demo. The

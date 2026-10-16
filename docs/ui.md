@@ -125,7 +125,9 @@ See [the CLI setup and recovery](../README.md#set-up-an-unavailable-model).
 
 The browser offers an optional alternative:
 
-1. Open **Model availability & setup**.
+1. Select the unavailable model in **Model**, then select **Set up local models**. The
+   setup table opens at that model's row. Run stays disabled until the model is available.
+   Opening setup starts no download.
 2. Inspect the model's terms, adapter and provider information.
 3. For Ollama, open **Model terms** before acknowledging permitted use.
 4. Select **Download model weights** only after the terms acknowledgement.
