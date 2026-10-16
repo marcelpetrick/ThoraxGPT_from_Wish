@@ -40,6 +40,18 @@ def sha256_of_file(path: Path, chunk: int = 1 << 20) -> str:
     return h.hexdigest()
 
 
+def scoring_source_hash() -> str:
+    """Identify scoring rules and the shared prediction schema by their actual bytes."""
+    package = Path(__file__).parent
+    return sha256_of_obj(
+        {
+            str(path.relative_to(package)): sha256_of_file(path)
+            for folder in ("scoring", "schemas")
+            for path in sorted((package / folder).glob("*.py"))
+        }
+    )
+
+
 def _run(args: list[str], cwd: Path | None = None) -> str | None:
     exe = shutil.which(args[0])
     if exe is None:
@@ -82,13 +94,16 @@ def gpu_info() -> dict[str, str | None]:
 
 
 class RunProvenance(BaseModel):
-    """Provenance record stored as ``run.json`` next to every result."""
+    """Provenance embedded in every result and durable benchmark case artifact."""
 
     git_commit: str | None = None
     git_dirty: bool | None = None
     thoraxbench_version: str = __version__
     dataset_manifest_hash: str | None = None
     split_manifest_hash: str | None = None
+    ground_truth_hash: str | None = None
+    scoring_hash: str | None = None
+    input_hash: str | None = None
     model_id: str | None = None
     model_hash: str | None = None
     container_digest: str | None = None
@@ -114,8 +129,13 @@ class RunProvenance(BaseModel):
         """Hash of everything that determines the result (excludes time and hardware)."""
         keys = (
             "git_commit",
+            "thoraxbench_version",
+            "model_id",
             "dataset_manifest_hash",
             "split_manifest_hash",
+            "ground_truth_hash",
+            "scoring_hash",
+            "input_hash",
             "model_hash",
             "prompt_hash",
             "preprocess_hash",

@@ -274,3 +274,7 @@ from here**: read this section and *Next steps*, then `git log --oneline | head 
 * After every work package: full `./localPipeline.sh` green, then commit and push.
 * After WP8 and at the end: walk through `docs/vision_traceability.md` (one row for every
   Vision section) and close any gaps.
+
+## Diagnostic artifact checkpoint (2026-10-16)
+
+Completed rendered Ollama request/response capture, malformed-response handling, direct-header output redaction and available input/reference/scoring/manifest hashes. Zero available requested-label predictions abstain. Added a two-image, calibration-only diagnostic configuration; invoke with `--limit 1` for one case per dataset. No live diagnostic has been run under these changes. Durable benchmark checkpoint/resume integration remains next.

@@ -8,6 +8,9 @@ timings per stage (Vision §21) and a provenance record (Vision §24) next to th
 
 from __future__ import annotations
 
+import hashlib
+import re
+from pathlib import Path
 from typing import Any
 
 import httpx
@@ -24,7 +27,12 @@ from thoraxbench.adapters.ollama import OllamaModel
 from thoraxbench.config import Settings
 from thoraxbench.perf import PerfRecord, measure
 from thoraxbench.privacy import Redactor, settings_redactor
-from thoraxbench.provenance import RunProvenance, sha256_of_obj
+from thoraxbench.provenance import (
+    RunProvenance,
+    scoring_source_hash,
+    sha256_of_file,
+    sha256_of_obj,
+)
 from thoraxbench.schemas import (
     AnalysisRequest,
     FindingsReport,
@@ -67,6 +75,17 @@ class AnalysisResult(BaseModel):
     disclaimer: str = DISCLAIMER
 
 
+def _dataset_hash(root: Path, kind: str, dataset: str) -> str | None:
+    """Hash optional metadata without following an identifier or symlink outside its folder."""
+    if re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.-]*", dataset) is None:
+        raise ValueError("dataset identifier is not a safe metadata key")
+    folder = root.resolve() / kind
+    path = folder / f"{dataset}.json"
+    if not path.resolve().is_relative_to(folder):
+        raise ValueError("dataset metadata path escapes its designated directory")
+    return sha256_of_file(path) if path.is_file() else None
+
+
 def _resolver(overrides: dict[str, Any]) -> ViewResolver:
     def resolve(view_id: str, params: dict[str, Any]) -> ViewBuilderLike | None:
         return default_view_resolver(view_id, {**params, **overrides})
@@ -92,6 +111,9 @@ def analyze_study(
     if request is not None and prompt_id is not None and request.prompt_id != prompt_id:
         msg = "request.prompt_id and prompt_id must agree"
         raise ValueError(msg)
+    dataset_hash = _dataset_hash(settings.manifests_dir, "datasets", study.dataset)
+    split_hash = _dataset_hash(settings.manifests_dir, "splits", study.dataset)
+    reference_hash = _dataset_hash(settings.data_dir, "index", study.dataset)
     config = load_model_config(model_id, settings.configs_dir / "models")
     chosen_prompt = prompt_id or (request.prompt_id if request else config.prompt or "P3")
     req = request or AnalysisRequest(prompt_id=chosen_prompt)
@@ -122,6 +144,15 @@ def analyze_study(
                 if not report.abstain and not report.findings and not report.negative_findings:
                     report.abstain = True
                     report.parse_warnings.append("no label predictions returned")
+                elif not report.abstain:
+                    requested = req.labels or sorted(
+                        {f.label for f in report.findings} | set(report.negative_findings)
+                    )
+                    if not any(report.label_probability(label) is not None for label in requested):
+                        report.abstain = True
+                        report.parse_warnings.append(
+                            "no available requested-label predictions returned"
+                        )
     perf = m.record
     perf.input_bytes = prepared.input_bytes
     perf.n_images = len(prepared.images)
@@ -129,10 +160,27 @@ def analyze_study(
     perf.failed = raw.error is not None or report.abstain
     perf.error = raw.error
     identity = model.describe() if isinstance(model, OllamaModel) and study.qc.adequate else {}
+
+    tensor = prepared.tensor_path
     provenance = RunProvenance.collect(
         settings.repo_root,
         model_id=model_id,
         model_hash=identity.get("digest"),
+        dataset_manifest_hash=dataset_hash,
+        split_manifest_hash=split_hash,
+        ground_truth_hash=reference_hash,
+        scoring_hash=scoring_source_hash(),
+        input_hash=sha256_of_obj(
+            {
+                "images": [hashlib.sha256(image).hexdigest() for image in prepared.images],
+                "tensor": sha256_of_file(Path(tensor)) if tensor is not None else None,
+                "context": prepared.context,
+                "canonical_hu_sha256": hashlib.sha256(study.volume.hu.tobytes()).hexdigest(),
+                "shape": study.volume.shape,
+                "spacing_mm": study.volume.spacing_mm,
+            }
+        ),
+        seed=config.options.get("ollama", {}).get("seed", 0),
         config_hash=sha256_of_obj(
             {
                 "model": config.model_dump(mode="json"),
@@ -171,10 +219,21 @@ def analyze_study(
         perf=perf,
         provenance=provenance,
     )
-    return redact_result(result, settings_redactor(settings))
+    return redact_result(result, settings_redactor(settings, study.identifiers))
 
 
-_REDACTED_FIELDS = ("report", "raw_text", "raw_error", "raw_meta", "view_meta", "context", "perf")
+_REDACTED_FIELDS = (
+    "request",
+    "report",
+    "raw_text",
+    "raw_error",
+    "raw_meta",
+    "view_meta",
+    "context",
+    "perf",
+    "qc",
+    "image_captions",
+)
 
 
 def redact_result(result: AnalysisResult, redactor: Redactor) -> AnalysisResult:
@@ -184,6 +243,7 @@ def redact_result(result: AnalysisResult, redactor: Redactor) -> AnalysisResult:
     unchanged, so scoring and split checks are unaffected. Prepared images are kept.
     """
     data = redactor.redact_obj(result.model_dump(mode="json", include=set(_REDACTED_FIELDS)))
+    data["request"] = AnalysisRequest.model_validate(data["request"])
     data["report"] = FindingsReport.model_validate(data["report"])
     data["perf"] = PerfRecord.model_validate(data["perf"])
     return result.model_copy(update=data)

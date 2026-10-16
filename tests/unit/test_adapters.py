@@ -1,5 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Copyright (C) 2026 Marcel Petrick <mail@marcelpetrick.it>
+import base64
+import hashlib
 import json
 from dataclasses import dataclass, field
 from typing import Any, ClassVar
@@ -317,3 +319,205 @@ def test_default_view_resolver_paths(monkeypatch: pytest.MonkeyPatch) -> None:
     assert default_view_resolver("bad", {}) is None
     monkeypatch.setitem(sys.modules, "thoraxbench.views", None)
     assert default_view_resolver("ok", {}) is None
+
+
+@respx.mock
+def test_ollama_retains_exact_diagnostics_without_image_bytes() -> None:
+    provider = _chat("{}") | {
+        "message": {"role": "assistant", "content": "{}", "thinking": "Synthetic reasoning"},
+        "done": True,
+        "model": "test-provider-model",
+        "created_at": "2026-10-16T10:00:00Z",
+    }
+    route = respx.post(f"{OLLAMA}/api/chat").mock(return_value=httpx.Response(200, json=provider))
+    model = load_model("medgemma1.5-q4", _settings())
+    image = b"synthetic image bytes unique to diagnostics regression"
+    prepared = PreparedInput(
+        view_id="synthetic",
+        view_version="1",
+        images=[image],
+        image_captions=["axial lung"],
+        context="Synthetic context",
+    )
+    raw = model.infer(prepared, REQ)
+    sent = json.loads(route.calls.last.request.content)
+    recorded = raw.meta["requests"][0]
+    assert recorded["model"] == sent["model"]
+    assert recorded["options"] == sent["options"]
+    assert recorded["format"] == sent["format"]
+    assert recorded["keep_alive"] == sent["keep_alive"]
+    assert recorded["messages"][0] == sent["messages"][0]
+    assert recorded["messages"][1]["content"] == sent["messages"][1]["content"]
+    assert recorded["messages"][1]["image_sha256"] == [hashlib.sha256(image).hexdigest()]
+    assert recorded["messages"][1]["image_bytes_omitted"] is True
+    assert "images" not in recorded["messages"][1]
+    assert base64.b64encode(image).decode() not in json.dumps(raw.meta)
+    assert raw.meta["responses"][0]["body"] == provider
+    assert raw.meta["responses"][0]["http_status"] == 200
+    assert raw.text == "{}"
+    assert model.parse(raw).findings == []
+
+
+@respx.mock
+@pytest.mark.parametrize("failure", ["http", "timeout", "non_json"])
+def test_ollama_retains_first_pass_when_second_pass_fails(failure: str) -> None:
+    first = _chat('{"observations": [{"observation": "synthetic"}]}')
+    failed: httpx.Response | httpx.TimeoutException = (
+        httpx.Response(500, text="Synthetic server failure")
+        if failure == "http"
+        else httpx.TimeoutException("Synthetic timeout")
+        if failure == "timeout"
+        else httpx.Response(200, text="Synthetic invalid JSON")
+    )
+    respx.post(f"{OLLAMA}/api/chat").mock(side_effect=[httpx.Response(200, json=first), failed])
+    model = load_model("medgemma1.5-q4", _settings(), prompt_id="P4")
+    raw = model.infer(PreparedInput(view_id="v", view_version="1", images=[b"synthetic"]), REQ)
+    assert raw.error
+    assert model.parse(raw).abstain
+    assert len(raw.meta["requests"]) == len(raw.meta["responses"]) == 2
+    assert raw.meta["calls"] == 1
+    assert raw.meta["responses"][0]["body"] == first
+    assert raw.meta["responses"][1]["error"]
+    assert first["message"]["content"] in raw.meta["requests"][1]["messages"][1]["content"]
+    assert "image_bytes_omitted" not in raw.meta["requests"][1]["messages"][1]
+    assert raw.tokens_generated == 10
+    if failure == "timeout":
+        assert raw.meta["responses"][1]["error_type"] == "TimeoutException"
+        assert "http_status" not in raw.meta["responses"][1]
+    else:
+        assert raw.meta["responses"][1]["body_text"].startswith("Synthetic")
+
+
+@respx.mock
+def test_ollama_failed_body_is_bounded_and_non_object_json_is_explicit() -> None:
+    route = respx.post(f"{OLLAMA}/api/chat")
+    model = load_model("medgemma1.5-q4", _settings())
+    prepared = PreparedInput(view_id="synthetic", view_version="1")
+    route.mock(return_value=httpx.Response(500, text="x" * 1000))
+    raw = model.infer(prepared, REQ)
+    assert raw.meta["responses"][0]["body_text"] == "x" * 300
+    assert len(raw.meta["requests"]) == 1
+    route.mock(return_value=httpx.Response(200, json=["Unexpected array"]))
+    raw = model.infer(prepared, REQ)
+    assert raw.error == "ollama returned a non-object JSON response"
+    assert raw.meta["responses"][0]["body"] == ["Unexpected array"]
+    assert model.parse(raw).abstain
+
+
+@respx.mock
+@pytest.mark.parametrize(
+    "invalid",
+    [
+        {"message": None},
+        {"message": []},
+        {"message": {"content": None}},
+        {"message": {"content": ["unexpected"]}},
+        {"eval_count": "ten"},
+        {"eval_count": None},
+        {"eval_count": -1},
+        {"eval_count": True},
+        {"eval_count": 1.5},
+        {"prompt_eval_count": "unknown"},
+        {"prompt_eval_count": -1},
+        {"load_duration": None},
+        {"eval_duration": "slow"},
+        {"total_duration": -1},
+        {"prompt_eval_duration": False},
+        {"total_duration": float("inf")},
+        {"total_duration": float("nan")},
+        {"total_duration": 10**1000},
+        {"error": "Synthetic provider failure"},
+    ],
+)
+def test_ollama_malformed_envelope_abstains_with_full_diagnostics(invalid: dict[str, Any]) -> None:
+    provider = _chat(json.dumps(GOOD)) | invalid
+    respx.post(f"{OLLAMA}/api/chat").mock(
+        return_value=httpx.Response(200, text=json.dumps(provider))
+    )
+    model = load_model("medgemma1.5-q4", _settings())
+    raw = model.infer(PreparedInput(view_id="synthetic", view_version="1"), REQ)
+    assert raw.error
+    assert model.parse(raw).abstain
+    assert raw.tokens_generated is None
+    assert raw.prompt_tokens is None
+    assert raw.meta["total_duration_s"] is None
+    assert json.dumps(raw.meta["responses"][0]["body"], sort_keys=True) == json.dumps(
+        provider, sort_keys=True
+    )
+    assert raw.meta["responses"][0]["error"] == raw.error
+    assert raw.meta["responses"][0]["body_text"]
+    assert len(raw.meta["requests"]) == 1
+
+
+@respx.mock
+def test_ollama_missing_metrics_remain_unavailable_and_empty_output_is_preserved() -> None:
+    respx.post(f"{OLLAMA}/api/chat").mock(
+        return_value=httpx.Response(200, json={"message": {"content": ""}})
+    )
+    model = load_model("medgemma1.5-q4", _settings())
+    raw = model.infer(PreparedInput(view_id="synthetic", view_version="1"), REQ)
+    assert raw.error is None
+    assert model.parse(raw).uncertainty == "empty model output"
+    assert raw.tokens_generated is None
+    assert raw.prompt_tokens is None
+    assert raw.meta["eval_duration_s"] is None
+    assert raw.meta["responses"][0]["body"] == {"message": {"content": ""}}
+
+
+@respx.mock
+@pytest.mark.parametrize(
+    "payload",
+    [None, [], {"models": None}, {"models": "bad"}, {"models": [None, [], {"name": None}]}],
+)
+def test_ollama_malformed_inventory_and_runtime_are_unavailable(payload: Any) -> None:
+    respx.get(f"{OLLAMA}/api/tags").mock(return_value=httpx.Response(200, text=json.dumps(payload)))
+    respx.get(f"{OLLAMA}/api/ps").mock(return_value=httpx.Response(200, text=json.dumps(payload)))
+    respx.post(f"{OLLAMA}/api/show").mock(return_value=httpx.Response(200, json={}))
+    model = load_model("medgemma1.5-q4", _settings())
+    assert not model.available()
+    assert isinstance(model.describe(), dict)
+    assert model.vram() is None
+
+
+@respx.mock
+@pytest.mark.parametrize("payload", [None, [], "bad", {"details": None, "capabilities": None}])
+def test_ollama_malformed_model_description_does_not_erase_inference(payload: Any) -> None:
+    tag = "medgemma1.5:4b-it-q4_K_M"
+    respx.get(f"{OLLAMA}/api/tags").mock(
+        return_value=httpx.Response(
+            200, json={"models": [None, {"name": tag, "digest": [], "size": "bad"}]}
+        )
+    )
+    respx.post(f"{OLLAMA}/api/show").mock(
+        return_value=httpx.Response(200, text=json.dumps(payload))
+    )
+    respx.post(f"{OLLAMA}/api/chat").mock(
+        return_value=httpx.Response(200, json=_chat(json.dumps(GOOD)))
+    )
+    model = load_model("medgemma1.5-q4", _settings())
+    raw = model.infer(PreparedInput(view_id="synthetic", view_version="1"), REQ)
+    assert model.available()
+    description = model.describe()
+    if isinstance(payload, dict):
+        assert description == {
+            "tag": tag,
+            "digest": None,
+            "size_bytes": None,
+            "details": {},
+            "capabilities": [],
+        }
+    else:
+        assert description == {}
+    assert raw.text == json.dumps(GOOD)
+    assert raw.meta["responses"][0]["body"]["message"]["content"] == raw.text
+
+
+@respx.mock
+@pytest.mark.parametrize("value", [None, "10", -1, True, 1.5, float("inf"), float("nan")])
+def test_ollama_malformed_vram_counters_are_unavailable(value: Any) -> None:
+    payload = {
+        "models": [None, [], {"model": "medgemma1.5:4b-it-q4_K_M", "size": value, "size_vram": 2}]
+    }
+    respx.get(f"{OLLAMA}/api/ps").mock(return_value=httpx.Response(200, text=json.dumps(payload)))
+    model = load_model("medgemma1.5-q4", _settings())
+    assert model.vram() is None

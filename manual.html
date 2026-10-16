@@ -238,5 +238,7 @@ uv run thoraxbench models</code></pre></li>
 uncertain presence are unavailable, not definite predictions. Task E reports prediction
 coverage and omissions. Task G reports the studies eligible for false-reassurance scoring.
 Historical results keep their original method. Image captions are one-based.</aside></main>
+
+<section><h2>Provider diagnostics and privacy</h2><p>Research use only. This self-made experimental tool can produce incorrect, incomplete or misleading findings. It does not provide professional medical advice or a basis for diagnosis or treatment.</p><p>Ollama diagnostics retain rendered request text/settings and decoded responses, including failed passes. Images become hashes. Selected direct header identifiers and paths are redacted from outputs. This is not OCR or an anonymity guarantee. Source-unavailable caches cannot recover identifying header values.</p><p>For a bounded calibration readiness diagnostic, run from the repository root:</p><pre>uv run thoraxbench benchmark configs/experiments/E001_calibration_diagnostic.yaml --limit 1</pre><p>Checkpoint: inspect failed, abstained and scored counts. Do not expand to a full sweep while useful output is unreliable.</p></section>
 </body>
 </html>

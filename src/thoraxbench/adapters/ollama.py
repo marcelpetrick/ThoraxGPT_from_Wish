@@ -5,6 +5,8 @@
 from __future__ import annotations
 
 import base64
+import hashlib
+import math
 import time
 from typing import Any
 
@@ -19,6 +21,49 @@ from thoraxbench.schemas import AnalysisRequest, FindingsReport, PreparedInput, 
 NS_PER_S = 1e9
 DEFAULT_NUM_CTX = 16384
 DEFAULT_NUM_PREDICT = 4096
+
+
+def _provider_error(data: dict[str, Any]) -> str | None:
+    """Validate provider fields before runtime accounting or content extraction."""
+    if "error" in data:
+        return f"ollama provider error: {str(data['error'])[:300]}"
+    message = data.get("message", {})
+    if not isinstance(message, dict):
+        return "ollama returned a non-object message"
+    if "content" in message and not isinstance(message["content"], str):
+        return "ollama returned non-string message content"
+    for key in ("eval_count", "prompt_eval_count"):
+        if key in data and (type(data[key]) is not int or data[key] < 0):
+            return f"ollama returned invalid {key}: {str(data[key])[:100]}"
+    for key in ("total_duration", "load_duration", "eval_duration", "prompt_eval_duration"):
+        if key not in data:
+            continue
+        value = data[key]
+        try:
+            valid = (
+                not isinstance(value, bool)
+                and isinstance(value, int | float)
+                and math.isfinite(value)
+                and value >= 0
+            )
+        except OverflowError:
+            valid = False
+        if not valid:
+            return f"ollama returned invalid {key}: {str(value)[:100]}"
+    return None
+
+
+def _total(calls: list[dict[str, Any]], field: str) -> int | float | None:
+    """Sum only validated, completely reported values; missing is not zero."""
+    if not calls or any(field not in call for call in calls):
+        return None
+    total: int | float = 0
+    for call in calls:
+        value = call[field]
+        if not isinstance(value, int | float):
+            return None
+        total += value
+    return total
 
 
 class OllamaModel(ViewBackedModel):
@@ -53,8 +98,14 @@ class OllamaModel(ViewBackedModel):
     def _tags(self) -> list[dict[str, Any]]:
         resp = self.client.get(f"{self.base_url}/api/tags", timeout=10.0)
         resp.raise_for_status()
-        models: list[dict[str, Any]] = resp.json().get("models", [])
-        return models
+        payload = resp.json()
+        if not isinstance(payload, dict) or not isinstance(payload.get("models"), list):
+            raise ValueError("ollama returned malformed model inventory")
+        return [
+            item
+            for item in payload["models"]
+            if isinstance(item, dict) and isinstance(item.get("name"), str)
+        ]
 
     def _matches(self, name: str) -> bool:
         wanted = self.tag if ":" in self.tag else f"{self.tag}:latest"
@@ -74,14 +125,22 @@ class OllamaModel(ViewBackedModel):
             show = self.client.post(f"{self.base_url}/api/show", json={"model": self.tag})
             show.raise_for_status()
             details = show.json()
+            if not isinstance(details, dict):
+                return {}
         except httpx.HTTPError, ValueError:
             return {}
         return {
             "tag": self.tag,
-            "digest": entry.get("digest") if entry else None,
-            "size_bytes": entry.get("size") if entry else None,
-            "details": details.get("details", {}),
-            "capabilities": details.get("capabilities", []),
+            "digest": entry["digest"] if entry and isinstance(entry.get("digest"), str) else None,
+            "size_bytes": entry["size"]
+            if entry and type(entry.get("size")) is int and entry["size"] >= 0
+            else None,
+            "details": details["details"] if isinstance(details.get("details"), dict) else {},
+            "capabilities": [
+                item for item in details.get("capabilities", []) if isinstance(item, str)
+            ]
+            if isinstance(details.get("capabilities"), list)
+            else [],
         }
 
     def vram(self) -> dict[str, int] | None:
@@ -89,12 +148,20 @@ class OllamaModel(ViewBackedModel):
         try:
             resp = self.client.get(f"{self.base_url}/api/ps", timeout=10.0)
             resp.raise_for_status()
-            running = resp.json().get("models", [])
+            payload = resp.json()
+            if not isinstance(payload, dict) or not isinstance(payload.get("models"), list):
+                return None
+            running = payload["models"]
         except httpx.HTTPError, ValueError:
             return None
         for m in running:
-            if self._matches(str(m.get("name", m.get("model", "")))):
-                return {"size": int(m.get("size", 0)), "size_vram": int(m.get("size_vram", 0))}
+            if not isinstance(m, dict):
+                continue
+            name = m.get("name") or m.get("model")
+            if isinstance(name, str) and self._matches(name):
+                if any(type(m.get(key)) is not int or m[key] < 0 for key in ("size", "size_vram")):
+                    return None
+                return {"size": m["size"], "size_vram": m["size_vram"]}
         return None
 
     # -- inference -----------------------------------------------------------------------
@@ -102,7 +169,14 @@ class OllamaModel(ViewBackedModel):
         return request.labels or self.ontology.ids(core_only=True)
 
     def _chat(
-        self, system: str, user: str, images: list[bytes], schema: dict[str, Any] | str
+        self,
+        system: str,
+        user: str,
+        images: list[bytes],
+        schema: dict[str, Any] | str,
+        *,
+        request_log: list[dict[str, Any]] | None = None,
+        response_log: list[dict[str, Any]] | None = None,
     ) -> tuple[dict[str, Any] | None, str | None, float]:
         message: dict[str, Any] = {"role": "user", "content": user}
         if images:
@@ -124,22 +198,59 @@ class OllamaModel(ViewBackedModel):
         }
         if "think" in self.config.options:
             payload["think"] = self.config.options["think"]
+        if request_log is not None:
+            recorded_messages: list[dict[str, Any]] = [
+                {"role": "system", "content": system},
+                {"role": "user", "content": user},
+            ]
+            if images:
+                recorded_messages[1].update(
+                    {
+                        "image_sha256": [hashlib.sha256(image).hexdigest() for image in images],
+                        "image_bytes_omitted": True,
+                    }
+                )
+            request_log.append(payload | {"messages": recorded_messages})
         start = time.perf_counter()
         try:
             resp = self.client.post(
                 f"{self.base_url}/api/chat", json=payload, timeout=self.config.timeout_s
             )
-        except httpx.TimeoutException:
-            return None, f"timeout after {self.config.timeout_s:.0f} s", time.perf_counter() - start
         except httpx.HTTPError as exc:
-            return None, f"http error: {exc}", time.perf_counter() - start
+            elapsed = time.perf_counter() - start
+            error = (
+                f"timeout after {self.config.timeout_s:.0f} s"
+                if isinstance(exc, httpx.TimeoutException)
+                else f"http error: {exc}"
+            )
+            if response_log is not None:
+                response_log.append(
+                    {"error": error, "error_type": type(exc).__name__, "latency_s": elapsed}
+                )
+            return None, error, elapsed
         elapsed = time.perf_counter() - start
+        diagnostic: dict[str, Any] = {"http_status": resp.status_code, "latency_s": elapsed}
+        if response_log is not None:
+            response_log.append(diagnostic)
         if resp.status_code != httpx.codes.OK:
-            return None, f"ollama HTTP {resp.status_code}: {resp.text[:300]}", elapsed
+            error = f"ollama HTTP {resp.status_code}: {resp.text[:300]}"
+            diagnostic.update({"body_text": resp.text[:300], "error": error})
+            return None, error, elapsed
         try:
-            return resp.json(), None, elapsed
+            data = resp.json()
         except ValueError:
-            return None, "ollama returned non-JSON response", elapsed
+            error = "ollama returned non-JSON response"
+            diagnostic.update({"body_text": resp.text[:300], "error": error})
+            return None, error, elapsed
+        diagnostic["body"] = data
+        if not isinstance(data, dict):
+            diagnostic["error"] = "ollama returned a non-object JSON response"
+            return None, diagnostic["error"], elapsed
+        provider_error = _provider_error(data)
+        if provider_error:
+            diagnostic.update({"error": provider_error, "body_text": resp.text[:300]})
+            return None, provider_error, elapsed
+        return data, None, elapsed
 
     def infer(self, prepared: PreparedInput, request: AnalysisRequest) -> RawOutput:
         """Run one (or, for two-pass prompts, two) chat calls against Ollama."""
@@ -149,7 +260,16 @@ class OllamaModel(ViewBackedModel):
         schema: dict[str, Any] | str = (
             "json" if self.prompt.two_pass else self.prompt.schema(labels)
         )
-        data, error, latency = self._chat(rendered.system, rendered.user, prepared.images, schema)
+        requests: list[dict[str, Any]] = []
+        responses: list[dict[str, Any]] = []
+        data, error, latency = self._chat(
+            rendered.system,
+            rendered.user,
+            prepared.images,
+            schema,
+            request_log=requests,
+            response_log=responses,
+        )
         calls = [data] if data else []
         if (
             data is not None
@@ -162,7 +282,12 @@ class OllamaModel(ViewBackedModel):
                 first, labels, n, captions=prepared.image_captions, context=prepared.context
             )
             data, error, latency2 = self._chat(
-                second.system, second.user, [], self.prompt.schema(labels)
+                second.system,
+                second.user,
+                [],
+                self.prompt.schema(labels),
+                request_log=requests,
+                response_log=responses,
             )
             latency += latency2
             if data:
@@ -172,24 +297,30 @@ class OllamaModel(ViewBackedModel):
             "prompt_id": self.prompt.id,
             "prompt_sha256": self.prompt.sha256,
             "calls": len(calls),
+            "requests": requests,
+            "responses": responses,
         }
+        for field in ("load_duration", "eval_duration", "total_duration"):
+            value = _total(calls, field)
+            meta[f"{field}_s"] = value / NS_PER_S if value is not None else None
+        meta["done_reason"] = data.get("done_reason") if data is not None else None
+        generated = _total(calls, "eval_count")
+        prompt_tokens = _total(calls, "prompt_eval_count")
         if error is not None or data is None:
-            return RawOutput(error=error or "no response", latency_s=latency, meta=meta)
-        meta.update(
-            {
-                "load_duration_s": sum(c.get("load_duration", 0) for c in calls) / NS_PER_S,
-                "eval_duration_s": sum(c.get("eval_duration", 0) for c in calls) / NS_PER_S,
-                "total_duration_s": sum(c.get("total_duration", 0) for c in calls) / NS_PER_S,
-                "done_reason": data.get("done_reason"),
-            }
-        )
+            return RawOutput(
+                error=error or "no response",
+                latency_s=latency,
+                meta=meta,
+                tokens_generated=int(generated) if generated is not None else None,
+                prompt_tokens=int(prompt_tokens) if prompt_tokens is not None else None,
+            )
         return RawOutput(
             text=str(data.get("message", {}).get("content", "")),
             error="generation token limit reached"
             if any(c.get("done_reason") == "length" for c in calls)
             else None,
-            tokens_generated=sum(int(c.get("eval_count", 0)) for c in calls),
-            prompt_tokens=sum(int(c.get("prompt_eval_count", 0)) for c in calls),
+            tokens_generated=int(generated) if generated is not None else None,
+            prompt_tokens=int(prompt_tokens) if prompt_tokens is not None else None,
             latency_s=latency,
             meta=meta,
         )

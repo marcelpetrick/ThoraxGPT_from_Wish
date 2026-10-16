@@ -159,3 +159,183 @@ def test_empty_model_predictions_abstain(study: Study) -> None:
     assert result.report.abstain
     assert "no label predictions returned" in result.report.parse_warnings
     assert result.perf.failed
+
+
+def test_manifest_input_scoring_and_reference_hashes(study: Study, tmp_path: Path) -> None:
+    from thoraxbench.provenance import sha256_of_file
+
+    settings = Settings(repo_root=tmp_path, data_dir=tmp_path / "data")
+    (tmp_path / "configs").symlink_to(Settings().configs_dir, target_is_directory=True)
+    for kind in ("datasets", "splits"):
+        path = settings.manifests_dir / kind / "synthetic.json"
+        path.parent.mkdir(parents=True)
+        path.write_text('{"version": "synthetic-only"}')
+    index = settings.data_path("index", "synthetic.json")
+    index.parent.mkdir(parents=True)
+    index.write_text('{"reference_version": 1}')
+    result = analyze_study(study, "heuristic-hu", settings)
+    provenance = result.provenance
+    assert provenance.dataset_manifest_hash == sha256_of_file(
+        settings.manifests_dir / "datasets" / "synthetic.json"
+    )
+    assert provenance.split_manifest_hash == sha256_of_file(
+        settings.manifests_dir / "splits" / "synthetic.json"
+    )
+    assert provenance.ground_truth_hash == sha256_of_file(index)
+    assert provenance.scoring_hash
+    assert provenance.input_hash
+    first = provenance.fingerprint()
+    index.write_text('{"reference_version": 2}')
+    assert analyze_study(study, "heuristic-hu", settings).provenance.fingerprint() != first
+
+
+def test_direct_header_values_redacted_from_model_outputs(
+    phantom_dir: Path, tmp_path: Path
+) -> None:
+    import shutil
+
+    import pydicom
+
+    copied = Path(shutil.copytree(phantom_dir, tmp_path / "study"))
+    first = next(copied.rglob("*.dcm"))
+    header = pydicom.dcmread(first)
+    header.PatientName = "SYNTHETICSECRET^Researchperson"
+    header.InstitutionName = "Synthetic Secret Institution"
+    header.save_as(first)
+    loaded = load_study_dir(copied, dataset="synthetic", case_id="redaction-case")
+    assert "SYNTHETICSECRET^Researchperson" in loaded.identifiers
+
+    def respond(request: httpx.Request) -> httpx.Response:
+        if request.url.path == "/api/chat":
+            return httpx.Response(
+                200,
+                json={
+                    "message": {
+                        "content": json.dumps(
+                            {
+                                "findings": [
+                                    {
+                                        "label": "pulmonary_nodule",
+                                        "present": True,
+                                        "confidence": 0.8,
+                                        "description": (
+                                            "SYNTHETICSECRET Researchperson at "
+                                            "Synthetic Secret Institution"
+                                        ),
+                                    }
+                                ]
+                            }
+                        )
+                    }
+                },
+            )
+        return httpx.Response(200, json={})
+
+    with httpx.Client(transport=httpx.MockTransport(respond)) as client:
+        result = analyze_study(
+            loaded,
+            "medgemma1.5-q4",
+            Settings(),
+            client=client,
+            request=AnalysisRequest(question="SYNTHETICSECRET^Researchperson"),
+            view_overrides={"n": 1, "size": 64, "coronal": False},
+        )
+    output = result.model_dump_json()
+    assert "SYNTHETICSECRET" not in output
+    assert "Researchperson" not in output
+    assert "Synthetic Secret Institution" not in output
+    assert "[redacted]" in output
+    assert result.patient_id == loaded.patient_id
+    assert result.provenance.input_hash
+
+
+@pytest.mark.parametrize("kind", ["unsafe_key", "symlink_escape"])
+def test_metadata_identity_rejected_before_inference(
+    study: Study, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, kind: str
+) -> None:
+    from dataclasses import replace
+
+    from thoraxbench import analysis
+
+    settings = Settings(repo_root=tmp_path, data_dir=tmp_path / "data")
+    key = "../sealed/forbidden" if kind == "unsafe_key" else "synthetic"
+    if kind == "symlink_escape":
+        folder = settings.data_path("index")
+        folder.mkdir(parents=True)
+        (folder / "synthetic.json").symlink_to(tmp_path / "never-read.json")
+    monkeypatch.setattr(analysis, "sha256_of_file", lambda *_args: pytest.fail("unsafe file read"))
+    monkeypatch.setattr(analysis, "load_model", lambda *_args, **_kwargs: pytest.fail("inference"))
+    with pytest.raises(ValueError, match="metadata"):
+        analyze_study(replace(study, dataset=key), "heuristic-hu", settings)
+
+
+def test_canonical_hu_changes_input_identity(study: Study) -> None:
+    first = analyze_study(study, "heuristic-hu", Settings())
+    changed = deepcopy(study)
+    changed.volume.hu[0, 0, 0] += 1
+    second = analyze_study(changed, "heuristic-hu", Settings())
+    assert first.provenance.input_hash != second.provenance.input_hash
+
+
+def test_prepared_tensor_bytes_are_hashed(
+    study: Study, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from unittest.mock import Mock
+
+    from thoraxbench import analysis
+    from thoraxbench.schemas import Finding, FindingsReport, PreparedInput, RawOutput
+
+    tensor = tmp_path / "synthetic-tensor"
+    tensor.write_bytes(b"synthetic tensor version 1")
+    model = Mock()
+    model.prepare.return_value = PreparedInput(
+        view_id="synthetic-tensor", view_version="1", tensor_path=str(tensor)
+    )
+    model.infer.return_value = RawOutput(text="synthetic response")
+    model.parse.return_value = FindingsReport(
+        findings=[Finding(label="pulmonary_nodule", confidence=0.8)]
+    )
+    monkeypatch.setattr(analysis, "load_model", lambda *_args, **_kwargs: model)
+    first = analyze_study(study, "heuristic-hu", Settings())
+    tensor.write_bytes(b"synthetic tensor version 2")
+    second = analyze_study(study, "heuristic-hu", Settings())
+    assert first.provenance.input_hash != second.provenance.input_hash
+
+
+@pytest.mark.parametrize("kind", ["missing_confidence", "uncertain", "other_label"])
+def test_no_available_requested_prediction_abstains(study: Study, kind: str) -> None:
+    finding: dict[str, object] = {"label": "pulmonary_nodule", "present": True}
+    if kind == "uncertain":
+        finding.update(present=None, confidence=0.8)
+    elif kind == "other_label":
+        finding.update(label="pulmonary_mass", confidence=0.8)
+
+    def respond(request: httpx.Request) -> httpx.Response:
+        if request.url.path == "/api/chat":
+            return httpx.Response(
+                200,
+                json={
+                    "message": {
+                        "content": json.dumps(
+                            {
+                                "findings": [finding],
+                            }
+                        )
+                    }
+                },
+            )
+        return httpx.Response(200, json={})
+
+    with httpx.Client(transport=httpx.MockTransport(respond)) as client:
+        result = analyze_study(
+            study,
+            "medgemma1.5-q4",
+            Settings(),
+            client=client,
+            request=AnalysisRequest(labels=["pulmonary_nodule"]),
+            view_overrides={"n": 1, "size": 64, "coronal": False},
+        )
+    assert result.report.abstain
+    assert result.perf.failed
+    assert "no available requested-label predictions returned" in result.report.parse_warnings
+    assert result.raw_meta["responses"]

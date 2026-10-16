@@ -380,3 +380,15 @@ its evidence and limitations are in the [MVP test record](docs/mvp-test.md).
 Current scoring treats missing confidence and uncertain presence as unavailable. Task E
 reports coverage and omissions; Task G records its eligible-study denominator. Prompt
 captions are one-based. Historical aggregate results retain their original definitions.
+
+## Provider diagnostics and privacy
+
+Analysis retains rendered Ollama request text/settings and decoded responses, including failed passes. Image payloads become hashes. Selected direct DICOM header identifiers and source paths are redacted in output text. This is not OCR or an anonymity guarantee. Available manifest, reference, scoring and input hashes identify the setup.
+
+For a bounded calibration diagnostic, run from the repository root:
+
+```bash
+uv run thoraxbench benchmark configs/experiments/E001_calibration_diagnostic.yaml --limit 1
+```
+
+Checkpoint: inspect scored, abstained and failed counts. This is output-readiness work, not an accuracy benchmark. Do not expand the sweep when useful outputs remain unreliable.

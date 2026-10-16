@@ -18,6 +18,7 @@ import numpy as np
 
 from thoraxbench.dicom import QCReport, Volume, load_study
 from thoraxbench.preprocess import HUCues, hu_cues
+from thoraxbench.privacy import identifier_values
 
 CACHE_VERSION = "1"
 
@@ -32,6 +33,7 @@ class Study:
     volume: Volume
     selection: dict[str, Any] = field(default_factory=dict)
     _cues: HUCues | None = field(default=None, repr=False)
+    identifiers: frozenset[str] = field(default_factory=frozenset, repr=False)
 
     @property
     def cues(self) -> HUCues:
@@ -114,7 +116,14 @@ def load_study_dir(
         if cached.exists():
             volume, selection = _load_cache(cached)
             return Study(
-                dataset, case_id or volume.patient_id, volume.patient_id, volume, selection
+                dataset,
+                case_id or volume.patient_id,
+                volume.patient_id,
+                volume,
+                selection,
+                identifiers=identifier_values(
+                    (p for p in path.rglob("*") if p.is_file()), keep=(volume.patient_id,)
+                ),
             )
     loaded, selection = load_study(path)
     if loaded is None:
@@ -123,4 +132,13 @@ def load_study_dir(
     volume = loaded
     if cache_dir is not None:
         _save_cache(_cache_file(cache_dir, volume.series_uid), volume, selection)
-    return Study(dataset, case_id or volume.patient_id, volume.patient_id, volume, selection)
+    return Study(
+        dataset,
+        case_id or volume.patient_id,
+        volume.patient_id,
+        volume,
+        selection,
+        identifiers=identifier_values(
+            (p for p in path.rglob("*") if p.is_file()), keep=(volume.patient_id,)
+        ),
+    )

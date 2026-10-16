@@ -190,3 +190,7 @@ Run commands from the repository root.
 Current scoring treats missing confidence and uncertain presence as unavailable. Task E
 reports coverage and omissions; Task G records its eligible-study denominator. Prompt
 captions are one-based. Historical aggregate results retain their original definitions.
+
+## Provider diagnostic contract
+
+Preserve rendered Ollama requests and decoded response metadata, including failed passes. Replace image bytes with hashes. Collect selected direct header identifiers only in memory and redact outputs; do not claim anonymity. Source-unavailable caches cannot recover those identifiers. Record available manifest, reference, scoring and canonical-input hashes. Zero available requested-label predictions abstain. Keep diagnostic experiments bounded and calibration-only.

@@ -225,3 +225,20 @@ def test_render_markdown_handles_missing_values() -> None:
     assert "bad / pipe" in text
     assert "| lidc_idri | P2 | - | failed | - | - |" in text
     assert "Benchmark T1: untitled" in text
+
+
+def test_calibration_diagnostic_is_separate_q4_only_existing_p2() -> None:
+    config = load_experiment(
+        REPO_ROOT / "configs" / "experiments" / "E001_calibration_diagnostic.yaml"
+    ).config
+    assert config.id == "E001-diagnostic"
+    assert config.phases == ["calibration"]
+    assert config.labels == ["pulmonary_nodule", "pulmonary_mass"]
+    assert config.datasets == ["lidc_idri", "nsclc_radiogenomics"]
+    assert config.n_boot == 0
+    assert len(config.runs()) == 1
+    run = config.runs()[0]
+    assert run.model == "medgemma1.5-q4"
+    assert run.prompt == "P2"
+    assert run.view_overrides == {"strategy": "anatomy", "n": 2, "size": 256, "coronal": False}
+    assert "--limit 1" in config.description
