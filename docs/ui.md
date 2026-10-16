@@ -105,6 +105,14 @@ A combined offline HTML review preserves per-run evidence and educational contex
 existing guarded results rather than triggering additional inference. Restart an already
 running server after upgrading so its API and browser assets use the same version.
 
+## Check the actual input count
+
+The image-count setting is a sampling target. Anatomy sampling preserves landmarks and
+can exceed that target; added coronal views can also increase the prepared count. Inspect
+the actual prepared previews and count in the result. Wait estimates use requested image
+counts and remain guesses. A strict small-image diagnostic uses uniform sampling without
+additional views. Do not describe a recording as four-image inference until verified.
+
 ## Unavailable model setup
 
 For the usual CLI setup, run `ollama run medgemma1.5:4b-it-q4_K_M` from the repository

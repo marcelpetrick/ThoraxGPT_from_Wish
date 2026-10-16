@@ -201,3 +201,11 @@ Run commands from the repository root.
 Current scoring treats missing confidence and uncertain presence as unavailable. Task E
 reports coverage and omissions; Task G records its eligible-study denominator. Prompt
 captions are one-based. Historical aggregate results retain their original definitions.
+
+## Planned public demo recording
+
+Follow `docs/linkedin-video-plan.md` for the two LinkedIn pilot scripts and delivery settings.
+Recording and recorder implementation wait for the user's explicit trigger and a successful
+readiness rehearsal. Use synthetic data only, preserve a full original take, label edited
+waits, and retain genuine failures/abstentions. Verify actual prepared-image counts; anatomy
+sampling can exceed `n`. Never imply clinical usefulness or model accuracy.

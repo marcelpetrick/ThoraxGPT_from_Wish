@@ -98,6 +98,17 @@ Status: ✅ done · 🔄 in progress · ⏳ open · ✖ dropped
 
 ## Current activity
 
+- ⏳ **LinkedIn recording waits for the user's trigger:** two scripts are ready in
+  [the recording plan](linkedin-video-plan.md): a 60-second square introduction and a
+  90-second 4:5 walkthrough. Both introduce Marcel, explain practical research value and
+  show the project URL and limitations. Planned exports: 1080×1080 / 1080×1350 MP4,
+  H.264/AAC, 30 fps, subtitles, thumbnail and preserved uncut original. Synthetic data
+  only. Rehearse genuine inference and verify the actual image count before capture.
+  Recording automation and recording remain pending; nothing was recorded or published.
+- ✅ **Current verification:** v0.3.14's full local gate passed: **470 tests, 98.46% coverage**.
+  Main engine integration `ec929c4` also passed GitHub Actions. Corrected uniform two-image
+  configuration has not run live. Full E001–E004 remain deferred pending output reliability.
+
 - ✅ **Bounded calibration diagnostic (2026-10-16):** clean `ec929c4`, Q4/P2, one
   calibration case per dataset: two scored responses, zero abstentions/failures, 99.0 s
   active wall time. Both repeated heuristic candidate text and used out-of-range image
@@ -310,6 +321,9 @@ from here**: read this section and *Next steps*, then `git log --oneline | head 
 6. Close remaining ranked gaps: calibration fitting, training-overlap column, E005–E008
    configurations, model manifests, CLI `compare` and remaining cohort report tasks.
 7. Keep UI feature work frozen. Maintain existing behavior and documentation.
+8. After the user triggers recording and readiness passes, implement the recorder and
+   capture the synthetic workflow using [both pilot scripts](linkedin-video-plan.md).
+   Do not record or publish before that trigger.
 
 ## Self-review gates
 

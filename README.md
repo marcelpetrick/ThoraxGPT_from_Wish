@@ -4,7 +4,7 @@
 [![License: GPL v3 or later](https://img.shields.io/badge/license-GPLv3%20or%20later-blue.svg)](LICENSE)
 [![Python 3.14+](https://img.shields.io/badge/Python-3.14%2B-3776ab.svg)](https://www.python.org/)
 [![FastAPI 0.143.2](https://img.shields.io/badge/FastAPI-0.143.2-009688.svg)](pyproject.toml)
-[![Coverage 99.18%](https://img.shields.io/badge/coverage-99.18%25-brightgreen.svg)](docs/mvp-test.md)
+[![Coverage 98.46%](https://img.shields.io/badge/coverage-98.46%25-brightgreen.svg)](docs/mvp-test.md)
 [![mypy strict](https://img.shields.io/badge/mypy-strict-blue.svg)](pyproject.toml)
 [![Local inference](https://img.shields.io/badge/inference-local%20only-087f8c.svg)](docs/architecture.md)
 [![Research use only](https://img.shields.io/badge/use-research%20only-orange.svg)](Vision.md)
@@ -22,6 +22,7 @@ were checked against current stable releases on 2026-10-15.
 
 | Document | Content |
 |---|---|
+| [`docs/linkedin-video-plan.md`](docs/linkedin-video-plan.md) | Two video pilot scripts, recording readiness and LinkedIn export settings |
 | [`docs/results.md`](docs/results.md) | Measured benchmark runs with config hash, command and limitations |
 | [`docs/reproducibility.md`](docs/reproducibility.md) | What each run records, pinned software, how to repeat a run |
 | [`DATA_POLICY.md`](DATA_POLICY.md) | Medical-data rules, license gate, data budget, sealed holdout |

@@ -152,6 +152,7 @@ uv run thoraxbench models</code></pre></li>
 <section class="sheet" id="model-setup">
 <span class="section-number">06 / MODEL SETUP &amp; WAIT ESTIMATES</span><h2>Install explicitly. Expect variable waits.</h2>
 <p>Open <strong>Model availability &amp; setup</strong>. Check availability, adapter, license and provider information. “Available” means the local runtime responds; it does not establish accuracy, GPU capacity or useful predictions.</p>
+<p class="small"><strong>Check actual inputs:</strong> anatomy sampling preserves landmarks and can exceed the image target. Coronal views can add images. Inspect prepared previews/counts. Wait estimates use the requested count and remain guesses. A strict small-image selection uses uniform sampling without added views.</p>
 <h3>Normal CLI setup: automatic pull on run</h3>
 <p>After reviewing the publisher’s terms, run this from the repository root. Ollama downloads missing weights and opens chat:</p>
 <pre><code>ollama run medgemma1.5:4b-it-q4_K_M</code></pre>

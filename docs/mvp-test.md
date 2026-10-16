@@ -187,3 +187,15 @@ A clean-tree calibration-only MedGemma smoke ran through this runner. Q4 abstain
 Q8 produced one scorable response that missed the reference nodule and one token-limit
 abstention. See the aggregate measurement in [results.md](results.md). Passing software
 tests does not establish model accuracy or clinical usefulness.
+
+## Durable benchmark verification (2026-10-16)
+
+Version 0.3.13 (`ec929c4`) passed the full local gate: **470 non-live tests, 98.46% coverage**,
+including 11 Playwright tests, build, clean-wheel installation and dependency audit. Tests
+cover interrupted/resumed runs, immutable terminal artifacts, integrity/identity refusal,
+malformed provider responses, identifier redaction and active-time accounting. Both manuals
+were regenerated together; all 11 PDF pages have the matching numbered footer.
+
+The LinkedIn pilots and readiness steps are [planned separately](linkedin-video-plan.md).
+No public recording has been made. A passing gate establishes software checks, not model
+accuracy or readiness for clinical use.
