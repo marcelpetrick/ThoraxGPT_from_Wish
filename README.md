@@ -24,6 +24,7 @@ were checked against current stable releases on 2026-10-15.
 |---|---|
 | [`docs/linkedin-video-plan.md`](docs/linkedin-video-plan.md) | Two video pilot scripts, recording readiness and LinkedIn export settings |
 | [`docs/ux-review-2026-10-16.md`](docs/ux-review-2026-10-16.md) / [HTML](docs/ux-review-2026-10-16.html) | Ranked UX findings, implementation plan and verification status |
+| [`docs/fine-tuning-plan.md`](docs/fine-tuning-plan.md) | Precision limits, ranked adaptation options, leakage-safe fine-tuning protocol |
 | [`docs/results.md`](docs/results.md) | Measured benchmark runs with config hash, command and limitations |
 | [`docs/reproducibility.md`](docs/reproducibility.md) | What each run records, pinned software, how to repeat a run |
 | [`DATA_POLICY.md`](DATA_POLICY.md) | Medical-data rules, license gate, data budget, sealed holdout |

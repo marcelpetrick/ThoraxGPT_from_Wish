@@ -101,6 +101,34 @@ Status: ✅ done · 🔄 in progress · ⏳ open · ✖ dropped
 
 ## Current activity
 
+- 🔄 **Completion plan (user request, 2026-10-16 evening):** the user asked for a full
+  resume, UX completion, refreshed screenshots, end-to-end tests, a real-data recognition
+  check, a fine-tuning strategy and a rethink of the UI for the evaluation workflow, and
+  delegated the decisions to the agent. Order:
+  1. ✅ Commit the parallel work in logical gated commits (split guards, inadequate-study
+     abstention, model manifests, cohort exports/compare, UX implementation).
+  2. 🔄 Verify the eight UX findings against their acceptance checks; fix gaps; record
+     evidence per finding in the UX review. Tooltip: 650 ms show delay, 180 ms hover grace,
+     per-trigger stable descriptions — kept (typical 500–800 ms range).
+  3. 🔄 Real-data recognition check, calibration phase only, from an isolated clean checkout.
+     Observed so far: the v0.3.16 cue ablation (`E001-cue-ablation`, 2 calibration cases ×
+     with/without cues, 9 anatomy images) produced **4/4 abstentions**: MedGemma Q4 returned
+     `present: null`, confidence 0 for both labels, twice calling the study inadequate,
+     although both cases carry reference nodules. The model currently does not recognize
+     the reference findings. Next bounded diagnostics vary one factor each: prompt P1 vs P2
+     (evidence constraint), Q8 vs Q4, general VLM control `qwen3-vl:4b`.
+  4. ⏳ Fine-tuning/adaptation strategy in `docs/fine-tuning-plan.md` (research only; no
+     training before output reliability passes; calibration split only).
+  5. ⏳ **Evaluation section (decided 2026-10-16, user delegated the decision):** read-only
+     UI over `data/results/benchmark/` — runs list, run comparison (existing `compare`),
+     per-case reference-vs-prediction table filterable by status/abstention/evidence
+     validity, case detail with the actual prepared images, raw/parsed response and
+     evidence verdict. Never starts inference, never reads sealed data, honours split
+     guards, escapes model text. Single-study analysis remains as the second mode.
+  Housekeeping: an older `commit.sh` stash (16:16, base `9453bbe`) is kept, not dropped;
+     its content appears superseded by later commits — the user decides.
+  6. ⏳ Refresh synthetic screenshots, README snippets and `manual.html`/`manual.pdf`;
+     full Playwright flow in EN/DE, light/dark, mobile; full gate; self-review.
 - 🔄 **User-authorized UX completion (2026-10-16):** eight confirmed should-fix findings
   and acceptance checks are recorded in [the UX review](ux-review-2026-10-16.md) and
   [offline HTML review](ux-review-2026-10-16.html). Prioritize library discovery/search,
@@ -339,6 +367,30 @@ from here**: read this section and *Next steps*, then `git log --oneline | head 
 - ✅ Schemas + ontology (v0.0.7), DICOM loader + phantoms (v0.0.6), registry (v0.0.5),
   architecture (v0.0.3), bootstrap (v0.0.1).
 
+## Ideas and wishes (recorded 2026-10-16)
+
+User wishes, in their words where possible, with status:
+
+| Wish | Status / decision |
+|---|---|
+| "Does it recognize what it should?" on the given medical data | 🔄 Not yet: latest calibration run 4/4 abstentions; bounded diagnostics continue (calibration only) |
+| "How could the models be fine-tuned for the best and most precise results?" | ⏳ Strategy document `docs/fine-tuning-plan.md`; training waits for output reliability |
+| Is the UI/UX best adapted to the medical-model and evaluation workflow, or rethink it? | Decided: keep the single-study workbench, add a read-only Evaluation section (FiftyOne/MLflow-style run and per-case error browsing) |
+| Tooltip bug solved, with a bit more delay | ✅ in implementation: 650 ms delay, hoverable, per-control descriptions; verification in step 2 |
+| Refresh all screenshots and docs | ⏳ After all UI changes (step 6) |
+| End-to-end testing | ⏳ Step 6 plus focused Playwright tests per finding |
+| LinkedIn recording | ⏳ Waits for the user's explicit trigger |
+| LAN / 40 GB VRAM runner | ⏳ Deferred until resumed explicitly |
+
+Ideas not yet scheduled (need a separate decision):
+
+* Reader-study mode (blinded case queue, radiologist annotations) in the style of
+  grand-challenge.org reader studies — only with a qualified reviewer.
+* Image overlays of model evidence on the viewer (advanced reference overlays stay deferred).
+* Classical nodule CAD or a small supervised 3D detector trained on calibration LIDC
+  annotations as a stronger baseline than the HU heuristic.
+* Fitted calibration (Platt/isotonic) once enough scorable outputs exist.
+
 ## Next steps (in order)
 
 1. Check the corrected uniform two-image configuration on calibration only with
@@ -356,9 +408,12 @@ from here**: read this section and *Next steps*, then `git log --oneline | head 
 5. Keep LAN implementation and 40 GB runner verification deferred until resumed explicitly.
 6. Close remaining ranked gaps: calibration fitting, training-overlap column, E005–E008
    configurations, model manifests, CLI `compare` and remaining cohort report tasks.
-7. Complete the eight authorized UX fixes in `docs/ux-review-2026-10-16.md`, refresh
-   synthetic screenshots/snippets and verify the end-to-end browser workflow. Advanced
-   reference-scored UI remains deferred.
+7. Complete the eight authorized UX fixes in `docs/ux-review-2026-10-16.md`, then the
+   read-only Evaluation section (see *Current activity*), refresh synthetic
+   screenshots/snippets/manual and verify the end-to-end browser workflow. Advanced
+   reference overlays on images remain deferred.
+7a. Follow `docs/fine-tuning-plan.md`: output reliability and input coverage before any
+   training; adaptation experiments start at E009 on the calibration split only.
 8. After the user triggers recording and readiness passes, implement the recorder and
    capture the synthetic workflow using [both pilot scripts](linkedin-video-plan.md).
    Do not record or publish before that trigger.
