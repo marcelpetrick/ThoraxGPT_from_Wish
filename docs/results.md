@@ -417,3 +417,99 @@ Duplicate evidence numbers are not prevented by the grammar; the guard removes t
 emitted about 5 400 characters of `thinking` and stopped at the 1500-token limit with
 empty content, with and without `"think": false`. A control needs a reviewed new model
 configuration with a larger generation budget. It was not run.
+
+## E001-schema — strict schema, image-only captions, coverage-selected input (2026-10-16/17)
+
+Readiness diagnostics on calibration cases only, not accuracy benchmarks. No internal-test
+or sealed case was read. Setup for both runs: P5 1.0.0 (prompt hash
+`6b7d77c63316…`), strict schema version 2, `lung_extent`, 24 axial images, 5 mm view MIP
+slabs (9 mm rendered on 3 mm volumes), 896 px, `caption_style: image_only`,
+`include_cues: false`, no coronal. Preprocess hash `ebae6d228af6…`. Q4 digest
+`433252621ab1…`, Q8 digest `d6ae3cddb663…`. Each case sent 24 images and 7644 prompt
+tokens (within `num_ctx` 16384).
+
+### Run 1: E001-schema `--limit 1` (one case per dataset, Q4 and Q8)
+
+```bash
+uv run thoraxbench benchmark configs/experiments/E001_schema.yaml --limit 1
+```
+
+Config SHA-256 `426075f2fd3c565d3e9f5c39eaff94642680e1673a94c0f9ce95d7dab0df4c23`, code
+`24e71c3` (v0.3.22). Provenance says `dirty: True`: `docs/results.md` was edited while the
+run was in progress; code and configuration matched the commit.
+
+| Variant | Scored | Abstained | Usable label predictions | Out-of-range evidence | Stop reason | Mean case time |
+|---|---:|---:|---:|---:|---|---:|
+| Q4 | 2/2 | 0 | 4/4 | 0/14 references | `stop` ×2 | 194 s |
+| Q8 | 2/2 | 0 | 4/4 | 0/16 references | `stop` ×2 | 222 s |
+
+Total wall time 838.2 s; peak GPU memory snapshot 5.7 GB. Every one of the eight label
+predictions was `present: true` at confidence 0.95, including the known-negative LIDC mass
+label (one false positive per variant). Both nodule-positive references were "detected".
+Three of four responses cited images 1–4 (the first four attached images) for every
+label; one cited images 21–23. All responses copied the context sentence "No
+deterministic measurements are available" into `study_quality.limitations`.
+
+### Run 2: E001-schema-lidc `--limit 10` (LIDC, 7 nodule-positive + 3 negative)
+
+```bash
+uv run thoraxbench benchmark configs/experiments/E001_schema_lidc.yaml --limit 10
+```
+
+Config SHA-256 `6a0b399ee43639f295732fa0971535c07be790ffe7c82fe19b36498d4d15208c`, code
+`b048dc4` (v0.3.23, not dirty). The first ten LIDC calibration cases in split order are
+seven nodule-positive and three negative studies. This sample was chosen after run 1
+showed constant positive answers; it uses calibration data only. Total wall time 4170.8 s.
+
+| Item | Q4 | Q8 |
+|---|---|---|
+| Scored / abstained / failed | 9 / 1 / 0 | 10 / 0 / 0 |
+| Schema-valid JSON | 10/10 | 10/10 |
+| Usable case × label predictions | 18/20 (90 %) | 20/20 (100 %) |
+| Out-of-range evidence references | 0/16 | 0/80 |
+| Generation-limit stops | 0 (`stop` ×10) | 0 (`stop` ×10) |
+| Copied heuristic text | none sent; none copied | none sent; none copied |
+| Raw `present` value | `true` in 9/10 cases for both labels | `true` in 10/10 cases for both labels |
+| Distinct answers | confidence 0.0 (6 cases) or 0.95 (3 cases) | always 0.95, evidence `[1, 2, 3, 4]` |
+| Nodule TP/FP/TN/FN at 0.5 | 2/0/2/5 | 7/3/0/0 |
+| Nodule AUROC (n, positives) | 0.643 (9, 7) | 0.500 (10, 7) |
+| Mass (all reference-negative) | 2 FP / 7 TN | 10 FP / 0 TN |
+| Cited nodule images on a lesion slab | 0/8 in 3 positive cases | 1/28 in 7 positive cases |
+| Mean case time | 192 s | 223 s |
+
+Notes:
+
+* Q8 returned the same answer for every study: both labels present at 0.95 with images
+  1–4. Its 7/7 nodule "sensitivity" and 0/3 specificity carry no visual information.
+* Q4 set `present: true` almost always and varied only the confidence. The parser turns
+  "true at confidence 0.0" into a positive probability of 0.0. Q4 gave nodule and mass the
+  same answer in every case.
+* Q4's one abstention was `present: false` at confidence 0.0, which implies a positive
+  probability of 1.0 without evidence. The evidence guard made both labels unavailable.
+* On average about 15 % (Q4 cases) and 9 % (Q8 cases) of the attached slabs intersected a
+  reference lesion. Cited images hit a lesion slab less often than chance would give.
+* Every response copied the empty-context sentence into `study_quality.limitations`.
+* The installed GPU snapshot peaked at 5.7 GB. One case needed about 140 s of prefill for
+  7644 prompt tokens.
+
+### Acceptance check and answer
+
+Pre-registered E001-schema criteria: ≥95 % usable predictions, 0 out-of-range evidence,
+0 generation-limit stops, 0 copied heuristic text.
+
+* **Output reliability: mostly fixed.** Q8 met all four formal criteria. Q4 missed the
+  usable-output criterion (90 %). The strict schema removed truncation, invalid image
+  numbers, label omissions and copied heuristic candidates.
+* **Recognition: no.** With 96 % of reference lesions on an attached 896-pixel slab, neither
+  quantization separated nodule-positive from negative LIDC studies. Q8 answers a fixed
+  template. Q4's confidence pattern is not distinguishable from noise at n = 9. Neither
+  model distinguished a nodule from a mass. Cited evidence did not point at lesions.
+  These are small calibration samples; they do not measure accuracy, but they give no
+  sign of visual recognition with this prompt and input.
+
+E001-schema therefore does not pass as a readiness gate for E002–E004. The formal criteria
+do not detect constant answers; add a "non-constant output" check (both answer classes
+must occur on mixed references) before using them as the gate again.
+
+Case artifacts stay under ignored `data/results/benchmark/E001-schema/` and
+`data/results/benchmark/E001-schema-lidc/`. Only aggregate values are reported here.
