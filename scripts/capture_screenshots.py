@@ -92,16 +92,19 @@ class Shot:
 # --------------------------------------------------------------------------- server
 
 
+def _offline() -> dict[str, Any]:
+    return {
+        "ollama_url": DEAD_ENDPOINT,
+        "service_urls": dict.fromkeys(Settings().service_urls, DEAD_ENDPOINT),
+    }
+
+
 @contextlib.contextmanager
-def running_server(data_dir: Path) -> Iterator[str]:
+def running_server(data_dir: Path, settings: Settings | None = None) -> Iterator[str]:
     """Serve the workbench on a free loopback port; yield its base URL."""
     from thoraxbench.api.app import create_app  # noqa: PLC0415 - import after env is final
 
-    settings = Settings(
-        data_dir=data_dir,
-        ollama_url=DEAD_ENDPOINT,
-        service_urls=dict.fromkeys(Settings().service_urls, DEAD_ENDPOINT),
-    )
+    settings = settings or Settings(data_dir=data_dir, **_offline())
     sock = socket.socket()
     sock.bind(("127.0.0.1", 0))
     port = int(sock.getsockname()[1])
@@ -235,7 +238,7 @@ def _freeze_clock(page: Page) -> None:
 
 def _create_demo(page: Page) -> None:
     page.locator("#create-demo").click()
-    expect(page.locator("#study-select")).to_contain_text("demo / phantom")
+    expect(page.locator("#study-select option:checked")).to_have_text("phantom")
     slider = page.locator("#slice-slider")
     expect(slider).to_be_enabled()
     slider.fill(DEMO_SLICE)
@@ -333,8 +336,8 @@ def shot_results(browser: Browser, address: str, path: Path) -> None:
     page = _open(browser, address)
     _create_demo(page)
     _run_heuristic(page, wait_ms=1_800)
-    expect(page.locator("#findings-table")).to_contain_text("pulmonary nodule")
-    expect(page.locator("#results-content .result-caution")).to_be_visible()
+    expect(page.locator("#findings-table")).to_contain_text("Pulmonary nodule")
+    expect(page.locator("#results-content [data-i18n='scoresNotice']")).to_be_visible()
     _settle(page)
     _save(page, path, full_page=True)
     _close(page)
@@ -493,6 +496,62 @@ def shot_mobile(browser: Browser, address: str, path: Path) -> None:
     _close(page)
 
 
+def _evaluation_run(browser: Browser, address: str, viewport: ViewportSize = DESKTOP) -> Page:
+    page = _open(browser, address, "/evaluation", viewport)
+    row = page.locator("#eval-runs-body tr[data-run^='SYNTH-E001/']")
+    row.get_by_role("button").click()
+    expect(page.locator("#eval-cases-body tr")).to_have_count(10)
+    return page
+
+
+def shot_evaluation_runs(browser: Browser, address: str, path: Path) -> None:
+    """Evaluation: stored synthetic runs and the per-case reference/prediction table."""
+    page = _evaluation_run(browser, address)
+    expect(page.locator("#eval-runs-body")).to_contain_text("SYNTH-E000")
+    _settle(page)
+    _save(page, path, full_page=True)
+    _close(page)
+
+
+def shot_evaluation_case(browser: Browser, address: str, path: Path) -> None:
+    """Evaluation case detail: evidence check, image information and stored responses."""
+    page = _evaluation_run(browser, address)
+    page.locator("#eval-cases-body tr[data-case='q4-p2/lidc_idri/SYNTH-P3'] button").click()
+    expect(page.locator("#eval-images-note")).to_contain_text("not stored")
+    page.locator("#eval-parsed-details").evaluate("element => { element.open = false; }")
+    _settle(page)
+    _save(page.locator("#eval-case"), path)
+    _close(page)
+
+
+def shot_evaluation_compare(browser: Browser, address: str, path: Path) -> None:
+    """Descriptive comparison of the scripted vision variants and the HU baseline."""
+    page = _evaluation_run(browser, address)
+    for checkbox in page.locator("#eval-runs-body input[type=checkbox]").all():
+        checkbox.check()
+    page.locator("#eval-compare").click()
+    expect(page.locator("#eval-pairs-body tr")).to_have_count(3)
+    _settle(page)
+    _save(page.locator("#eval-comparison"), path)
+    _close(page)
+
+
+def shot_evaluation_mobile(browser: Browser, address: str, path: Path) -> None:
+    """German dark Evaluation at phone width."""
+    page = _evaluation_run(browser, address, MOBILE)
+    page.locator("#language-toggle").click()
+    page.locator("#theme-toggle").click()
+    expect(page.locator("#evaluation-heading")).to_have_text("Auswertung gespeicherter Läufe")
+    _require(
+        bool(page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")),
+        "mobile Evaluation layout overflows horizontally",
+    )
+    page.evaluate("() => window.scrollTo(0, 0)")
+    _settle(page)
+    _save(page, path)
+    _close(page)
+
+
 SHOTS = (
     Shot("ui-study-viewer", "synthetic study in the viewer", shot_study_viewer),
     Shot("ui-results", "heuristic-hu findings with disclaimer", shot_results),
@@ -501,6 +560,13 @@ SHOTS = (
     Shot("ui-about", "About page", shot_about),
     Shot("ui-dark-de", "German interface, dark mode", shot_dark_de),
     Shot("ui-mobile", "390 px phone layout", shot_mobile),
+)
+# Served from a separate synthetic benchmark tree (real runner over phantoms).
+EVALUATION_SHOTS = (
+    Shot("ui-evaluation-runs", "Evaluation runs and case table", shot_evaluation_runs),
+    Shot("ui-evaluation-case", "Evaluation case detail", shot_evaluation_case),
+    Shot("ui-evaluation-compare", "Evaluation run comparison", shot_evaluation_compare),
+    Shot("ui-evaluation-mobile", "Evaluation, German dark, 390 px", shot_evaluation_mobile),
 )
 
 
@@ -533,7 +599,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--only",
         action="append",
-        choices=[shot.name for shot in SHOTS],
+        choices=[shot.name for shot in (*SHOTS, *EVALUATION_SHOTS)],
         help="capture only this shot; repeatable",
     )
     parser.add_argument("--chromium", type=Path, help="explicit Chromium executable")
@@ -544,19 +610,30 @@ def main(argv: list[str] | None = None) -> int:
     """Run the check or the capture; return a process exit status."""
     args = parse_args(argv)
     selected = [shot for shot in SHOTS if not args.only or shot.name in args.only]
+    evaluation = [shot for shot in EVALUATION_SHOTS if not args.only or shot.name in args.only]
     try:
         with (
             tempfile.TemporaryDirectory(prefix="thoraxbench-shots-") as tmp,
-            running_server(Path(tmp)) as address,
+            running_server(Path(tmp) / "demo") as address,
         ):
             print("Local workbench started on a temporary loopback port with synthetic data.")
             if args.check:
-                for line in check_routes(address, Path(tmp)):
+                for line in check_routes(address, Path(tmp) / "demo"):
                     print(f"  ok  {line}")
                 print("Check passed: routes ready; no browser launched.")
-            else:
+            elif selected:
                 capture(address, args.out_dir.resolve(), selected, args.chromium)
-                print(f"Done: {len(selected)} screenshot(s) in {args.out_dir}")
+            if evaluation and not args.check:
+                from thoraxbench.synthetic_runs import (  # noqa: PLC0415 - optional, slower setup
+                    build_synthetic_benchmarks,
+                )
+
+                built = build_synthetic_benchmarks(Path(tmp) / "evaluation", **_offline())
+                print(f"Synthetic benchmark runs: {len(built.runs)} (scripted, no model ran)")
+                with running_server(built.settings.data_dir, built.settings) as eval_address:
+                    capture(eval_address, args.out_dir.resolve(), evaluation, args.chromium)
+            if not args.check:
+                print(f"Done: {len(selected) + len(evaluation)} screenshot(s) in {args.out_dir}")
     except CaptureError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 1

@@ -224,7 +224,8 @@ Boundaries:
 ## Current screens
 
 Synthetic phantom only; comparison and download states are mocked by
-`scripts/capture_screenshots.py`. Timings and browser waits are fixed illustrative values,
+`scripts/capture_screenshots.py`. Evaluation captures read synthetic benchmark runs with
+scripted (labelled) vision outputs. Timings and browser waits are fixed illustrative values,
 not measurements.
 
 | Screen | Screenshot |
@@ -236,6 +237,10 @@ not measurements.
 | About | ![About](assets/ui-about.png) |
 | German, dark | ![German dark](assets/ui-dark-de.png) |
 | Mobile | ![Mobile](assets/ui-mobile.png) |
+| Evaluation runs and cases | ![Evaluation](assets/ui-evaluation-runs.png) |
+| Evaluation case detail | ![Evaluation case](assets/ui-evaluation-case.png) |
+| Evaluation comparison | ![Evaluation comparison](assets/ui-evaluation-compare.png) |
+| Evaluation, German, dark, mobile | ![Evaluation mobile](assets/ui-evaluation-mobile.png) |
 
 ## MVP acceptance and verification
 

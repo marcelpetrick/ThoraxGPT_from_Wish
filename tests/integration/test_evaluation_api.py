@@ -137,6 +137,8 @@ def test_case_detail_returns_stored_response_without_identifiers(
     assert findings["pulmonary_nodule"]["in_range"] is True
     assert findings["pulmonary_nodule"]["evidence_kind"] == "model_images"
     assert findings["pulmonary_mass"]["presence"] == "unavailable"
+    # No kept reference is not "in range"; it is not applicable.
+    assert findings["pulmonary_mass"]["in_range"] is None
     assert detail["response"]["parsed"]["findings"][1]["present"] is None
     serialized = json.dumps(detail)
     assert "patient_id" not in serialized

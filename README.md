@@ -50,7 +50,8 @@ without an AI server, and vision models use local Ollama.
 ## Screenshots
 
 All screenshots show the code-generated synthetic phantom, not patient data. Vision-model
-outputs and model-download states are mocked. Engine timings and browser waits are fixed
+outputs and model-download states are mocked. Evaluation screenshots read synthetic benchmark
+runs whose vision outputs are scripted (no model ran). Engine timings and browser waits are fixed
 illustrative values, not benchmark measurements. Regenerate them with
 `uv run python scripts/capture_screenshots.py` (see `scripts/README.md`).
 
@@ -59,6 +60,8 @@ illustrative values, not benchmark measurements. Regenerate them with
 | ![Workbench with synthetic phantom and uncalibrated heuristic findings](docs/assets/ui-results.png) | ![Sequential comparison with completed, abstained, failed and skipped models](docs/assets/ui-comparison.png) |
 | **German, dark theme** | **Mobile** |
 | ![German dark-theme workbench](docs/assets/ui-dark-de.png) | ![Narrow mobile layout](docs/assets/ui-mobile.png) |
+| **Evaluation of stored runs** | **Evaluation case detail** |
+| ![Read-only Evaluation with synthetic benchmark runs and per-case reference versus prediction](docs/assets/ui-evaluation-runs.png) | ![Case detail with image count, evidence check and plain-text raw response](docs/assets/ui-evaluation-case.png) |
 
 ## First browser run
 

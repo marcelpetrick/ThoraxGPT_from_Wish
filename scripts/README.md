@@ -37,9 +37,10 @@ you intend to commit the staged changes; other work is stashed during verificati
 temporary data root. It creates the synthetic demo phantom and drives Chromium through
 Playwright. Ollama and the 3D services point at an unused loopback port, so no real model
 runs and no network access happens. The comparison outputs and the download progress are
-mocked in the browser and labeled as mocked. Never capture patient studies.
+mocked in the browser and labeled as mocked. Evaluation shots read synthetic benchmark runs
+with scripted model outputs. Never capture patient studies.
 
-The table lists the seven committed synthetic screenshots. The capture script can
+The table lists the eleven committed synthetic screenshots. The capture script can
 regenerate them; compare the output before replacing tracked images.
 
 | PNG in `docs/assets/` | Content |
@@ -51,6 +52,14 @@ regenerate them; compare the output before replacing tracked images.
 | `ui-about.png` | About page with author, purpose and dependency licenses (full page) |
 | `ui-dark-de.png` | German interface in dark mode after a heuristic run (1440 × 900) |
 | `ui-mobile.png` | Synthetic study at 390 × 844 phone width |
+| `ui-evaluation-runs.png` | Evaluation: synthetic benchmark runs and the per-case reference/prediction table (full page) |
+| `ui-evaluation-case.png` | Evaluation case detail: image information, evidence check, raw response (panel) |
+| `ui-evaluation-compare.png` | Evaluation: descriptive comparison of three synthetic setups (panel) |
+| `ui-evaluation-mobile.png` | Evaluation in German and dark mode at 390 × 844 |
+
+The Evaluation captures use a second temporary tree from `thoraxbench.synthetic_runs`: the
+real benchmark runner over code-generated phantoms. The HU baseline runs for real; the two
+"vision" variants are scripted outputs whose raw text states that no model ran.
 
 Prerequisites:
 

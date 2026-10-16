@@ -354,7 +354,7 @@ class Evaluation:
                     "evidence_images": list(finding.evidence_images),
                     "evidence_kind": "model_images" if count else "source_slices",
                     "in_range": all(1 <= item <= count for item in finding.evidence_images)
-                    if count
+                    if count and finding.evidence_images
                     else None,
                 }
                 for finding in analysis.report.findings

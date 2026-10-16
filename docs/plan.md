@@ -107,7 +107,8 @@ Status: ✅ done · 🔄 in progress · ⏳ open · ✖ dropped
   delegated the decisions to the agent. Order:
   1. ✅ Commit the parallel work in logical gated commits (split guards, inadequate-study
      abstention, model manifests, cohort exports/compare, UX implementation).
-  2. ✅ Verified the eight UX findings against their acceptance checks (2026-10-16). Evidence
+  2. ✅ Verified the eight UX findings against their acceptance checks (2026-10-16, v0.3.23,
+     commit `63bba61`; gate: 619 tests, 99 % coverage). Evidence
      per finding is in the UX review (Markdown and HTML). New browser checks:
      `tests/e2e/test_web_ui_acceptance.py` (10 tests) beside `tests/e2e/test_web_ui.py` (20).
      Gaps fixed: refresh/search reset the slice and could keep a removed study's stale
@@ -125,7 +126,7 @@ Status: ✅ done · 🔄 in progress · ⏳ open · ✖ dropped
      (evidence constraint), Q8 vs Q4, general VLM control `qwen3-vl:4b`.
   4. ⏳ Fine-tuning/adaptation strategy in `docs/fine-tuning-plan.md` (research only; no
      training before output reliability passes; calibration split only).
-  5. ✅ **Evaluation section (decided 2026-10-16, user delegated; implemented v0.4.0):**
+  5. ✅ **Evaluation section (decided 2026-10-16, user delegated; implemented v0.4.0, gate: 641 tests, 99 % coverage):**
      read-only `/evaluation` page and `GET /api/evaluation/*` (`api/evaluation.py`) over
      `data/results/benchmark/<experiment>/<run>/`. Runs list (experiment, config hash, start
      time, state with reason, variants, status counts); descriptive comparison through
@@ -142,8 +143,17 @@ Status: ✅ done · 🔄 in progress · ⏳ open · ✖ dropped
      phantoms; scripted, labelled vision outputs). "Analyze one study" remains the first mode.
   Housekeeping: an older `commit.sh` stash (16:16, base `9453bbe`) is kept, not dropped;
      its content appears superseded by later commits — the user decides.
-  6. ⏳ Refresh synthetic screenshots, README snippets and `manual.html`/`manual.pdf`;
-     full Playwright flow in EN/DE, light/dark, mobile; full gate; self-review.
+  6. ✅ Refreshed (2026-10-17): all 11 synthetic captures in `docs/assets/` via
+     `scripts/capture_screenshots.py` (7 workbench shots plus 4 new Evaluation shots from a
+     second temporary `thoraxbench.synthetic_runs` tree; selectors fixed for grouped study
+     options and translated finding names). README, `docs/ui.md` and `scripts/README.md`
+     list them. `manual.html` gained an Evaluation sheet (10 / STORED RUN REVIEW), the
+     "Analyze one study" label, the model-setup route and tooltip behaviour; `manual.pdf`
+     was re-printed with headless Chromium (13 A4 pages, one per sheet, checked by sheet
+     height). Full e2e suite (demo → viewer → analysis → result/download, About and back,
+     Evaluation, EN/DE, light/dark, 390 px): 35 browser tests green, then the full gate.
+     Self-review found and fixed one Evaluation bug: a finding without kept references
+     showed "In range: yes"; it now shows "n/a" (regression assertion added).
 - 🔄 **User-authorized UX completion (2026-10-16):** eight confirmed should-fix findings
   and acceptance checks are recorded in [the UX review](ux-review-2026-10-16.md) and
   [offline HTML review](ux-review-2026-10-16.html). Prioritize library discovery/search,
