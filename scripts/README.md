@@ -85,6 +85,7 @@ prints one `wrote … (<bytes> bytes)` line per PNG and ends with `Done: 7 scree
 Content is deterministic: English and light mode except `ui-dark-de.png`, a fixed browser
 clock, fixed engine timings and a seeded phantom. Pixels can still differ between hosts
 because system fonts differ. Version numbers on the About page follow the installed release.
+Page screenshots start at the top so the header and research banner remain visible.
 
 **Recovery:**
 

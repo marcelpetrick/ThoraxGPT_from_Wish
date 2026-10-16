@@ -33,8 +33,11 @@ names Marcel Petrick as author, explains the research purpose, and lists used li
 installed versions and license information. UI text is translated; generated research
 reports remain English until separately specified.
 
-Use synthetic studies for browser tests and screenshots. Do not commit patient images or
-rendered CT slices. Test the complete demo → viewer → analysis → result/download flow,
+Use synthetic studies for browser tests and screenshots. Never commit patient images or
+rendered slices of real CT studies. Screenshots of the code-generated synthetic phantom
+(`scripts/capture_screenshots.py` → `docs/assets/`) are allowed (2026-10-16, consistent
+with DATA_POLICY.md, which bans renders and screenshots of real studies). Test the complete
+demo → viewer → analysis → result/download flow,
 keyboard help, preference persistence and both UI languages/themes with Playwright.
 Show live elapsed request time separately from recorded engine-stage timings. Recommended-
 model comparison is opt-in and sequential, preserves partial failures/abstentions/skips,
@@ -64,8 +67,8 @@ follow the proposed design in `docs/lan-runner.md` when resumed.
    user-facing output carries the research-only disclaimer, identifies this as a self-made
    experimental tool, and states that findings may be incorrect, incomplete or misleading
    and are not professional medical advice or a basis for diagnosis/treatment decisions.
-2. **No medical data in Git.** DICOM, NIfTI, rendered slices, model weights, archives and
-   secrets never get committed. `scripts/check_no_medical_data.sh` enforces this in the
+2. **No medical data in Git.** DICOM, NIfTI, rendered slices of real studies, model weights,
+   archives and secrets never get committed. `scripts/check_no_medical_data.sh` enforces this in the
    pipeline. Raw data lives in `data/` (git-ignored, 10 GB budget).
 3. **The sealed split stays sealed.** The 20 % sealed-validation patients
    (`data/sealed/`, hash-only manifest in `manifests/splits/`) must never be read by
@@ -157,7 +160,7 @@ Apply the flight-manual writing style throughout repository documentation:
 | `src/thoraxbench/ontology/labels.yaml` | canonical label ontology with native-term mappings (packaged data) |
 | `src/thoraxbench/synthetic.py` | synthetic DICOM phantoms for tests and demos |
 | `configs/` | datasets registry, models, prompts (YAML) |
-| `configs/experiments/` | benchmark experiment configs (E001 heuristic baseline, E002–E004 MedGemma) |
+| `configs/experiments/` | benchmark experiment configs (E000 heuristic baseline, E001–E004 MedGemma) |
 | `manifests/` | acquisition manifests, split manifests (IDs/hashes only), model manifests |
 | `scripts/` | small documented helper scripts (see `scripts/README.md`) |
 | `docs/` | architecture, datasets, model cards, results, reproducibility, plan, traceability |

@@ -269,6 +269,7 @@ def _save(target: Page | Locator, path: Path, *, full_page: bool = False) -> Non
             # link); grow the viewport to the document height instead.
             height = int(target.evaluate("document.documentElement.scrollHeight"))
             target.set_viewport_size({"width": target.viewport_size["width"], "height": height})
+        target.evaluate("window.scrollTo(0, 0)")
         target.screenshot(path=path, animations="disabled", caret="hide", style=style)
     else:
         target.screenshot(path=path, animations="disabled", caret="hide", style=style)

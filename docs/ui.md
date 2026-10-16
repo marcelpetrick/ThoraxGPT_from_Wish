@@ -155,7 +155,23 @@ A successful health response establishes service availability, not model accurac
 | Inference | Same analysis function as CLI; local adapters; clear loading, failure and abstention states |
 | Exports | Findings/provenance JSON, English research Markdown and standalone HTML with embedded actual images and finding/evidence links; no user-authored HTML execution |
 | Privacy | Research IDs only; do not expose patient names/dates or unnecessary absolute paths |
-| Screenshots | Synthetic imagery stays in ignored `data/results/`; never commit patient images |
+| Screenshots | Only the code-generated synthetic phantom, captured by `scripts/capture_screenshots.py` into `docs/assets/`; never commit patient images or real-study renders |
+
+## Current screens
+
+Synthetic phantom only; comparison and download states are mocked by
+`scripts/capture_screenshots.py`. Timings and browser waits are fixed illustrative values,
+not measurements.
+
+| Screen | Screenshot |
+|---|---|
+| Study viewer | ![Study viewer](assets/ui-study-viewer.png) |
+| Results | ![Results](assets/ui-results.png) |
+| Model comparison | ![Comparison](assets/ui-comparison.png) |
+| Model setup | ![Model setup](assets/ui-model-setup.png) |
+| About | ![About](assets/ui-about.png) |
+| German, dark | ![German dark](assets/ui-dark-de.png) |
+| Mobile | ![Mobile](assets/ui-mobile.png) |
 
 ## MVP acceptance and verification
 

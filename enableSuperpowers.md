@@ -71,52 +71,30 @@ Keep the patterns narrow. They still pass through the normal permission prompts.
 1. Log in to GitHub outside the sandbox: `! gh auth login`.
 2. Approve the push when the commit script asks.
 
-## Operator tasks waiting for these settings
+## Current operator status (2026-10-16)
 
-Run each from the repository root. Read `docs/plan.md` → *Next steps* for the current list.
+The publication handover is resolved. GitHub main is v0.3.6 at 03754d1.
+The public v0.2.0 release points to 083971a and includes both operator manuals.
+Do not repeat the historical tag/release commands.
 
-1. Verify, push and release the local commits (see the next section).
-2. Capture documentation screenshots with `scripts/capture_screenshots.py` (see `scripts/README.md`).
-3. Run MedGemma experiments through `thoraxbench benchmark` on the development split.
-   Never use `--unseal`.
+This unrestricted session can reach Ollama and launch Chromium. Code-generated synthetic
+phantom screenshots are approved; real study renders remain forbidden. See AGENTS.md and
+DATA_POLICY.md. Screenshot timings and mocked model states are illustrative.
 
-**Checkpoint:** version 0.2.0 on `main`, GitHub CI green, the release lists both manuals.
+The remaining environment obstacle is a full shared /tmp tmpfs. Start in the repository
+root and use disk-backed task storage without deleting unrelated temporary files:
 
-## Local commits awaiting the full gate and push
+```bash
+mkdir -p /var/tmp/thoraxbench-pipeline-mpetrick
+TMPDIR=/var/tmp/thoraxbench-pipeline-mpetrick ./localPipeline.sh
+```
 
-At the user's request the sandboxed session committed the work locally as atomic
-conventional commits with plain `git commit`. Versions were bumped as `commit.sh` does.
-Every gate stage except Playwright passed on each commit's tree. Nothing is pushed.
+**Checkpoint:** every stage passes, including Playwright. Review synthetic-only screenshots
+and commit through scripts/commit.sh, with the same TMPDIR if required. Then run bounded
+MedGemma development experiments. Never pass --unseal.
 
-| Commit | Version | Message |
-|---|---|---|
-| `083971a` | 0.2.0 | `feat(ui): add live runtime, model comparison and guided model setup` |
-| `a80a714` | 0.2.1 | `feat(privacy): audit DICOM headers and redact output paths` |
-| `6e5ce9f` | 0.2.2 | `feat(acquire): add license, budget, split and checksum gated acquisition` |
-| `1578b0b` | 0.3.0 | `feat(benchmark): add development benchmark runner and E000 baseline` |
-| `bd0a770` | 0.3.1 | `docs(scripts): add reproducible synthetic screenshot capture script` |
-| `9de41d8` | 0.3.2 | `fix(splits): stop pointing to a nonexistent freeze command` |
-| last | 0.3.3 | `docs(repo): document benchmark, acquisition, privacy and data policies` |
-
-Prerequisites: the settings above are active. Work from the repository root.
-
-1. Run `./localPipeline.sh`. Expect `RESULT: GREEN`, including `tests/e2e/test_web_ui.py`.
-2. If a stage fails, fix it in a new commit through `scripts/commit.sh --no-push "fix(<scope>): …"`.
-3. Regenerate `manual.pdf` (command at the end of `manual.html`; the PDF is two sheets behind).
-   Commit it: `scripts/commit.sh "docs(manual): regenerate PDF manual"`. This also pushes.
-4. Tag and publish v0.2.0 on its commit:
-   `git tag v0.2.0 083971a && git push origin v0.2.0`, then
-   `gh release create v0.2.0 --verify-tag --title "ThoraxBench Local 0.2.0" --notes-file docs/releases/v0.2.0.md manual.html manual.pdf`.
-5. Capture screenshots after the decision below; embed them in `README.md` and `docs/ui.md`.
-6. Set the README coverage badge from `.pipeline/tests.log`.
-
-**Decision needed:** four shots show a rendered slice of the synthetic phantom. AGENTS.md
-forbids committing rendered CT slices; confirm that synthetic phantoms are exempt first.
-
-Never stage the root dotfiles (`.bashrc`, `.gitconfig`, `.idea`, …). They are sandbox mount
-points, not project files.
-
-**Checkpoint:** `git status` is clean, `origin/main` matches `main`, GitHub CI is green.
+The sandbox settings above describe the previous restricted environment. They are not
+instructions to change settings in this unrestricted session.
 
 ## Sources
 

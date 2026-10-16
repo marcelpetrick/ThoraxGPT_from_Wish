@@ -10,8 +10,8 @@ in [`AGENTS.md`](AGENTS.md) §1.
 
 ## 1. No medical data in Git
 
-Never commit DICOM studies, NIfTI or other volumes, rendered CT slices, dataset archives,
-model weights, credentials or tokens.
+Never commit DICOM studies, NIfTI or other volumes, rendered slices of real CT studies,
+dataset archives, model weights, credentials or tokens.
 
 Two controls enforce this:
 
@@ -50,8 +50,8 @@ slice outside `data/` would pass it. Review every added image by hand.
 
 ## 2. The local data directory
 
-All real and derived data lives in `data/` in the repository root. Git ignores it. Set
-`THORAXBENCH_DATA_DIR` to use another location.
+All real study data and its derivatives live in `data/` in the repository root. Git ignores
+it. Set `THORAXBENCH_DATA_DIR` to use another location.
 
 | Path | Content | Created by |
 |---|---|---|
@@ -200,6 +200,12 @@ Keep it. A `PolicyError` means the license gate refused the dataset; resolve the
 status first.
 
 ## 5. Synthetic data for tests and screenshots
+
+User-approved exception (2026-10-16): screenshots of the code-generated phantom produced
+by `scripts/capture_screenshots.py` may be committed under `docs/assets/`. Review every
+image and identify synthetic inputs and mocked states in its documentation. This exception
+does not permit real study renders, DICOM files, full image-bearing result exports or weights.
+Screenshot timings are illustrative fixed values, not benchmark measurements.
 
 * Tests use synthetic DICOM phantoms generated in code by `src/thoraxbench/synthetic.py`.
   They never use real patient data. Tests that need real data or a running model are

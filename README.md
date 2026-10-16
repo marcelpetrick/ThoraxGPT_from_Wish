@@ -4,7 +4,7 @@
 [![License: GPL v3 or later](https://img.shields.io/badge/license-GPLv3%20or%20later-blue.svg)](LICENSE)
 [![Python 3.14+](https://img.shields.io/badge/Python-3.14%2B-3776ab.svg)](https://www.python.org/)
 [![FastAPI 0.143.2](https://img.shields.io/badge/FastAPI-0.143.2-009688.svg)](pyproject.toml)
-[![Coverage 98.90%](https://img.shields.io/badge/coverage-98.90%25-brightgreen.svg)](docs/mvp-test.md)
+[![Coverage 99.17%](https://img.shields.io/badge/coverage-99.17%25-brightgreen.svg)](docs/mvp-test.md)
 [![mypy strict](https://img.shields.io/badge/mypy-strict-blue.svg)](pyproject.toml)
 [![Local inference](https://img.shields.io/badge/inference-local%20only-087f8c.svg)](docs/architecture.md)
 [![Research use only](https://img.shields.io/badge/use-research%20only-orange.svg)](Vision.md)
@@ -43,6 +43,19 @@ were checked against current stable releases on 2026-10-15.
 The local workbench turns a DICOM study into experimental findings and readable research
 reports. Use the GUI or CLI; both call the same guarded engine. The synthetic demo works
 without an AI server, and vision models use local Ollama.
+
+## Screenshots
+
+All screenshots show the code-generated synthetic phantom, not patient data. Vision-model
+outputs and model-download states are mocked. Engine timings and browser waits are fixed
+illustrative values, not benchmark measurements. Regenerate them with
+`uv run python scripts/capture_screenshots.py` (see `scripts/README.md`).
+
+| Analysis result (heuristic baseline) | Local model comparison |
+|---|---|
+| ![Workbench with synthetic phantom and uncalibrated heuristic findings](docs/assets/ui-results.png) | ![Sequential comparison with completed, abstained, failed and skipped models](docs/assets/ui-comparison.png) |
+| **German, dark theme** | **Mobile** |
+| ![German dark-theme workbench](docs/assets/ui-dark-de.png) | ![Narrow mobile layout](docs/assets/ui-mobile.png) |
 
 ## First browser run
 

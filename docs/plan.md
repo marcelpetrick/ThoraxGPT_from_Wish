@@ -11,7 +11,7 @@ here are binding until changed by a later commit to this file.
 | Ollama | 0.40.4, local server `http://localhost:11434` |
 | GPU | NVIDIA RTX A2000 Laptop, 8 GB VRAM |
 | RAM | 31 GB |
-| Data budget | 10 GB in `./data/` (git-ignored; configured limit, acquisition/budget CLI still pending) |
+| Data budget | 10 GB in `./data/` (git-ignored; enforced for `acquire`, not analysis/benchmark writes) |
 | Hugging Face token | none — gated sources (CT-RATE, CT-CLIP weights) are registered as `pending_access` |
 
 ## Priority (user decision, 2026-10-15)
@@ -85,7 +85,7 @@ Status: ✅ done · 🔄 in progress · ⏳ open · ✖ dropped
 | 🔄 WP6 | Splits and sealing ✅ (CaseGuard, freeze), pilot holdout frozen ✅, development-only indexing ✅, leakage tracking ⏳ (audit: the pre-rebuild NSCLC index held 5 non-development entries)  | 14, 15, 16 | lead |
 | ✅ WP7 | Scoring (A–G), calibration, bootstrap CIs, perf measurements, provenance | 13, 20, 21, 24 | agent |
 | 🔄 WP8 | Benchmark runner ✅ (`thoraxbench benchmark`, development split, JSON/Markdown reports, provenance); configs E000–E004 ✅; E005–E008, compare ⏳ | 18, 25, 26 | agent |
-| 🔄 WP9 | Local UI MVP ✅; live elapsed runtime + sequential recommended-model comparison extension ✅ (v0.2.0, release pending); advanced benchmark/reference screens deferred | 18 | lead |
+| 🔄 WP9 | Local UI MVP ✅; live elapsed runtime + sequential model comparison ✅ (v0.2.0 released); approved synthetic screenshots ✅; advanced screens deferred | 18 | lead |
 | ✖ WP10 | ~~Docker, compose, GHCR workflow~~ — dropped at the user's request | 17 | — |
 | 🔄 WP11 | E000 heuristic baseline on 70 development cases ✅ (`docs/results.md`); MedGemma E001–E004 ⏳ (needs reachable Ollama) | 26, 32 | lead |
 | 🔄 WP13 | Radiologist-style reading research → preprocessing (windows, MIP, coronal, HU cues) and the per-study English Markdown research report ✅ (term, plain language, educational severity/treatment context, prevalence, guideline context) | user request | research agent + lead |
@@ -96,7 +96,19 @@ Status: ✅ done · 🔄 in progress · ⏳ open · ✖ dropped
 Updated with every commit (newest first). **If a session breaks, the next agent resumes
 from here**: read this section and *Next steps*, then `git log --oneline | head -20`.
 
-- ✅ **Course correction work (2026-10-15, committed locally 0.2.1–0.3.3, not pushed):**
+- ✅ **Screenshots and handover (2026-10-16):** `main` v0.3.6 (`03754d1`) matches
+  GitHub. Public v0.2.0 exists with both manuals. Preserve and review the pending synthetic
+  screenshots reviewed; DATA_POLICY now records the approved synthetic exception. All seven
+  views are generated without real patient data; mocked states and timings are disclosed.
+  The full gate failed because shared `/tmp` is full (16 GB tmpfs). Retry with
+  `TMPDIR=/var/tmp/thoraxbench-pipeline-mpetrick ./localPipeline.sh`; do not delete unrelated temp files.
+  Browser acceptance works here. Benchmark fixes follow before inference: pass the configured label
+  list to analysis, and preserve each invocation in its own output folder. Both are next.
+- ⏳ **Next bounded experiment:** separately named calibration-only Q4/Q8 smoke, small
+  image budget, one case per dataset. No BF16 pull and no holdout access. Full E001–E004
+  sweeps follow only after usable output and memory/context limits are demonstrated.
+
+- ✅ **Historical sandbox handover (2026-10-15; pushed and released since then):**
   `thoraxbench benchmark` runner with E000–E004 configs; E000 heuristic baseline on 70
   development cases (macro AUROC 0.51 — a constant-output control, not accuracy; see
   `docs/results.md`). `thoraxbench acquire` with license, budget, split and checksum gates;
@@ -106,16 +118,15 @@ from here**: read this section and *Next steps*, then `git log --oneline | head 
   datagate, format, lint, strict types, build, wheel and audit pass; 368 tests pass with
   99.17 % coverage excluding the 11 Playwright tests. The sandbox blocks Chromium, Ollama,
   push and `gh`. At the user's request the queued changes were committed locally with plain
-  `git commit` (version bumps as `commit.sh` would do) because `commit.sh` cannot pass the
-  Playwright stage in the sandbox. **Not pushed; the Playwright stage has not run on these
-  commits.** Next session: run `./localPipeline.sh`, fix any failure, then `git push` and
-  publish the release. Commits 0.2.0–0.3.3 listed in `enableSuperpowers.md`. Session closed 2026-10-16.
+  `git commit` (version bumps as `commit.sh` would do) because `commit.sh` could not pass the
+  Playwright stage in that sandbox. GitHub now contains these commits and public v0.2.0
+  with both manuals. Current verification is recorded above; do not repeat publication.
 
-- 🔄 **UI extension v0.2.0 — implementation and review complete. Sandboxed gate (2026-10-15):
+- ✅ **UI extension v0.2.0 — released (historical sandbox gate, 2026-10-15):**
   sync/headers/datagate/format/lint/types pass, 287 tests pass, coverage 98.90 %; the 11
   Playwright tests could not start Chromium inside the agent sandbox (Unix sockets blocked)
-  and must pass in the operator's full gate. Committed locally as `083971a` (0.2.0); push, tag and public release are pending an
-  operator with push rights and `gh` authentication (see *Next steps* 1):** show browser
+  and awaited an unrestricted full gate then. Commit `083971a` is now public as v0.2.0
+  with both manuals. Delivered: show browser
   elapsed waiting time during inference, distinct from recorded engine stages. Add an opt-in
   switch to run available recommended local models sequentially, preserving per-model
   errors/abstentions, skipped availability and partial successes. Present findings side by
@@ -152,7 +163,7 @@ from here**: read this section and *Next steps*, then `git log --oneline | head 
 - ✅ **Operator manual (user follow-up):** root `manual.html` and matching `manual.pdf`,
   with configuration, startup, synthetic walkthrough, output interpretation and recovery.
   Uses short, direct maintenance-manual-style instructions. Document actual commands only;
-  acquisition and automatic data-budget CLI are still pending.
+  acquisition is implemented; a standalone automatic data-budget CLI remains pending.
 - ✅ **HTML review polish (user follow-up):** prominent per-finding educational severity
   and review context, responsive review layout, and explicit self-made-tool/no-professional-
   advice disclosure: available knowledge may be wrong, incomplete or misleading. Missing
@@ -219,16 +230,13 @@ from here**: read this section and *Next steps*, then `git log --oneline | head 
 
 ## Next steps (in order)
 
-1. **Operator with push rights:** the work is committed locally (0.2.0–0.3.3), not pushed.
-   Run the full gate with Playwright, push, tag and release v0.2.0 as listed in
-   `enableSuperpowers.md` → *Local commits awaiting the full gate and push*.
-2. **User decisions pending:** (a) may screenshots showing a rendered *synthetic* phantom
-   slice be committed (AGENTS.md forbids rendered CT slices)? (b) sandbox settings for
-   Ollama/Chromium per `enableSuperpowers.md`.
-   **Operator, unrestricted session:** follow `enableSuperpowers.md`. Run the full gate with
-   Playwright, capture screenshots, then commit the queued atomic changes listed there.
-3. **Operator with Ollama:** run `uv run thoraxbench benchmark configs/experiments/E001_medgemma_quantization.yaml --limit 5`
-   as a smoke test, then E001–E004 in full. Record results in `docs/results.md`.
+1. Finish unrestricted full-gate verification, then review and commit/push the approved
+   synthetic screenshots and corrected handover. v0.2.0 is already public.
+2. Fix benchmark label propagation and preserve each invocation's output. Synchronize
+   README, architecture and both operator manuals; test, review and commit/push.
+3. Run a bounded calibration-only MedGemma Q4/Q8 smoke through the benchmark runner.
+   Record aggregate results and explicit failure accounting in `docs/results.md`.
+   Keep the full E001–E004 sweeps separate from this readiness check.
 4. Audit leakage: confirm the 5 non-development entries of the former NSCLC index never
    reached analysis or results (compare against the hash-only split manifest).
 5. Tomorrow: implement/test the optional trusted LAN endpoint mode with an explicit allowlist;

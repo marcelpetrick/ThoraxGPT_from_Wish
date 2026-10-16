@@ -156,3 +156,19 @@ A further Playwright smoke check exercised the user's running loopback UI at v0.
 create synthetic demo → heuristic findings → HTML download → offline images and visible
 educational severity. It passed. The local review file and screenshot are ignored under
 `data/results/user-ui-test/`; no real study was analyzed.
+
+## Unrestricted verification and screenshots (2026-10-16)
+
+The screenshot documentation is verified through the full local pipeline, including all
+11 Chromium browser tests. The pre-benchmark-fix tree has 379 non-live tests and 99.17%
+coverage. The commit gate must pass before this snapshot is published.
+
+The shared /tmp tmpfs was full. The gate uses TMPDIR=/var/tmp/thoraxbench-pipeline-mpetrick,
+on the disk filesystem outside the checkout and home directory. The latter also preserves
+the generic-path assumptions of the existing CLI redaction test. No stage is skipped.
+
+All seven documentation screenshots come from scripts/capture_screenshots.py with a
+temporary synthetic-only data root. Vision outputs and download states are mocked.
+Displayed engine durations and browser waits are fixed illustrations, not measurements.
+Page captures start at the top so the research banner remains visible. Real study images
+and complete image-bearing exports remain excluded from Git.
