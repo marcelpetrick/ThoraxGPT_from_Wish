@@ -9,6 +9,7 @@ need no escaping:
 * ``$label_ids`` — comma-separated label ids
 * ``$n_images`` — number of images supplied
 * ``$captions`` — numbered image captions (window, plane, slab, position); authoritative
+* ``$caption_lines`` — the captions verbatim, one per line (they carry their own number)
 * ``$context`` — deterministic HU measurements ("evidence"), or a "none available" sentence
 * ``$regions`` — the fixed radiologist search order (:data:`REGION_ORDER`)
 * ``$schema`` — the JSON schema of the expected output
@@ -27,9 +28,10 @@ from typing import Any
 import yaml
 
 from thoraxbench.ontology import Ontology, load_ontology
-from thoraxbench.prompts.schema import findings_json_schema
+from thoraxbench.prompts.schema import findings_json_schema, strict_findings_json_schema
 
-PROMPT_IDS = ("P0", "P1", "P2", "P3", "P4")
+PROMPT_IDS = ("P0", "P1", "P2", "P3", "P4", "P5")
+SCHEMA_VERSIONS = ("1", "2")
 NO_CONTEXT = "No deterministic measurements are available for this study."
 
 #: Fixed checklist order matching radiologist search patterns (docs/reading_practice.md §4.1).
@@ -61,7 +63,7 @@ class PromptTemplate:
     """One versioned prompt (Vision §19).
 
     Attributes:
-        id: ``P0`` … ``P4``.
+        id: ``P0`` … ``P5``.
         version: version of the prompt text; bump on any wording change.
         title: short human-readable name.
         system: system message template.
@@ -69,6 +71,9 @@ class PromptTemplate:
         second_pass: optional user template of a second call (two-pass prompt P4).
         label_constrained: whether findings are restricted to the requested labels.
         sha256: hash of the canonical template content (recorded in run provenance).
+        schema_version: ``1`` = original findings schema; ``2`` = strict fixed-length
+            schema (:func:`~thoraxbench.prompts.schema.strict_findings_json_schema`),
+            label-constrained single-pass prompts only.
     """
 
     id: str
@@ -79,6 +84,7 @@ class PromptTemplate:
     second_pass: str | None
     label_constrained: bool
     sha256: str
+    schema_version: str = "1"
 
     @property
     def two_pass(self) -> bool:
@@ -87,6 +93,8 @@ class PromptTemplate:
 
     def schema(self, labels: list[str], *, n_images: int | None = None) -> dict[str, Any]:
         """Output JSON schema; label-constrained prompts restrict ``findings[].label``."""
+        if self.schema_version == "2":
+            return strict_findings_json_schema(labels, n_images=n_images or 0)
         return findings_json_schema(labels if self.label_constrained else None, n_images=n_images)
 
     def _values(
@@ -104,6 +112,7 @@ class PromptTemplate:
             "n_images": str(n_images),
             "captions": "\n".join(f"image {i}: {c}" for i, c in enumerate(captions, start=1))
             or "(no captions supplied)",
+            "caption_lines": "\n".join(captions) or "(no captions supplied)",
             "context": context.strip() or NO_CONTEXT,
             "regions": "\n".join(f"{i}. {r}" for i, r in enumerate(REGION_ORDER, start=1)),
             "schema": json.dumps(self.schema(labels, n_images=n_images), sort_keys=True),
@@ -167,6 +176,14 @@ def load_prompt(prompt_id: str, prompts_dir: Path) -> PromptTemplate:
         msg = f"{path.name}: id '{data.get('id')}' does not match '{prompt_id}'"
         raise ValueError(msg)
     canonical = json.dumps(data, sort_keys=True, ensure_ascii=False).encode("utf-8")
+    schema_version = str(data.get("schema_version", "1"))
+    if schema_version not in SCHEMA_VERSIONS:
+        msg = f"{path.name}: unknown schema_version '{schema_version}'"
+        raise ValueError(msg)
+    constrained = bool(data.get("label_constrained", False))
+    if schema_version == "2" and (not constrained or data.get("second_pass")):
+        msg = f"{path.name}: schema_version 2 needs a label-constrained single-pass prompt"
+        raise ValueError(msg)
     return PromptTemplate(
         id=str(data["id"]),
         version=str(data["version"]),
@@ -174,6 +191,7 @@ def load_prompt(prompt_id: str, prompts_dir: Path) -> PromptTemplate:
         system=str(data["system"]),
         user=str(data["user"]),
         second_pass=str(data["second_pass"]) if data.get("second_pass") else None,
-        label_constrained=bool(data.get("label_constrained", False)),
+        label_constrained=constrained,
         sha256=hashlib.sha256(canonical).hexdigest(),
+        schema_version=schema_version,
     )

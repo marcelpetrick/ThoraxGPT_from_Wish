@@ -1,0 +1,34 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 Marcel Petrick <mail@marcelpetrick.it>
+# Readiness diagnostic on calibration data only. Start with --limit 1; no accuracy claim.
+id: E001-schema
+title: MedGemma Q4/Q8 strict-schema output-reliability diagnostic
+description: >-
+  Strict P5 schema (fixed-length findings first, bounded text, enum confidences, one-based
+  IMAGE evidence) with one-based IMAGE captions without source-slice numbers, no heuristic
+  context and 896-pixel renders. Sampling follows the E001-coverage pick: lung_extent, 24
+  axial images, 5 mm view MIP slabs (96 % of calibration LIDC reference lesions on an
+  attached slab). Acceptance (pre-registered): >= 95 % of case x label predictions present
+  and schema-valid, 0 out-of-range evidence, 0 generation-limit stops, 0 copied heuristic
+  text. Tiny calibration samples cannot establish accuracy or a quantization winner.
+vision_ref: "Vision §10, §11, §19, §24: bounded output-readiness diagnostic"
+split: development
+phases: [calibration]
+model: medgemma1.5-q4
+prompt: P5
+view_overrides:
+  strategy: lung_extent
+  n: 24
+  slab_mm: 5.0
+  size: 896
+  coronal: false
+  include_cues: false
+  caption_style: image_only
+datasets: [lidc_idri, nsclc_radiogenomics]
+labels: [pulmonary_nodule, pulmonary_mass]
+n_boot: 0
+seed: 0
+variants:
+  - id: q4
+  - id: q8
+    model: medgemma1.5-q8

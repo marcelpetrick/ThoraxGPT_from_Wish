@@ -94,3 +94,121 @@ def findings_json_schema(
             "abstain",
         ],
     }
+
+
+#: Free-text bounds of the strict schema (llama.cpp grammars enforce ``maxLength``/``maxItems``).
+STRICT_LIMITS: dict[str, int] = {
+    "description": 160,
+    "region": 40,
+    "text_item": 120,
+    "uncertainty": 240,
+    "limitations": 2,
+    "incidental": 3,
+    "impression": 2,
+    "urgent": 2,
+    "evidence": 4,
+}
+
+
+#: Allowed strict-schema confidences (0.05 steps). Ollama 0.40.4 ignores ``maximum`` on
+#: numbers, so a literal ``enum`` bounds the value instead.
+CONFIDENCE_LEVELS: tuple[float, ...] = tuple(round(k * 0.05, 2) for k in range(21))
+
+
+def _bounded_strings(max_items: int, max_length: int) -> dict[str, Any]:
+    return {
+        "type": "array",
+        "items": {"type": "string", "maxLength": max_length},
+        "maxItems": max_items,
+    }
+
+
+def strict_findings_json_schema(labels: list[str], *, n_images: int) -> dict[str, Any]:
+    """Return the strict (version 2) findings schema for label-constrained prompts.
+
+    Differences from :func:`findings_json_schema`:
+
+    * ``findings`` comes first and has exactly one entry per requested label, in order
+      (``prefixItems`` with a ``const`` label, ``minItems == maxItems``; an additional
+      ``items`` schema made Ollama 0.40.4 ignore ``prefixItems``, so none is given);
+    * every object sets ``additionalProperties: false``;
+    * free text has ``maxLength`` and lists have ``maxItems``, so generation cannot run to
+      the token limit;
+    * evidence references are one-based integers ``1..n_images`` (at most four).
+
+    Ollama 0.40.4 enforced ``prefixItems``/``const``, ``minItems``/``maxItems``,
+    ``maxLength`` and integer ``minimum``/``maximum`` in a synthetic probe, but not
+    ``maximum`` on numbers, so confidence is a literal enum of 0.05 steps. The parser
+    still clamps confidence and the analysis still validates image evidence.
+
+    Raises:
+        ValueError: if *labels* is empty or *n_images* is negative.
+    """
+    if not labels:
+        raise ValueError("strict schema needs at least one requested label")
+    if n_images < 0:
+        raise ValueError("Image count cannot be negative")
+    lim = STRICT_LIMITS
+
+    def finding(label: str) -> dict[str, Any]:
+        return {
+            "type": "object",
+            "properties": {
+                "label": {"const": label},
+                "present": {"type": ["boolean", "null"]},
+                "confidence": {"type": "number", "enum": list(CONFIDENCE_LEVELS)},
+                "evidence_images": {
+                    "type": "array",
+                    "items": {"type": "integer", "minimum": 1, "maximum": max(n_images, 1)},
+                    "maxItems": min(lim["evidence"], n_images),
+                },
+                "laterality": {"type": "string", "enum": [m.value for m in Laterality]},
+                "size_bin": {"type": ["string", "null"], "enum": [*SIZE_BINS, None]},
+                "region": {"type": ["string", "null"], "maxLength": lim["region"]},
+                "description": {"type": "string", "maxLength": lim["description"]},
+            },
+            "required": ["label", "present", "confidence", "evidence_images"],
+            "additionalProperties": False,
+        }
+
+    return {
+        "type": "object",
+        "properties": {
+            "findings": {
+                "type": "array",
+                "prefixItems": [finding(label) for label in labels],
+                "minItems": len(labels),
+                "maxItems": len(labels),
+            },
+            "study_quality": {
+                "type": "object",
+                "properties": {
+                    "adequate": {"type": "boolean"},
+                    "limitations": _bounded_strings(lim["limitations"], lim["text_item"]),
+                },
+                "required": ["adequate", "limitations"],
+                "additionalProperties": False,
+            },
+            "negative_findings": {
+                "type": "array",
+                "items": {"type": "string", "enum": list(labels)},
+                "maxItems": len(labels),
+            },
+            "incidental_findings": _bounded_strings(lim["incidental"], lim["text_item"]),
+            "impression": _bounded_strings(lim["impression"], lim["text_item"]),
+            "urgent_flags": _bounded_strings(lim["urgent"], lim["text_item"]),
+            "uncertainty": {"type": "string", "maxLength": lim["uncertainty"]},
+            "abstain": {"type": "boolean"},
+        },
+        "required": [
+            "findings",
+            "study_quality",
+            "negative_findings",
+            "incidental_findings",
+            "impression",
+            "urgent_flags",
+            "uncertainty",
+            "abstain",
+        ],
+        "additionalProperties": False,
+    }
