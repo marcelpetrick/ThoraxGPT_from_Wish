@@ -1,14 +1,17 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Copyright (C) 2026 Marcel Petrick <mail@marcelpetrick.it>
-"""Markdown and JSON benchmark reports under ``data/results/benchmark/<id>/`` (Vision §25)."""
+"""Append-only benchmark reports under ``data/results/benchmark/<id>/<run>/`` (Vision §25)."""
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
+from uuid import uuid4
 
 from thoraxbench.benchmark.runner import ExperimentResult, RunResult
 from thoraxbench.config import Settings
+from thoraxbench.reports.html_report import require_results_path
 
 
 def _fmt(value: Any, digits: int = 3) -> str:
@@ -150,10 +153,18 @@ def render_markdown(result: ExperimentResult) -> str:
 
 
 def write_outputs(result: ExperimentResult, settings: Settings) -> tuple[Path, Path]:
-    """Write ``result.json`` and ``report.md`` under ``data/results/benchmark/<id>/``."""
-    out = settings.data_path("results", "benchmark", result.experiment_id)
-    out.mkdir(parents=True, exist_ok=True)
+    """Write a unique timestamp/config-hash/UUID run directory; preserve prior outputs."""
+    stamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%S.%fZ")
+    run_id = f"{stamp}-{result.config_sha256[:12]}-{uuid4().hex}"
+    out = settings.data_path("results", "benchmark", result.experiment_id, run_id)
     json_path, md_path = out / "result.json", out / "report.md"
-    json_path.write_text(result.model_dump_json(indent=1) + "\n", encoding="utf-8")
-    md_path.write_text(render_markdown(result), encoding="utf-8")
+    require_results_path(json_path, settings)
+    require_results_path(md_path, settings)
+    out.mkdir(parents=True, exist_ok=False)
+    require_results_path(json_path, settings)
+    with json_path.open("x", encoding="utf-8") as output:
+        output.write(result.model_dump_json(indent=1) + "\n")
+    require_results_path(md_path, settings)
+    with md_path.open("x", encoding="utf-8") as output:
+        output.write(render_markdown(result))
     return json_path, md_path

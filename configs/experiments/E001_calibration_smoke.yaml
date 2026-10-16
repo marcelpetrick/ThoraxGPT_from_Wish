@@ -1,0 +1,25 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Readiness smoke only; separate from the full E001 quantization experiment.
+id: E001-smoke
+title: MedGemma calibration-only readiness smoke
+description: >-
+  Bounded Q4/Q8 readiness check on calibration cases only. Four 256-pixel axial inputs,
+  two requested labels, no BF16 and no holdout access. This differs from the full E001
+  32-slice experiment and cannot establish comparative accuracy.
+vision_ref: "Vision §3 RQ3, §26 E001 (readiness smoke only)"
+split: development
+phases: [calibration]
+model: medgemma1.5-q4
+prompt: P3
+view_overrides:
+  strategy: anatomy
+  n: 4
+  size: 256
+  coronal: false
+datasets: [lidc_idri, nsclc_radiogenomics]
+labels: [pulmonary_nodule, pulmonary_mass]
+n_boot: 0
+seed: 0
+variants:
+  - {id: q4, model: medgemma1.5-q4}
+  - {id: q8, model: medgemma1.5-q8}

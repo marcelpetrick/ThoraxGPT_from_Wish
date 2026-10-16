@@ -84,7 +84,7 @@ Status: ✅ done · 🔄 in progress · ⏳ open · ✖ dropped
 | ✅ WP5 | Schemas, ontology, prompts P0–P4, adapters (Ollama, HTTP 3D service, mock) | 11, 12, 17, 19 | agent |
 | 🔄 WP6 | Splits and sealing ✅ (CaseGuard, freeze), pilot holdout frozen ✅, development-only indexing ✅, leakage tracking ⏳ (audit: the pre-rebuild NSCLC index held 5 non-development entries)  | 14, 15, 16 | lead |
 | ✅ WP7 | Scoring (A–G), calibration, bootstrap CIs, perf measurements, provenance | 13, 20, 21, 24 | agent |
-| 🔄 WP8 | Benchmark runner ✅ (`thoraxbench benchmark`, development split, JSON/Markdown reports, provenance); configs E000–E004 ✅; E005–E008, compare ⏳ | 18, 25, 26 | agent |
+| 🔄 WP8 | Benchmark runner ✅; configured-label requests and preserved run folders ✅; E000–E004 + separate calibration smoke configs ✅; E005–E008, compare ⏳ | 18, 25, 26 | agent |
 | 🔄 WP9 | Local UI MVP ✅; live elapsed runtime + sequential model comparison ✅ (v0.2.0 released); approved synthetic screenshots ✅; advanced screens deferred | 18 | lead |
 | ✖ WP10 | ~~Docker, compose, GHCR workflow~~ — dropped at the user's request | 17 | — |
 | 🔄 WP11 | E000 heuristic baseline on 70 development cases ✅ (`docs/results.md`); MedGemma E001–E004 ⏳ (needs reachable Ollama) | 26, 32 | lead |
@@ -96,7 +96,15 @@ Status: ✅ done · 🔄 in progress · ⏳ open · ✖ dropped
 Updated with every commit (newest first). **If a session breaks, the next agent resumes
 from here**: read this section and *Next steps*, then `git log --oneline | head -20`.
 
-- ✅ **Screenshots and handover (2026-10-16):** `main` v0.3.6 (`03754d1`) matches
+- 🔄 **Benchmark readiness fixes (current task):** requests now use the configured labels
+  and resolved prompt; outputs use unique timestamp/hash/UUID directories, with path guards.
+  Regression tests cover label/prompt propagation, legacy/run preservation and symlink
+  escapes. README, architecture and HTML/PDF manuals are synchronized. The separate
+  `configs/experiments/E001_calibration_smoke.yaml` requests two labels, four 256 px axial
+  images, Q4/Q8 and calibration cases only; no BF16 download or holdout access.
+- ✅ **Screenshots and handover:** v0.3.7 pushed; full gate **379 tests, 99.17% coverage**,
+  including all 11 Playwright tests, build, clean wheel and dependency audit.
+- ✅ **Initial state at resumption (2026-10-16):** `main` v0.3.6 (`03754d1`) matches
   GitHub. Public v0.2.0 exists with both manuals. Preserve and review the pending synthetic
   screenshots reviewed; DATA_POLICY now records the approved synthetic exception. All seven
   views are generated without real patient data; mocked states and timings are disclosed.
@@ -230,10 +238,9 @@ from here**: read this section and *Next steps*, then `git log --oneline | head 
 
 ## Next steps (in order)
 
-1. Finish unrestricted full-gate verification, then review and commit/push the approved
-   synthetic screenshots and corrected handover. v0.2.0 is already public.
-2. Fix benchmark label propagation and preserve each invocation's output. Synchronize
-   README, architecture and both operator manuals; test, review and commit/push.
+1. Run the full gate for the benchmark fixes; review and commit/push. Screenshot verification
+   and publication handover are complete; v0.2.0 is already public.
+2. Preserve append-only run outputs and configured-label request semantics as benchmarking expands.
 3. Run a bounded calibration-only MedGemma Q4/Q8 smoke through the benchmark runner.
    Record aggregate results and explicit failure accounting in `docs/results.md`.
    Keep the full E001–E004 sweeps separate from this readiness check.

@@ -15,7 +15,7 @@
 <body>
 <main>
 <section class="sheet" id="start">
-<p class="eyebrow">ThoraxBench Local / Operator flight manual / 15 October 2026</p>
+<p class="eyebrow">ThoraxBench Local / Operator flight manual / 16 October 2026</p>
 <span class="badge">Local research workbench · UI MVP</span>
 <h1>Run the workflow.<br>Check the evidence.<br>Keep the limits visible.</h1>
 <p class="lead">A practical manual for setup, the first synthetic run, result review, and recovery. Follow one action at a time. Check the expected result before you continue.</p>
@@ -198,9 +198,10 @@ uv run thoraxbench models</code></pre></li>
   configs/experiments/E000_heuristic_hu_baseline.yaml --limit 2</code></pre></li>
 <li><strong>Run the full experiment.</strong><pre><code>uv run thoraxbench benchmark \
   configs/experiments/E000_heuristic_hu_baseline.yaml</code></pre></li>
-<li><strong>Read the report.</strong><p>Open <code>data/results/benchmark/E000/report.md</code>. Structured output is in <code>result.json</code> in the same folder.</p></li>
+<li><strong>Read the report at the printed <code>Report:</code> path.</strong><p>Each invocation creates a unique folder under <code>data/results/benchmark/&lt;experiment-id&gt;/</code>. Open <code>result.json</code> in that same folder for structured output.</p></li>
 <li><strong>Compare the printed config SHA-256 with <code>docs/results.md</code>.</strong><p>A different hash means the experiment file changed. Record a new run; do not overwrite the old entry.</p></li>
 </ol>
+<p class="small">Run folders use <code>&lt;timestamp&gt;-&lt;hashprefix&gt;-&lt;uuid&gt;</code>. Repeated or limited runs preserve earlier outputs, including legacy flat files. The experiment's <code>labels</code> select both requested and scored findings. Prompt precedence is variant, experiment, model configuration, then <code>P3</code>.</p>
 <div class="check"><strong>Checkpoint:</strong> the command prints status counts per variant, the result and report paths, and the config SHA-256. Only development cases are read. Failures and abstentions stay explicit per case and are excluded from label metrics.</div>
 <table><thead><tr><th>Observed problem</th><th>Recovery action</th></tr></thead><tbody>
 <tr><td>Exit 1: <code>Benchmark failed</code></td><td>Read the named cause, for example a missing split or index. Freeze and index the dataset first.</td></tr>

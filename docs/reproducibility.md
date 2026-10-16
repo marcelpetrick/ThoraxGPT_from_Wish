@@ -158,7 +158,9 @@ Freezing an *experiment config* for sealed evaluation exists only as the library
 ## 6. Benchmarks
 
 `thoraxbench benchmark <experiment.yaml>` runs an experiment from `configs/experiments/` on
-the development split. It writes `data/results/benchmark/<id>/result.json` and `report.md`.
+the development split. It writes `result.json` and `report.md` in a unique
+`data/results/benchmark/<id>/<timestamp>-<hashprefix>-<uuid>/` directory. Follow the printed
+paths. Earlier runs and historical flat files remain intact.
 The result records the config file SHA-256, a canonical config hash, the dataset, index
 and split manifest hashes, per-run provenance and per-case fingerprints.
 

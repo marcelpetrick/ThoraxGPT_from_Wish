@@ -38,10 +38,12 @@ def benchmark(
         run_experiment,
         write_outputs,
     )
+    from thoraxbench.reports.html_report import require_results_path  # noqa: PLC0415 - export gate
 
     try:
         settings = get_settings()
         loaded = load_experiment(experiment)
+        require_results_path(settings.data_path("results", "benchmark", loaded.config.id), settings)
         result = run_experiment(loaded, settings, limit=limit, progress=typer.echo)
         json_path, md_path = write_outputs(result, settings)
     except (OSError, ValueError, RuntimeError, KeyError) as exc:

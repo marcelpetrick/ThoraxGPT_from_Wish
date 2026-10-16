@@ -328,13 +328,17 @@ Prerequisite: the datasets named in the experiment are split and indexed.
    ```
 
 2. Run the full experiment without `--limit`.
-3. Read `data/results/benchmark/E000/report.md`.
+3. Open the printed `Report:` path. Each invocation has its own timestamp/hash/UUID
+   subdirectory under `data/results/benchmark/<experiment-id>/`; earlier runs remain intact.
 
 **Checkpoint:** the command prints per-variant status counts, the result and report paths
 and the config SHA-256. It reads development cases only. Failures and abstentions stay
 explicit per case. E000 is a pipeline baseline of a deterministic HU heuristic, not model
 accuracy; see [`docs/results.md`](docs/results.md). `configs/experiments/` also holds the
-MedGemma experiments E001–E004; they need local Ollama and have no recorded result yet.
+MedGemma experiments E001–E004; they need local Ollama. See [the benchmark guide](docs/benchmarking.md).
+The separate `E001_calibration_smoke.yaml` uses four 256-pixel axial inputs, Q4/Q8 only,
+and calibration cases. Run it with `--limit 1` before considering the larger sweeps. It is
+a readiness check, not the full E001 experiment or an accuracy estimate.
 
 **Recovery:** `Benchmark failed` (exit status 1) names the cause, for example a missing
 index or split. `--unseal` is refused with exit status 2; the sealed holdout stays untouched.

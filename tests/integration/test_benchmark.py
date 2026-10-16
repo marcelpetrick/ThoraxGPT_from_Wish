@@ -6,19 +6,23 @@ import json
 from collections.abc import Iterator
 from pathlib import Path
 from typing import Any
+from unittest.mock import Mock
 
 import pytest
 import yaml
 from typer.testing import CliRunner
 
+import thoraxbench.benchmark.runner as benchmark_runner
 import thoraxbench.cli.benchmark as cli_benchmark
 import thoraxbench.splits.guard as guard_module
+from thoraxbench.adapters.base import load_model_config
 from thoraxbench.analysis import AnalysisResult, analyze_study
 from thoraxbench.benchmark import CaseStatus, load_experiment, run_experiment, write_outputs
 from thoraxbench.cli.main import app
 from thoraxbench.config import REPO_ROOT, Settings
 from thoraxbench.dicom import discover_series
 from thoraxbench.index import IndexEntry, build_index, index_path, open_study
+from thoraxbench.schemas import AnalysisRequest
 from thoraxbench.splits import CaseRecord, Phase, SealedAccessError, make_split, save_split
 from thoraxbench.study import Study, StudyLoadError
 from thoraxbench.synthetic import PhantomSpec, make_phantom, write_dicom_series
@@ -125,12 +129,82 @@ def test_full_run_scores_and_writes(tmp_path: Path, settings: Settings) -> None:
     assert summary.dataset_manifest_sha256 is None
     assert len(messages) == 3
     json_path, md_path = write_outputs(result, settings)
-    assert json_path == settings.data_path("results", "benchmark", "T001", "result.json")
+    assert json_path.parent.parent == settings.data_path("results", "benchmark", "T001")
+    assert loaded.file_sha256[:12] in json_path.parent.name
     stored = json.loads(json_path.read_text(encoding="utf-8"))
     assert stored["config_sha256"] == loaded.file_sha256
     assert stored["runs"][0]["cases"][0]["status"] == "scored"
     assert "report" not in stored["runs"][0]["cases"][0]
     assert "not clinical accuracy" in md_path.read_text(encoding="utf-8")
+
+
+@pytest.mark.parametrize(
+    ("model_prompt", "variant_prompt", "expected"),
+    [(None, None, "P3"), ("P2", None, "P2"), ("P2", "P4", "P4")],
+)
+def test_requests_use_experiment_labels_and_resolved_prompt(
+    tmp_path: Path,
+    settings: Settings,
+    monkeypatch: pytest.MonkeyPatch,
+    *,
+    model_prompt: str | None,
+    variant_prompt: str | None,
+    expected: str,
+) -> None:
+    model = load_model_config("heuristic-hu", settings.configs_dir / "models")
+    monkeypatch.setattr(
+        benchmark_runner,
+        "load_model_config",
+        lambda *args: model.model_copy(update={"prompt": model_prompt}),
+    )
+    observed: list[AnalysisRequest] = []
+
+    def inspect(study: Study, model_id: str, s: Settings, **kwargs: Any) -> AnalysisResult:
+        request = kwargs["request"]
+        assert isinstance(request, AnalysisRequest)
+        assert request.labels == ["pulmonary_nodule"]
+        assert request.prompt_id == expected
+        assert kwargs["prompt_id"] == expected
+        observed.append(request)
+        return analyze_study(study, model_id, s, **kwargs)
+
+    variants = [{"id": "configured", "prompt": variant_prompt}]
+    loaded = load_experiment(_experiment(tmp_path, labels=["pulmonary_nodule"], variants=variants))
+    result = run_experiment(loaded, settings, limit=1, analyze=inspect)
+    assert len(observed) == 1
+    assert result.runs[0].status_counts["scored"] == 1
+    assert loaded.config.labels == ["pulmonary_nodule"]
+
+
+def test_output_runs_preserve_prior_and_legacy_files(tmp_path: Path, settings: Settings) -> None:
+    result = run_experiment(load_experiment(_experiment(tmp_path)), settings, limit=1)
+    legacy = settings.data_path("results", "benchmark", result.experiment_id)
+    legacy.mkdir(parents=True, exist_ok=True)
+    (legacy / "result.json").write_text("historical result")
+    (legacy / "report.md").write_text("historical report")
+    first = write_outputs(result, settings)
+    original = [path.read_bytes() for path in first]
+    second = write_outputs(result, settings)
+    assert first[0].parent != second[0].parent
+    assert [path.read_bytes() for path in first] == original
+    assert (legacy / "result.json").read_text() == "historical result"
+    assert (legacy / "report.md").read_text() == "historical report"
+    assert all(path.is_file() for path in second)
+
+
+def test_output_symlink_escape_is_rejected_before_writing(
+    tmp_path: Path, settings: Settings
+) -> None:
+    result = run_experiment(load_experiment(_experiment(tmp_path)), settings, limit=1)
+    escaped = tmp_path / "outside"
+    escaped.mkdir()
+    base = settings.data_path("results", "benchmark")
+    base.mkdir(parents=True, exist_ok=True)
+    (base / "escape").symlink_to(escaped, target_is_directory=True)
+    result.experiment_id = "escape"
+    with pytest.raises(ValueError, match="ignored data/results"):
+        write_outputs(result, settings)
+    assert list(escaped.iterdir()) == []
 
 
 def test_outside_entries_ignored_and_missing_reported(
@@ -248,3 +322,24 @@ def test_cli_reports_errors(
         app, ["benchmark", str(_experiment(tmp_path, datasets=["nsclc_radiogenomics"]))]
     )
     assert no_index.exit_code == 1
+
+
+def test_cli_rejects_export_escape_before_inference(
+    tmp_path: Path, settings: Settings, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import thoraxbench.benchmark as benchmark_package
+
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    base = settings.data_path("results", "benchmark")
+    base.mkdir(parents=True, exist_ok=True)
+    (base / "preflight").symlink_to(outside, target_is_directory=True)
+    experiment = _experiment(tmp_path, id="preflight")
+    analyze = Mock()
+    monkeypatch.setattr(cli_benchmark, "get_settings", lambda: settings)
+    monkeypatch.setattr(benchmark_package, "run_experiment", analyze)
+    response = CliRunner().invoke(app, ["benchmark", str(experiment)])
+    assert response.exit_code == 1
+    assert "ignored data/results" in response.output
+    analyze.assert_not_called()
+    assert list(outside.iterdir()) == []

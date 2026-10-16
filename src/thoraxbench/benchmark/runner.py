@@ -25,12 +25,13 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
+from thoraxbench.adapters.base import load_model_config
 from thoraxbench.analysis import DISCLAIMER, AnalysisResult, analyze_study
 from thoraxbench.benchmark.config import LoadedExperiment, RunSpec
 from thoraxbench.config import Settings
 from thoraxbench.index import IndexEntry, index_path, load_index, open_study
 from thoraxbench.provenance import RunProvenance, sha256_of_file, sha256_of_obj
-from thoraxbench.schemas import FindingsReport
+from thoraxbench.schemas import AnalysisRequest, FindingsReport
 from thoraxbench.scoring import CaseRecord as ScoreRecord
 from thoraxbench.scoring import task_a, task_b, task_e, task_g
 from thoraxbench.splits import CaseGuard, Phase, SealedAccessError
@@ -306,7 +307,7 @@ def run_experiment(
                 study, load_error = None, f"study load failed: {exc}"
             for spec in specs:
                 t_case = time.perf_counter()
-                outcome = _run_case(study, load_error, base, spec, settings, analyze)
+                outcome = _run_case(study, load_error, base, spec, settings, analyze, cfg.labels)
                 runtimes[spec.variant] += time.perf_counter() - t_case
                 if isinstance(outcome, AnalysisResult):
                     provenances[spec.variant].append(outcome.provenance)
@@ -350,15 +351,19 @@ def _run_case(  # noqa: PLR0917 - private helper of the case loop
     spec: RunSpec,
     settings: Settings,
     analyze: Analyzer,
+    labels: list[str],
 ) -> AnalysisResult | CaseOutcome:
     if study is None:
         return CaseOutcome(**base, status=CaseStatus.FAILED, error=load_error)
     try:
+        model_config = load_model_config(spec.model, settings.configs_dir / "models")
+        chosen_prompt = spec.prompt or model_config.prompt or "P3"
         return analyze(
             study,
             spec.model,
             settings,
-            prompt_id=spec.prompt,
+            request=AnalysisRequest(labels=list(labels), prompt_id=chosen_prompt),
+            prompt_id=chosen_prompt,
             view_overrides=dict(spec.view_overrides),
         )
     except SealedAccessError:

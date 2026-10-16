@@ -162,7 +162,7 @@ contract; check `src/thoraxbench/` for the exact current names.
 | `scoring` | `task_a()`…`task_g()`, `bootstrap_ci()`, `froc()` | 🔄 | patient-level bootstrap; the benchmark uses tasks A, B, E and G |
 | `calibration` | `fit_thresholds()`, `TemperatureScaler`, `IsotonicCalibrator`, `abstention_curve()` | 🔄 | library only; no calibrator is fitted in a benchmark yet; fitted only on development data |
 | `perf`, `provenance` | `measure()` context manager, `RunProvenance` | ✅ | §21, §24 |
-| `benchmark` | `load_experiment()`, `run_experiment()`, `write_outputs()` | 🔄 | development split only; writes `data/results/benchmark/<id>/result.json` and `report.md`; `compare_runs()` planned |
+| `benchmark` | `load_experiment()`, `run_experiment()`, `write_outputs()` | 🔄 | development split only; writes `result.json` and `report.md` in a unique `data/results/benchmark/<id>/<run-id>/` folder; `compare_runs()` planned |
 | `reports` | `render_study_report()`, `render_html_report()`, `render_comparison_report()` | 🔄 | per-study Markdown/HTML; HTML/CSV benchmark report planned |
 
 ---
@@ -254,8 +254,18 @@ flowchart LR
 ### 5.3 Benchmark with sealed validation (§14–§16)
 
 Implemented today: the development branch, per-case analysis, scoring of tasks A, B, E and G
-with bootstrap CIs, and `result.json` plus `report.md`. Planned: the sealed branch
-(`--unseal` is refused), calibration fitting, HTML/CSV reports and run comparison.
+with bootstrap CIs, and `result.json` plus `report.md`. Every invocation creates a unique
+`data/results/benchmark/<experiment-id>/<timestamp>-<hashprefix>-<uuid>/` folder. The hash
+prefix is the first 12 characters of the experiment file SHA-256; the timestamp is UTC.
+Existing run directories and legacy flat outputs remain intact. The CLI prints both paths.
+
+The runner sends the experiment's `labels` to inference and uses the same label set for
+scoring. It resolves the prompt in this order: variant override, experiment setting,
+selected model configuration, then `P3`. The request and adapter receive that same prompt.
+See [the development benchmark procedure](benchmarking.md) for commands and recovery.
+
+Planned: the sealed branch (`--unseal` is refused), calibration fitting, HTML/CSV reports
+and run comparison.
 
 ```mermaid
 flowchart TD
