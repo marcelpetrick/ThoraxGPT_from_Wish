@@ -122,3 +122,13 @@ installation status in this page supersedes contradictory historical installatio
 For tomorrow's larger hardware and networking work, see the [40 GB VRAM and LAN runner
 proposal](lan-runner.md). It has candidate sizes, the endpoint-policy design and verification
 steps; no remote inference is enabled today.
+
+## Updated calibration readiness evidence (2026-10-16)
+
+A clean v0.3.8 Q4/Q8 run selected one calibration study per pilot dataset, four 256-pixel
+axial inputs and two requested labels. Q4 returned empty predictions twice. Q8 supplied
+one scorable response that missed the reference nodule and one generation-limit abstention.
+Total experiment wall time was 290.8 seconds. This small check establishes neither an
+accuracy ranking nor a quantization-speed ranking. Full E001–E004 remain pending.
+See [the measured setup and outcomes](results.md). Larger sweeps wait for useful-output
+reliability; availability alone does not establish readiness.

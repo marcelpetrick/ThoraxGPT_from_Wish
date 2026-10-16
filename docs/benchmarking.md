@@ -32,6 +32,34 @@ validity. Read [recorded results and limitations](results.md) before interpretin
 If a vision model is unavailable, check `uv run thoraxbench models` and local Ollama.
 Do not substitute a cloud endpoint. `--unseal` is unsupported and exits with status 2.
 
+## Check MedGemma readiness before a larger sweep
+
+Prerequisites: Q4 and Q8 are available in local Ollama. Both development indexes include
+calibration cases. Run from the repository root.
+
+1. Run the bounded readiness check.
+
+   ```bash
+   uv run thoraxbench benchmark configs/experiments/E001_calibration_smoke.yaml --limit 1
+   ```
+
+2. Inspect each variant's case status and prediction coverage at the printed report path.
+
+**Checkpoint:** experiment `E001-smoke` requests one calibration case per dataset, four
+256-pixel axial inputs, no coronal view, and two labels: `pulmonary_nodule` and
+`pulmonary_mass`. It runs Q4 and Q8 only, with `n_boot: 0`. It is separate from the full
+E001 quantization experiment and does not establish comparative accuracy.
+
+**Recorded readiness run:** the 2026-10-16 check at commit `3af797f` (v0.3.8) took about
+290.8 seconds wall time. Q4 returned no label predictions on either case. Q8 returned a
+scorable LIDC result that missed the positive nodule; its NSCLC output reached the token
+limit. These limited outcomes do not establish useful CT performance or an accuracy ranking.
+See [the results record](results.md) for provenance and limitations.
+
+**Recovery:** if outputs are empty or truncated, inspect the prompt, input preparation and
+parsing on calibration cases before larger sweeps. Preserve the failed or abstaining run.
+Do not tune on the internal-test subset or open the sealed holdout.
+
 ## Configuration and saved runs
 
 The experiment's `labels` select both requested findings and scored labels. Prompt

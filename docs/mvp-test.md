@@ -172,3 +172,18 @@ temporary synthetic-only data root. Vision outputs and download states are mocke
 Displayed engine durations and browser waits are fixed illustrations, not measurements.
 Page captures start at the top so the research banner remains visible. Real study images
 and complete image-bearing exports remain excluded from Git.
+
+## Benchmark follow-up verification (2026-10-16)
+
+Version 0.3.8 (3af797f) passed the full local gate: **386 non-live tests, 99.18% coverage**,
+including all 11 Playwright tests, build, clean-wheel installation and dependency audit.
+GitHub Actions also passed for this commit.
+
+The runner sends the experiment's requested labels and preserves each execution in a
+unique output directory. Regression tests cover prompt precedence, labels, preservation
+of old runs and destination-symlink refusal before inference.
+
+A clean-tree calibration-only MedGemma smoke ran through this runner. Q4 abstained twice;
+Q8 produced one scorable response that missed the reference nodule and one token-limit
+abstention. See the aggregate measurement in [results.md](results.md). Passing software
+tests does not establish model accuracy or clinical usefulness.

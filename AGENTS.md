@@ -23,8 +23,11 @@ The CLI engine and frozen pilot holdout are available. The **local UI MVP** is i
 model-quality limitations visible. **UI feature work is frozen after v0.2.0** (fixes and
 docs only). The WP8 benchmark runner and the E000 development baseline exist. Benchmark requests
 use the experiment's configured labels. Preserve each invocation in its own timestamp/hash/UUID
-output folder; never overwrite previous partial or full runs. Next: MedGemma
-experiments E001–E004 through the same runner and the ranked gaps in
+output folder; never overwrite previous partial or full runs. The two-study calibration
+readiness smoke produced three abstentions and one scorable response that missed its
+reference nodule. Next: durable per-case raw-response/provenance artifacts and checkpoints,
+then output reliability on calibration data before the full E001–E004 experiments. Follow
+the ranked gaps in
 `docs/vision_traceability.md`. See `docs/plan.md` → *Priority* and *Next steps*.
 Keep `manual.html` and `manual.pdf` synchronized with user-facing configuration and commands.
 

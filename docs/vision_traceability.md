@@ -3,8 +3,8 @@
 Research use only. This self-made tool is not professional medical advice. Its findings
 may be incorrect, incomplete or misleading. Do not use them for diagnosis or treatment.
 
-**Date:** 2026-10-15 (WP12, refreshed for `acquire`, `benchmark` and `privacy audit`).
-**Base:** `main` @ `413dfaa` plus uncommitted work in the working tree.
+**Date:** 2026-10-16 (WP12; guarded benchmark fixes and calibration readiness evidence).
+**Base:** `main` @ `3af797f` (v0.3.8); measured run used a clean tree.
 
 ## Purpose
 
@@ -13,9 +13,10 @@ current repository. Each status is based on code and tests, not on claims in oth
 documents. Use it for the WP12 self-review gate in [`docs/plan.md`](plan.md).
 
 A passing test proves software behavior on synthetic data. It does not prove model
-accuracy or clinical usefulness. The only real-data benchmark result is the E000 HU-heuristic
-pipeline baseline on the development split ([`docs/results.md`](results.md)); it is not model
-accuracy.
+accuracy or clinical usefulness. Real-data evidence comprises E000's HU-heuristic development baseline and a two-study
+calibration-only Q4/Q8 readiness smoke ([`docs/results.md`](results.md)). Q4 abstained twice;
+Q8 missed the reference nodule in its only scorable response and truncated the other.
+Neither establishes clinical accuracy or generalization.
 
 ## Status legend
 
@@ -54,9 +55,9 @@ applies it to real result sets yet.
 
 | Vision § | Title | Status | Evidence | Gap / next action |
 |---|---|---|---|---|
-| 1 | Vision | 🔄 | End-to-end single-study chain: `src/thoraxbench/analysis.py`, `src/thoraxbench/cli/main.py` (`analyze`), `src/thoraxbench/api/app.py`; `tests/e2e/test_mvp_cli.py`, `tests/integration/test_analysis.py` | Cohort scoring exists for the development split (`thoraxbench benchmark`, `src/thoraxbench/benchmark/`); only the E000 heuristic baseline is recorded. Questions 1–7 have no measured answer yet. |
+| 1 | Vision | 🔄 | End-to-end single-study chain: `src/thoraxbench/analysis.py`, `src/thoraxbench/cli/main.py` (`analyze`), `src/thoraxbench/api/app.py`; `tests/e2e/test_mvp_cli.py`, `tests/integration/test_analysis.py` | Cohort scoring exists for the development split (`thoraxbench benchmark`, `src/thoraxbench/benchmark/`); E000 and the separately configured calibration-only E001-smoke are recorded. Questions 1–7 have no measured answer yet. |
 | 2 | Core principles | 🔄 | Local-first: `src/thoraxbench/adapters/factory.py` (`require_local_endpoint`), `tests/unit/test_local_endpoints.py`. Study-level HU volumes: `src/thoraxbench/dicom/volume.py`. Provenance: `src/thoraxbench/provenance.py`. Patient-level split and sealed guard: `src/thoraxbench/splits/split.py`, `src/thoraxbench/splits/guard.py`, `tests/unit/test_splits.py`, `tests/integration/test_index.py`. License registry: `configs/datasets/`, `src/thoraxbench/registry/datasets.py`. Data gate: `scripts/check_no_medical_data.sh` | `analyze` leaves `dataset_manifest_hash` and `split_manifest_hash` empty. Ground-truth and scoring versions are not recorded, also not in benchmark runs. Validation and external-test sets are defined only as phases, not used. |
-| 3 | Initial research questions | ⏳ | Building blocks only: MedGemma configs `configs/models/medgemma1.5-q4.yaml`, `configs/models/medgemma1.5-q8.yaml`; sampling `src/thoraxbench/sampling/strategies.py`; calibrators `src/thoraxbench/calibration/calibrators.py` | RQ1–RQ6 are unanswered. The benchmark runner exists; MedGemma experiments E001–E004 (`configs/experiments/`) have no recorded run (WP11). The only live MedGemma run is a transport smoke test (`docs/plan.md`), not accuracy evidence. |
+| 3 | Initial research questions | ⏳ | Building blocks only: MedGemma configs `configs/models/medgemma1.5-q4.yaml`, `configs/models/medgemma1.5-q8.yaml`; sampling `src/thoraxbench/sampling/strategies.py`; calibrators `src/thoraxbench/calibration/calibrators.py` | RQ1–RQ6 are unanswered. The benchmark runner exists; MedGemma experiments E001–E004 (`configs/experiments/`) have no recorded run (WP11). A two-study calibration-only MedGemma readiness run is recorded in `docs/results.md`; full E001–E004 and accuracy evaluation remain open. |
 | 4 | Model portfolio | 🔄 | Tier A: `src/thoraxbench/adapters/ollama.py`, `configs/models/medgemma1.5-q4.yaml`, `configs/models/medgemma1.5-q8.yaml`, `configs/models/medgemma1.5-bf16.yaml`. Tier B/C contract: `src/thoraxbench/adapters/http_service.py`, `configs/models/ct-clip.yaml`, `configs/models/ct-chat.yaml`, `configs/models/m3d-lamed-4b.yaml`, `configs/models/radfm.yaml`, `configs/models/huatuo-vision-7b.yaml`. Tier D controls: `configs/models/gemma3-4b.yaml`, `configs/models/qwen3-vl-4b.yaml`. Tests: `tests/unit/test_adapters.py`. Research: `docs/model_cards.md`, `docs/model_selection.md` | No Tier B/C service process exists in the repository; those models report "unavailable". BF16 does not fit the 8 GB GPU. CT-CLIP weights are gated (`pending_access`). |
 | 5 | Dataset strategy | 🔄 | 16 registry entries in `configs/datasets/` (e.g. `configs/datasets/ct_rate.yaml`, `configs/datasets/lidc_idri.yaml`, `configs/datasets/nsclc_radiogenomics.yaml`, `configs/datasets/mosmeddata_covid19_1110.yaml`, `configs/datasets/deeplesion.yaml`); pilot manifests `manifests/datasets/lidc_idri.json`, `manifests/datasets/nsclc_radiogenomics.json`; `docs/datasets.md` | CT-RATE (the primary dataset) is `pending_access`. Only LIDC-IDRI (60 patients) and NSCLC-Radiogenomics (27 patients) are on disk. RadGenome and MosMed are not acquired. |
 | 6 | Data registry | ✅ | `src/thoraxbench/registry/datasets.py` (`DatasetStatus`, `require_acquirable`); `configs/datasets/`; `tests/unit/test_registry.py`, `tests/unit/test_registry_repo.py`, `tests/unit/test_pilot_split.py` (license check before scan) | Adds status `pending_access` beyond the Vision list. The gate guards `acquire`, `split` and `index` (see §8). |
@@ -106,8 +107,9 @@ applies it to real result sets yet.
 1. **Benchmark runner follow-up** (§13, §18, §25, §26). `thoraxbench benchmark` and
    `configs/experiments/` exist for the development split. Open: CLI `compare`, HTML/CSV
    report, tasks C/D/F in the runner, and a reviewed sealed-evaluation workflow.
-2. **No real-data model results** (§1, §3, §27, §32). Only a MedGemma transport smoke and a
-   heuristic baseline run exist. Run development-split experiments and record them.
+2. **No reliable real-data model output** (§1, §3, §27, §32). The two-study
+   calibration smoke yielded 3 abstentions and 1 scorable response that missed its reference
+   nodule. Resolve output reliability on calibration before full development sweeps.
 3. **Acquisition beyond TCIA** (§8, §23, §27). `thoraxbench acquire` covers approved NBIA
    collections with license, split, budget and checksum gates. Other hosts (Hugging Face,
    MosMed) have no acquirer.
@@ -116,7 +118,8 @@ applies it to real result sets yet.
 5. **CT-RATE access** (§5, §12, §15, §27). Status `pending_access`. Primary dataset and
    official split handling are missing.
 6. **Run provenance gaps** (§2, §24, §32.9). `analyze` leaves dataset and split manifest
-   hashes empty. Ground-truth and scoring versions are not recorded. Freeze is CLI-unreachable.
+   hashes empty. Ground-truth and scoring versions are not recorded. Benchmark per-case raw responses,
+   full request/provenance and incremental checkpoints are absent. Freeze is CLI-unreachable.
 7. **Calibration not applied** (§14, §20). Reports use a fixed 0.5 threshold. Fit
    thresholds and calibrators on calibration data only, then report Task B metrics.
 8. **Leakage column absent** (§16). Add `possible_training_overlap` to every benchmark

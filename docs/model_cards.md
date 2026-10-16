@@ -146,3 +146,11 @@ The client-side code is in **notebooks/high_dimensional_ct_hugging_face.ipynb**:
 - **Approximation B:** one message with all 85 images and the text "SLICE 1..85" listed afterwards.
 - Neither has been tested yet. Option A matches the official order more closely. Use `/api/generate` with `raw:true` and a hand-built Gemma3 template for an exact reproduction (needs testing).
 - **Budget:** about 23k tokens and `num_ctx` 24576–32768. Measured at 85 images: 264 s prefill (q4) and 528 s (q8).
+
+## Calibration-only pipeline check (2026-10-16)
+
+The later E001-smoke run used the shared benchmark runner on two development calibration
+studies with Q4/Q8, four 256-pixel axial inputs and two labels. Q4 abstained on both. Q8
+scored one response (missed the reference nodule), then hit its generation limit. The run
+took 290.8 seconds; it does not establish accuracy or a quantization winner. See
+[the complete measured setup and limitations](results.md).

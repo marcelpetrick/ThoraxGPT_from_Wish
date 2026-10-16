@@ -4,7 +4,7 @@
 [![License: GPL v3 or later](https://img.shields.io/badge/license-GPLv3%20or%20later-blue.svg)](LICENSE)
 [![Python 3.14+](https://img.shields.io/badge/Python-3.14%2B-3776ab.svg)](https://www.python.org/)
 [![FastAPI 0.143.2](https://img.shields.io/badge/FastAPI-0.143.2-009688.svg)](pyproject.toml)
-[![Coverage 99.17%](https://img.shields.io/badge/coverage-99.17%25-brightgreen.svg)](docs/mvp-test.md)
+[![Coverage 99.18%](https://img.shields.io/badge/coverage-99.18%25-brightgreen.svg)](docs/mvp-test.md)
 [![mypy strict](https://img.shields.io/badge/mypy-strict-blue.svg)](pyproject.toml)
 [![Local inference](https://img.shields.io/badge/inference-local%20only-087f8c.svg)](docs/architecture.md)
 [![Research use only](https://img.shields.io/badge/use-research%20only-orange.svg)](Vision.md)
@@ -338,7 +338,9 @@ accuracy; see [`docs/results.md`](docs/results.md). `configs/experiments/` also 
 MedGemma experiments E001–E004; they need local Ollama. See [the benchmark guide](docs/benchmarking.md).
 The separate `E001_calibration_smoke.yaml` uses four 256-pixel axial inputs, Q4/Q8 only,
 and calibration cases. Run it with `--limit 1` before considering the larger sweeps. It is
-a readiness check, not the full E001 experiment or an accuracy estimate.
+a readiness check, not the full E001 experiment or an accuracy estimate. The first run
+completed in 290.8 s: Q4 abstained on both studies; Q8 scored one response (missed the
+reference nodule) and hit its generation limit on the other. See [recorded results](docs/results.md#e001-smoke--calibration-only-medgemma-readiness-2026-10-16).
 
 **Recovery:** `Benchmark failed` (exit status 1) names the cause, for example a missing
 index or split. `--unseal` is refused with exit status 2; the sealed holdout stays untouched.

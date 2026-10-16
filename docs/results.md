@@ -4,7 +4,7 @@ Research use only. This self-made tool is not professional medical advice. Its f
 may be incorrect, incomplete or misleading. Do not use them for diagnosis or treatment.
 
 This file records measured benchmark runs. Each entry names the experiment config, its
-hash, the data state and the exact command. Raw outputs stay in the git-ignored
+hash, the data state and the exact command. Run artifacts stay in the git-ignored
 `data/results/benchmark/<experiment-id>/` directory.
 
 ## E000 — heuristic HU pipeline baseline (2026-10-15)
@@ -119,3 +119,82 @@ is not part of the benchmark runtime.
   must be compared against through the same runner. No VLM was run: Ollama was not reachable.
 * This baseline is numbered E000 so that E001–E004 keep the Vision §26 numbering. E001
   (MedGemma Q4/Q8/BF16 quantization) is configured but not run.
+
+## E001-smoke — calibration-only MedGemma readiness (2026-10-16)
+
+**Outcome:** Q4 returned no label predictions on both studies. Q8 produced one scorable
+response that missed the reference nodule, then reached the generation limit on the other
+study. This is a limited readiness check, not the full E001 experiment, an accuracy
+estimate, or evidence that either model is suitable for clinical use.
+
+### Reproduce the setup
+
+Prerequisites: frozen splits and development indexes exist. Local Ollama has the configured
+Q4 and Q8 tags. Start in the repository root.
+
+```bash
+uv run thoraxbench benchmark configs/experiments/E001_calibration_smoke.yaml --limit 1
+```
+
+**Checkpoint:** four model/case outcomes, two variants, and a new unique result directory.
+Inspect failures and abstentions before considering larger sweeps. Previous runs stay intact.
+
+| Setup | Recorded value |
+|---|---|
+| Source | v0.3.8, commit `3af797f72c53c51a31fc817f81c6cb17eabb653f`, `git_dirty: false` |
+| Experiment | `E001-smoke`, distinct from the full 32-slice E001 |
+| Config SHA-256 | `9349919a6437c91c9b073097f50b026f2ee9caa487f4765403b62d05724f3c85` |
+| Selection | First calibration case in frozen split order from each of LIDC-IDRI and NSCLC-Radiogenomics; 2 studies total |
+| Requested/scored labels | `pulmonary_nodule`, `pulmonary_mass` |
+| Inputs | Anatomy sampling, 4 axial images at 256 pixels, MedGemma RGB view, no coronal input |
+| Prompt | P3; SHA-256 `c41bb11f1ef993ca3a92708428b9f2f455c7d5b7d5388e1bb3eae2d3485ab179` |
+| Preprocess hash | `140e42d77cc37b18e7ac903bf09ce937b1e38588b85fbc4808e274413e42dc5e` |
+| Q4 model digest | `433252621ab154668b5d8be6aff6c1b771bacba045e46e6193da8d6ad1630f2c` |
+| Q8 model digest | `d6ae3cddb6633585549af18435fd19eb9bfecb886d14006f160bee33621ab95a` |
+| Hardware | NVIDIA RTX A2000 8 GB laptop GPU; driver 610.57.04; Python 3.14.7 |
+| Bootstrap | Disabled (`n_boot: 0`); no confidence intervals |
+| Total experiment wall time | 290.8 s |
+
+Both indexes contained only development entries (48 LIDC and 22 NSCLC), with zero missing
+selected cases. Dataset, index and split hashes are in the local result. The current run
+used calibration cases only; it did not open the sealed holdout or the internal test set.
+
+### Observed outcomes
+
+| Variant | Scored | Abstained | Failed status | Variant wall time, excluding study loading | Reason |
+|---|---:|---:|---:|---:|---|
+| Q4 | 0 | 2 | 0 | 57.4 s | Both: `no label predictions returned` |
+| Q8 | 1 | 1 | 0 | 227.2 s | LIDC parsed/scored; NSCLC: `generation token limit reached` |
+
+The runner currently categorizes generation-limit errors as abstentions. A zero `failed`
+count therefore does not mean every inference produced usable predictions. Variant time
+includes analysis and provenance collection, but excludes study loading. Engine-stage
+totals were 57.1 s for Q4 and 227.0 s for Q8. Total experiment time also includes loading,
+selection and scoring; these timings do not establish a quantization speed ranking.
+
+In Q8's one scorable response, both requested presence scores were 0.0. The reference
+nodule was missed (one false negative); the absent mass was correctly negative (one true
+negative). Several natural-language negative-finding terms were ignored with parser
+warnings. Q4 supplied no decisions to score. AUROC is undefined: each label has at most
+one scored reference class. The NSCLC mass reference was unknown and was not scored.
+
+### Saved evidence and next action
+
+The local JSON and Markdown files are under:
+
+```text
+data/results/benchmark/E001-smoke/
+  20261016T071937.440984Z-9349919a6437-d5ba670f73444f77a7bc7d0068840d12/
+    result.json
+    report.md
+```
+
+These files contain development identifiers and stay outside Git. This aggregate record
+contains no case identifiers or images. The runner currently saves score fields, warnings
+and fingerprints; it does not retain complete per-case raw responses and has no incremental
+checkpoint. Add durable raw-response/provenance artifacts before larger model sweeps.
+
+Inspect output/schema reliability and image coverage on calibration data before launching
+the full E001–E004 experiments. Four sampled images can omit study-level lesions. This
+two-study sample cannot assess generalization, compare quantization accuracy, or establish
+clinical performance. This run did not assess pretraining overlap.

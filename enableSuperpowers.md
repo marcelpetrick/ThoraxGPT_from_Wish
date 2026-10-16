@@ -73,7 +73,8 @@ Keep the patterns narrow. They still pass through the normal permission prompts.
 
 ## Current operator status (2026-10-16)
 
-The publication handover is resolved. GitHub main is v0.3.6 at 03754d1.
+The publication handover is resolved. At resumption, GitHub main was v0.3.6 at 03754d1.
+The unrestricted session has since pushed v0.3.7 and v0.3.8; see docs/plan.md for current work.
 The public v0.2.0 release points to 083971a and includes both operator manuals.
 Do not repeat the historical tag/release commands.
 

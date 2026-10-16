@@ -87,7 +87,7 @@ Status: ✅ done · 🔄 in progress · ⏳ open · ✖ dropped
 | 🔄 WP8 | Benchmark runner ✅; configured-label requests and preserved run folders ✅; E000–E004 + separate calibration smoke configs ✅; E005–E008, compare ⏳ | 18, 25, 26 | agent |
 | 🔄 WP9 | Local UI MVP ✅; live elapsed runtime + sequential model comparison ✅ (v0.2.0 released); approved synthetic screenshots ✅; advanced screens deferred | 18 | lead |
 | ✖ WP10 | ~~Docker, compose, GHCR workflow~~ — dropped at the user's request | 17 | — |
-| 🔄 WP11 | E000 heuristic baseline on 70 development cases ✅ (`docs/results.md`); MedGemma E001–E004 ⏳ (needs reachable Ollama) | 26, 32 | lead |
+| 🔄 WP11 | E000 heuristic baseline on 70 development cases ✅ (`docs/results.md`); Q4/Q8 calibration readiness smoke ✅ (poor usable-output rate); full E001–E004 ⏳ | 26, 32 | lead |
 | 🔄 WP13 | Radiologist-style reading research → preprocessing (windows, MIP, coronal, HU cues) and the per-study English Markdown research report ✅ (term, plain language, educational severity/treatment context, prevalence, guideline context) | user request | research agent + lead |
 | 🔄 WP12 | GitHub About + ten topics applied ✅; project review + course correction ✅; `docs/vision_traceability.md` ✅; closing ranked gaps ⏳ | all | lead |
 
@@ -96,12 +96,21 @@ Status: ✅ done · 🔄 in progress · ⏳ open · ✖ dropped
 Updated with every commit (newest first). **If a session breaks, the next agent resumes
 from here**: read this section and *Next steps*, then `git log --oneline | head -20`.
 
-- 🔄 **Benchmark readiness fixes (current task):** requests now use the configured labels
-  and resolved prompt; outputs use unique timestamp/hash/UUID directories, with path guards.
-  Regression tests cover label/prompt propagation, legacy/run preservation and symlink
-  escapes. README, architecture and HTML/PDF manuals are synchronized. The separate
-  `configs/experiments/E001_calibration_smoke.yaml` requests two labels, four 256 px axial
-  images, Q4/Q8 and calibration cases only; no BF16 download or holdout access.
+- ✅ **MedGemma readiness smoke (2026-10-16):** clean v0.3.8 commit `3af797f`, separate
+  `E001_calibration_smoke.yaml`, calibration-only 1 case per dataset, 4×256 px axial
+  inputs, 2 labels, Q4/Q8. Wall time **290.8 s**. Q4: 0 scored / 2 empty-output abstentions.
+  Q8: 1 scored (reference nodule missed) / 1 generation-limit abstention. No accuracy or
+  quantization winner is established. Raw score artifacts stay under ignored
+  `data/results/benchmark/E001-smoke/`; aggregate evidence is in `docs/results.md`.
+  Do not expand to full E001–E004 until useful-output reliability is addressed.
+- ✅ **Benchmark fixes pushed:** v0.3.8 (`3af797f`), configured label/prompt requests,
+  unique preserved result directories and output preflight before inference. Both manuals
+  are synchronized. Full gate **386 tests, 99.18% coverage** including 11 browser tests;
+  build, wheel, dependency audit and GitHub Actions passed.
+- 🔄 **Handover now:** publish the measured outcome and updated priorities. Next engine
+  task: preserve complete per-case raw responses/provenance and incremental checkpoints,
+  then diagnose empty/truncated responses on calibration cases. Current benchmark output
+  stores scores/warnings/fingerprints, not full raw responses; interruption has no checkpoint.
 - ✅ **Screenshots and handover:** v0.3.7 pushed; full gate **379 tests, 99.17% coverage**,
   including all 11 Playwright tests, build, clean wheel and dependency audit.
 - ✅ **Initial state at resumption (2026-10-16):** `main` v0.3.6 (`03754d1`) matches
@@ -238,12 +247,13 @@ from here**: read this section and *Next steps*, then `git log --oneline | head 
 
 ## Next steps (in order)
 
-1. Run the full gate for the benchmark fixes; review and commit/push. Screenshot verification
-   and publication handover are complete; v0.2.0 is already public.
-2. Preserve append-only run outputs and configured-label request semantics as benchmarking expands.
-3. Run a bounded calibration-only MedGemma Q4/Q8 smoke through the benchmark runner.
-   Record aggregate results and explicit failure accounting in `docs/results.md`.
-   Keep the full E001–E004 sweeps separate from this readiness check.
+1. Preserve complete per-case raw responses, request/provenance and incremental checkpoints
+   in benchmark outputs; test resumability/failure accounting before larger model sweeps.
+2. Diagnose empty/truncated structured output on calibration data. Check prompt/schema
+   constraints, parsing and image coverage. Keep the internal test and sealed holdout out
+   of tuning; use a separate hashed configuration for each change.
+3. Only after useful-output readiness passes, run the full E001–E004 development experiments
+   and record aggregate measurements. The completed two-study smoke is not an accuracy run.
 4. Audit leakage: confirm the 5 non-development entries of the former NSCLC index never
    reached analysis or results (compare against the hash-only split manifest).
 5. Tomorrow: implement/test the optional trusted LAN endpoint mode with an explicit allowlist;
