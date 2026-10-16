@@ -134,7 +134,10 @@ def test_synthetic_study_analysis_downloads_and_about(
     model = page.locator("select").filter(has=page.locator("option[value='heuristic-hu']"))
     model.select_option("heuristic-hu")
     page.locator("#run-analysis").click()
-    expect(page.locator("#download-json")).to_be_visible(timeout=30_000)
+    # Download links are always visible (aria-disabled); wait until a result enables them.
+    expect(page.locator("#download-json")).to_have_attribute(
+        "aria-disabled", "false", timeout=30_000
+    )
     expect(page.get_by_role("table").first).to_be_visible()
     expect(page.get_by_role("table").first).to_contain_text(re.compile("nodule", re.I))
     _check_findings_scores(page, language)
