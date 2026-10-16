@@ -378,3 +378,42 @@ Interpretation:
   small nodule among vessels. Coverage is necessary, not sufficient, for visibility.
 * The z-extent is a spherical approximation of reader contours. NSCLC tumour masks are
   not included. These are aggregate geometric counts, not model results.
+
+## E001-schema preparation — grammar probe and Q4 output diagnosis (2026-10-16)
+
+### Structured-output grammar probe (synthetic, no study data)
+
+Text-only requests to the installed Ollama 0.40.4 with Q4 (`temperature 0`, `seed 0`) asked
+for values that violate a JSON schema. Results:
+
+| Schema keyword | Enforced by the grammar? | Observation |
+|---|---|---|
+| `minItems` / `maxItems` on arrays | yes | Asked for 21 integers, got exactly 5; asked for 5 findings, got 2 |
+| integer `minimum` / `maximum` | yes | Asked for 10–30, got values 1–3; 250 became 25 |
+| string `maxLength` | yes | A long sentence was cut to 8 characters |
+| `const` and `enum` (including `null`) | yes | Forced labels and `true`/`false`/`null` |
+| `prefixItems` with `const` labels | yes, **only without an `items` schema** | With an extra `items` schema, label order was not enforced; `items: false` is rejected |
+| number `maximum` | **no** | 42.5 was accepted for `maximum: 1`; P5 therefore uses a literal enum of 0.05 steps |
+| `additionalProperties: false` | no extra keys observed | Not separately provable; requested extra keys were absent |
+| property order | follows schema order | `findings` is emitted first when listed first |
+
+The post-parse confidence clamp and the image-evidence guard stay in place regardless.
+Duplicate evidence numbers are not prevented by the grammar; the guard removes them.
+
+### Q4 "empty" output diagnosis
+
+* MedGemma 1.5 Q4 and Q8 report only `completion` and `vision` capabilities. No preserved
+  response contains a `thinking` field, and the adapter sends no `think` setting.
+* All eight preserved Q4 responses from E001-diagnostic and E001-cue-ablation ended with
+  `done_reason: stop` after 129–149 tokens (cue ablation). None hit the generation limit.
+* The E001-cue-ablation "abstentions" were not empty content. They were schema-valid JSON
+  with `"present": null` for every label. The E001-smoke responses (`no label predictions
+  returned`) were recorded before raw responses were preserved, so their exact cause
+  cannot be reconstructed.
+* Likely causes, not proven: the P2 rule "use null when visibility is insufficient",
+  256-pixel inputs, and samples that missed most lesions (see E001-coverage).
+
+`qwen3-vl:4b` as a general control is not trivial: in a synthetic strict-schema probe it
+emitted about 5 400 characters of `thinking` and stopped at the 1500-token limit with
+empty content, with and without `"think": false`. A control needs a reviewed new model
+configuration with a larger generation budget. It was not run.
