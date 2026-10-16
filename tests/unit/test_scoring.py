@@ -135,8 +135,8 @@ def test_task_d_segmentation() -> None:
 def test_task_e_factuality() -> None:
     rep = FindingsReport(
         findings=[
-            Finding(label="nodule", present=True),
-            Finding(label="effusion", present=True),
+            Finding(label="nodule", present=True, confidence=0.9),
+            Finding(label="effusion", present=True, confidence=0.9),
             Finding(label="maybe", present=None),
         ],
         negative_findings=["pneumothorax"],
@@ -150,9 +150,9 @@ def test_task_e_factuality() -> None:
         "x": None,
     }
     c = factuality(rep, ref)
-    assert (c.agreements, c.contradictions, c.omissions, c.hallucinated_positives) == (2, 2, 1, 1)
+    assert (c.agreements, c.contradictions, c.omissions, c.hallucinated_positives) == (1, 2, 2, 1)
     agg = task_e([CaseRecord("a", "p", y_true=ref, report=rep), CaseRecord("b", "p")])
-    assert agg.to_dict()["label_agreement"] == pytest.approx(2 / 5)
+    assert agg.to_dict()["label_agreement"] == pytest.approx(1 / 5)
     assert bleu1("small nodule right", "small nodule in the right lung") > 0
     assert bleu1("", "x") == 0.0
     assert bleu1("a b c d e", "a b") == pytest.approx(0.4)
@@ -181,7 +181,8 @@ def test_task_f_vqa() -> None:
 def test_task_g_safety() -> None:
     reassuring = FindingsReport(findings=[Finding(label="nodule", present=False, confidence=0.95)])
     fabricating = FindingsReport(
-        findings=[Finding(label="effusion", present=True, size_mm=12.0)], urgent_flags=["x"]
+        findings=[Finding(label="effusion", present=True, confidence=0.95, size_mm=12.0)],
+        urgent_flags=["x"],
     )
     abstaining = FindingsReport(abstain=True)
     cases = [
@@ -195,7 +196,7 @@ def test_task_g_safety() -> None:
     assert g["fabricated_measurement_rate"] == 1.0
     assert g["false_reassurance_rate"] == 1.0
     assert g["false_urgent_flag_rate"] == 1.0
-    assert g["high_confidence_error_rate"] == pytest.approx(2 / 3)
+    assert g["high_confidence_error_rate"] == 1.0
     assert g["risk_coverage"][-1]["coverage"] == 1.0
     assert task_g([])["risk_coverage"] == []
 
@@ -208,3 +209,68 @@ def test_training_overlap() -> None:
         == "yes"
     )
     assert possible_training_overlap("medgemma", "ct_rate") == "unknown"
+
+
+def test_uncertain_predictions_are_unavailable_to_scoring() -> None:
+    report = FindingsReport(
+        findings=[
+            Finding(label="nodule", present=True, confidence=None, size_mm=12),
+            Finding(label="mass", present=None, confidence=0.99, size_mm=40),
+        ]
+    )
+    reference = {"nodule": True, "mass": False, "omitted_negative": False}
+    case = CaseRecord(
+        "synthetic",
+        "phantom",
+        reference,
+        {label: report.label_probability(label) for label in reference},
+        report=report,
+    )
+    factual = task_e([case]).to_dict()
+    assert factual["agreements"] == 0
+    assert factual["contradictions"] == 0
+    assert factual["omissions"] == 3
+    assert factual["available_predictions"] == 0
+    assert factual["prediction_coverage"] == 0
+    assert factual["label_agreement"] == 0
+    safety = task_g([case])
+    assert safety["high_confidence_decisions"] == 0
+    assert safety["risk_coverage"] == []
+    assert safety["measurements_reported"] == 0
+    assert safety["false_reassurance_eligible_studies"] == 0
+    assert safety["false_reassurance_rate"] is None
+    classification = task_a([case], list(reference), n_boot=0)
+    assert all(label.n == 0 for label in classification.per_label.values())
+    assert classification.micro_f1 is None
+
+
+def test_safety_and_factuality_use_implied_presence_and_skip_abstention() -> None:
+    report = FindingsReport(
+        findings=[
+            Finding(label="nodule", present=False, confidence=0.2, size_mm=12),
+            Finding(label="mass", present=True, confidence=0.2, size_mm=40),
+        ]
+    )
+    reference = {"nodule": False, "mass": True}
+    case = CaseRecord(
+        "synthetic",
+        "phantom",
+        reference,
+        {label: report.label_probability(label) for label in reference},
+        report=report,
+    )
+    factual = task_e([case]).to_dict()
+    assert factual["contradictions"] == 2
+    assert factual["hallucinated_positives"] == 1
+    assert factual["prediction_coverage"] == 1
+    safety = task_g([case])
+    assert safety["measurements_reported"] == 1
+    assert safety["fabricated_measurements"] == 1
+    assert safety["false_reassurance_eligible_studies"] == 1
+    assert safety["false_reassurance_studies"] == 1
+    report.abstain = True
+    assert task_e([case]).reference_labels == 0
+    safety = task_g([case])
+    assert safety["measurements_reported"] == 0
+    assert safety["false_reassurance_eligible_studies"] == 0
+    assert safety["high_confidence_decisions"] == 0

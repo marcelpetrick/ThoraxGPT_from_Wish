@@ -17,6 +17,10 @@ def test_all_prompts_render(pid: str) -> None:
     p = load_prompt(pid, PROMPTS)
     assert len(p.sha256) == 64
     r = p.render(["pulmonary_nodule", "emphysema"], 2, ["lung window axial", "mediastinal"], "")
+    assert "image 1: lung window axial" in r.user
+    assert "image 2: mediastinal" in r.user
+    assert "image 0:" not in r.user
+    assert p.version == ("1.0.2" if pid == "P4" else "1.0.1")
     assert "$" not in r.user
     assert "No deterministic measurements" in r.user
     if p.two_pass:
@@ -124,14 +128,14 @@ def test_parse_findings_full() -> None:
 
 def test_parse_alternative_shapes() -> None:
     rep = parse_findings('[{"label": "emphysema"}, "atelectasis"]')
-    assert rep.positive_labels() == {"emphysema", "atelectasis"}
+    assert rep.positive_labels() == set()
     rep2 = parse_findings(
         '{"findings": {"emphysema": true, "atelectasis": 0.3, "pneumothorax": "no",'
         ' "consolidation": {"present": true}, "fibrosis": null}, "study_quality": 5}'
     )
     assert rep2.label_probability("atelectasis") == 0.3
-    assert rep2.label_probability("pneumothorax") == 0.0
-    assert rep2.label_probability("fibrosis_interstitial") == 0.5
+    assert rep2.label_probability("pneumothorax") is None
+    assert rep2.label_probability("fibrosis_interstitial") is None
     assert parse_findings('{"findings": "weird"}').findings == []
     assert (
         parse_findings('{"findings": [{"label": "emphysema", "confidence": true}]}')

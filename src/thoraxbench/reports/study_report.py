@@ -41,10 +41,7 @@ def severity_of(entry: ClinicalEntry, finding: Finding) -> tuple[Severity, str]:
 
 def probability_of(finding: Finding) -> float | None:
     """P(present) implied by one finding (``None`` when the model was uncertain)."""
-    if finding.present is None or finding.confidence is None:
-        return None
-    conf = finding.confidence
-    return conf if finding.present else 1.0 - conf
+    return finding.presence_probability()
 
 
 def status_of(finding: Finding, threshold: float) -> str:

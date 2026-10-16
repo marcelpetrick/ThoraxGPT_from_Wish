@@ -96,6 +96,11 @@ Status: ✅ done · 🔄 in progress · ⏳ open · ✖ dropped
 Updated with every commit (newest first). **If a session breaks, the next agent resumes
 from here**: read this section and *Next steps*, then `git log --oneline | head -20`.
 
+- ✅ **Scoring/caption corrections (2026-10-16, resumed work):** unavailable presence or
+  confidence is no longer imputed as a definite prediction. Task E reports prediction
+  coverage/omissions; Task G exposes its eligible false-reassurance denominator. Captions
+  use one-based numbering; affected prompt versions are bumped. Historical measurements
+  retain their original definitions. Durable benchmark artifacts/checkpoints remain next.
 - ✅ **MedGemma readiness smoke (2026-10-16):** clean v0.3.8 commit `3af797f`, separate
   `E001_calibration_smoke.yaml`, calibration-only 1 case per dataset, 4×256 px axial
   inputs, 2 labels, Q4/Q8. Wall time **290.8 s**. Q4: 0 scored / 2 empty-output abstentions.

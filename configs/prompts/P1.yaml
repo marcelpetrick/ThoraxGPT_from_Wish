@@ -2,7 +2,7 @@
 # P1 — structured anatomical checklist following the radiologist search pattern (Vision §19,
 # docs/reading_practice.md §4.1). Labels are suggested but not enforced.
 id: P1
-version: "1.0.0"
+version: "1.0.1"
 title: Structured anatomical checklist
 label_constrained: false
 system: |

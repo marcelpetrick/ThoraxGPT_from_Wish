@@ -186,3 +186,7 @@ uv run thoraxbench benchmark configs/experiments/E001_heuristic_hu_baseline.yaml
 ```
 
 Run commands from the repository root.
+
+Current scoring treats missing confidence and uncertain presence as unavailable. Task E
+reports coverage and omissions; Task G records its eligible-study denominator. Prompt
+captions are one-based. Historical aggregate results retain their original definitions.

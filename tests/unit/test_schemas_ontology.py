@@ -55,11 +55,11 @@ def test_findings_probabilities() -> None:
     )
     assert rep.label_probability("pulmonary_nodule") == 0.8
     assert rep.label_probability("emphysema") == pytest.approx(0.1)
-    assert rep.label_probability("atelectasis") == 0.5
-    assert rep.label_probability("consolidation") == 1.0
+    assert rep.label_probability("atelectasis") is None
+    assert rep.label_probability("consolidation") is None
     assert rep.label_probability("pneumothorax") == 0.0
     assert rep.label_probability("fracture") is None
-    assert rep.positive_labels() == {"pulmonary_nodule", "consolidation"}
+    assert rep.positive_labels() == {"pulmonary_nodule"}
     assert rep.findings[0].laterality is Laterality.RIGHT
     assert rep.findings[1].laterality is Laterality.UNKNOWN
     assert Finding(label="x", laterality="sideways").laterality is Laterality.UNKNOWN
@@ -73,3 +73,29 @@ def test_model_io_types() -> None:
     assert prep.input_bytes == 5
     ref = ReferenceLabels(dataset="d", patient_id="p", study_uid="s", labels={"a": True})
     assert ref.labels["a"]
+
+
+@pytest.mark.parametrize(
+    ("present", "confidence", "expected"),
+    [
+        (True, None, None),
+        (False, None, None),
+        (None, 0.9, None),
+        (True, 0.2, 0.2),
+        (False, 0.2, 0.8),
+        (True, 0.49999, 0.49999),
+    ],
+)
+def test_shared_probability_and_positive_labels(
+    present: bool | None, confidence: float | None, expected: float | None
+) -> None:
+    finding = Finding(label="pulmonary_nodule", present=present, confidence=confidence)
+    report = FindingsReport(findings=[finding])
+    assert finding.presence_probability() == expected
+    assert report.label_probability(finding.label) == expected
+    assert report.positive_labels() == (
+        {finding.label} if expected is not None and expected >= 0.5 else set()
+    )
+    report.abstain = True
+    assert report.label_probability(finding.label) is None
+    assert report.positive_labels() == set()

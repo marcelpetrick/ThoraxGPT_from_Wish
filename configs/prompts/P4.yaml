@@ -2,7 +2,7 @@
 # P4 — two-pass: (1) observations with evidence, (2) label mapping + impression (Vision §19,
 # docs/reading_practice.md §4.5). Guideline categories are assigned by code, not the model.
 id: P4
-version: "1.0.1"
+version: "1.0.2"
 title: Two-pass observation then impression
 label_constrained: true
 system: |

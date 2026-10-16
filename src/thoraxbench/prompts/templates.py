@@ -102,7 +102,7 @@ class PromptTemplate:
             "labels": "\n".join(f"- {lid}: {names.get(lid, lid)}" for lid in labels),
             "label_ids": ", ".join(labels),
             "n_images": str(n_images),
-            "captions": "\n".join(f"image {i}: {c}" for i, c in enumerate(captions))
+            "captions": "\n".join(f"image {i}: {c}" for i, c in enumerate(captions, start=1))
             or "(no captions supplied)",
             "context": context.strip() or NO_CONTEXT,
             "regions": "\n".join(f"{i}. {r}" for i, r in enumerate(REGION_ORDER, start=1)),

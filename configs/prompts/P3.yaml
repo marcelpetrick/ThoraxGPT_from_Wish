@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # P3 — label-constrained classification with evidence requirement (Vision §19). Default prompt.
 id: P3
-version: "1.0.0"
+version: "1.0.1"
 title: Label-constrained with evidence
 label_constrained: true
 system: |

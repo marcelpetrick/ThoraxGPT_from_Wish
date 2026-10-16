@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # P2 — label-constrained classification (Vision §19): one verdict per requested label.
 id: P2
-version: "1.0.0"
+version: "1.0.1"
 title: Label-constrained classification
 label_constrained: true
 system: |

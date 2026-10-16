@@ -376,3 +376,7 @@ There is no automated release or package-publication workflow. Use the source-ch
 installation above; the wheel is not a standalone configured application. The coverage
 badge records the 2026-10-15 integrated test run;
 its evidence and limitations are in the [MVP test record](docs/mvp-test.md).
+
+Current scoring treats missing confidence and uncertain presence as unavailable. Task E
+reports coverage and omissions; Task G records its eligible-study denominator. Prompt
+captions are one-based. Historical aggregate results retain their original definitions.

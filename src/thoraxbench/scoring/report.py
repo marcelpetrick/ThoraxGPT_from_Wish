@@ -2,8 +2,9 @@
 # Copyright (C) 2026 Marcel Petrick <mail@marcelpetrick.it>
 """Task E: clinical factuality of generated reports, plus secondary text-overlap metrics.
 
-Factuality compares the labels a model *asserted* (present / explicitly absent) against the
-reference labels. BLEU-1 and ROUGE-L are descriptive only (Vision §13 Task E).
+Factuality compares available implied-presence decisions against known reference labels.
+Missing predictions count as omissions, never as agreements. BLEU-1 and ROUGE-L are
+descriptive only (Vision §13 Task E).
 """
 
 from __future__ import annotations
@@ -22,11 +23,12 @@ from thoraxbench.scoring.records import CaseRecord
 
 def asserted_labels(report: FindingsReport) -> dict[str, bool]:
     """Labels the report commits to: ``True`` present, ``False`` explicitly absent."""
-    out: dict[str, bool] = dict.fromkeys(report.negative_findings, False)
-    for f in report.findings:
-        if f.present is not None:
-            out[f.label] = f.present
-    return out
+    labels = {f.label for f in report.findings} | set(report.negative_findings)
+    return {
+        label: probability >= 0.5
+        for label in labels
+        if (probability := report.label_probability(label)) is not None
+    }
 
 
 @dataclass
@@ -38,11 +40,13 @@ class FactualityCounts:
     omissions: int = 0
     hallucinated_positives: int = 0
     reference_labels: int = 0
+    available_predictions: int = 0
 
     def to_dict(self) -> dict[str, Any]:
         """JSON-serialisable representation including the agreement rate."""
         data: dict[str, Any] = dict(vars(self))
         data["label_agreement"] = safe_div(self.agreements, self.reference_labels)
+        data["prediction_coverage"] = safe_div(self.available_predictions, self.reference_labels)
         return data
 
 
@@ -52,7 +56,7 @@ def factuality(report: FindingsReport, reference: dict[str, bool | None]) -> Fac
     * agreement: asserted value equals the reference;
     * contradiction: asserted value differs (a hallucinated positive is also counted here
       when the reference is negative);
-    * omission: reference positive but the report says nothing about it;
+    * omission: a known reference label has no available model prediction;
     * hallucinated positive: asserted present while reference is negative.
     """
     asserted = asserted_labels(report)
@@ -63,9 +67,10 @@ def factuality(report: FindingsReport, reference: dict[str, bool | None]) -> Fac
         c.reference_labels += 1
         said = asserted.get(label)
         if said is None:
-            c.omissions += int(ref)
-            c.agreements += int(not ref)  # silence on a negative label is consistent
-        elif said == ref:
+            c.omissions += 1
+            continue
+        c.available_predictions += 1
+        if said == ref:
             c.agreements += 1
         else:
             c.contradictions += 1
@@ -77,7 +82,7 @@ def task_e(cases: Sequence[CaseRecord]) -> FactualityCounts:
     """Aggregate factuality counts over all cases that have a report."""
     total = FactualityCounts()
     for case in cases:
-        if case.report is None:
+        if case.report is None or case.report.abstain:
             continue
         c = factuality(case.report, case.y_true)
         total.agreements += c.agreements
@@ -85,6 +90,7 @@ def task_e(cases: Sequence[CaseRecord]) -> FactualityCounts:
         total.omissions += c.omissions
         total.hallucinated_positives += c.hallucinated_positives
         total.reference_labels += c.reference_labels
+        total.available_predictions += c.available_predictions
     return total
 
 

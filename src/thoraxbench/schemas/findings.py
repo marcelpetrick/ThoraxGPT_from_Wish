@@ -41,6 +41,12 @@ class Finding(BaseModel):
     description: str = ""
     source: str = "model"
 
+    def presence_probability(self) -> float | None:
+        """Implied P(present), without inventing confidence for an unknown answer."""
+        if self.present is None or self.confidence is None:
+            return None
+        return self.confidence if self.present else 1.0 - self.confidence
+
     @field_validator("laterality", mode="before")
     @classmethod
     def _coerce_laterality(cls, value: object) -> object:
@@ -68,20 +74,23 @@ class FindingsReport(BaseModel):
     def label_probability(self, label: str) -> float | None:
         """Return P(label present) implied by the report, or ``None`` if not stated.
 
-        Positive findings map to their confidence (default 1.0), explicit negatives to
-        ``1 - confidence`` (default 0.0), uncertain findings to 0.5.
+        Unknown presence, missing confidence and abstentions remain unavailable.
+        Explicit negative-list entries imply zero only when no finding overrides them.
         """
+        if self.abstain:
+            return None
         for f in self.findings:
             if f.label != label:
                 continue
-            if f.present is None:
-                return 0.5
-            conf = 1.0 if f.confidence is None else f.confidence
-            return conf if f.present else 1.0 - conf
+            return f.presence_probability()
         if label in self.negative_findings:
             return 0.0
         return None
 
     def positive_labels(self) -> set[str]:
-        """Labels reported as present."""
-        return {f.label for f in self.findings if f.present is True}
+        """Labels with an available implied presence probability at least 0.5."""
+        return {
+            f.label
+            for f in self.findings
+            if (probability := self.label_probability(f.label)) is not None and probability >= 0.5
+        }

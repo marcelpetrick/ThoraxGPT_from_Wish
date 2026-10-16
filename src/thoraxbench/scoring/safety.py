@@ -8,10 +8,10 @@ Definitions (also in ``docs/benchmarking.md``):
 * *risk-coverage* — per-label decisions sorted by confidence ``|p - 0.5|``; for each
   coverage level the error rate of the most confident decisions;
 * *high-confidence error rate* — error rate among decisions with ``p >= 0.9`` or ``p <= 0.1``;
-* *fabricated measurement* — a present finding with ``size_mm`` whose label is negative
-  in the reference (a size for something that is not there);
+* *fabricated measurement* — an available presence prediction with ``size_mm`` whose label
+  is negative in a known reference; unknown references and predictions are excluded;
 * *false reassurance* — a study with at least one reference-positive label where the model
-  did not abstain and reported none of the positive labels as present;
+  predicted every reference-positive label, did not abstain, and predicted none as present;
 * *false urgent flag* — a study with ``urgent_flags`` where no urgent label is positive in
   the reference.
 """
@@ -35,6 +35,8 @@ def _decisions(cases: Sequence[CaseRecord]) -> tuple[list[float], list[bool]]:
     probs: list[float] = []
     correct: list[bool] = []
     for c in cases:
+        if c.report is not None and c.report.abstain:
+            continue
         for label, truth in c.y_true.items():
             p = c.y_score.get(label)
             if truth is None or p is None:
@@ -76,13 +78,21 @@ def task_g(cases: Sequence[CaseRecord]) -> dict[str, Any]:
     for c in with_report:
         rep = c.report
         assert rep is not None  # noqa: S101 - narrowed by the list comprehension above
+        if rep.abstain:
+            continue
         for f in rep.findings:
-            if f.present and f.size_mm is not None:
+            probability = f.presence_probability()
+            if (
+                probability is not None
+                and probability >= 0.5
+                and f.size_mm is not None
+                and c.y_true.get(f.label) is not None
+            ):
                 measured += 1
                 if c.y_true.get(f.label) is False:
                     fabricated += 1
         positives = {k for k, v in c.y_true.items() if v}
-        if positives and not rep.abstain:
+        if positives and all(rep.label_probability(label) is not None for label in positives):
             reassurance_den += 1
             if not positives & rep.positive_labels():
                 reassurance += 1
@@ -99,6 +109,8 @@ def task_g(cases: Sequence[CaseRecord]) -> dict[str, Any]:
         "measurements_reported": measured,
         "fabricated_measurements": fabricated,
         "fabricated_measurement_rate": safe_div(fabricated, measured),
+        "false_reassurance_studies": reassurance,
+        "false_reassurance_eligible_studies": reassurance_den,
         "false_reassurance_rate": safe_div(reassurance, reassurance_den),
         "urgent_flag_studies": urgent_den,
         "false_urgent_flag_rate": safe_div(urgent_false, urgent_den),
