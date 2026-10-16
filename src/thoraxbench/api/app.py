@@ -23,6 +23,7 @@ from thoraxbench.adapters.factory import require_local_endpoint
 from thoraxbench.analysis import DISCLAIMER, AnalysisResult, analyze_study
 from thoraxbench.api.licenses import runtime_libraries
 from thoraxbench.api.model_pulls import ModelPullJobs, PullBusyError
+from thoraxbench.api.presentation import finding_presentation
 from thoraxbench.config import Settings, get_settings
 from thoraxbench.index import SUPPORTED, IndexEntry, load_index, open_study
 from thoraxbench.reports import render_study_report
@@ -193,14 +194,31 @@ def create_app(settings: Settings | None = None) -> FastAPI:  # noqa: PLR0915 - 
                     "qc_adequate": True,
                 }
             )
+        libraries: list[dict[str, Any]] = []
         for dataset in SUPPORTED:
+            library: dict[str, Any] = {
+                "dataset": dataset,
+                "status": "ready",
+                "available_studies": 0,
+            }
+            libraries.append(library)
             try:
                 guard, indexed = entries(dataset)
             except HTTPException:
+                if (
+                    not config.data_path("splits", f"{dataset}.json").is_file()
+                    or not (config.manifests_dir / "splits" / f"{dataset}.json").is_file()
+                ):
+                    library["status"] = "split_required"
+                elif not config.data_path("index", f"{dataset}.json").is_file():
+                    library["status"] = "not_indexed"
+                else:
+                    library["status"] = "unavailable"
                 continue
             for case_id in guard.cases(Phase.DEVELOPMENT):
                 if case_id in indexed:
                     entry = indexed[case_id]
+                    library["available_studies"] += 1
                     studies.append(
                         {
                             "dataset": dataset,
@@ -210,7 +228,17 @@ def create_app(settings: Settings | None = None) -> FastAPI:  # noqa: PLR0915 - 
                             "qc_adequate": entry.qc_adequate,
                         }
                     )
-        return {"studies": studies, "disclaimer": DISCLAIMER}
+        synthetic = sum(study["dataset"] == "demo" for study in studies)
+        return {
+            "studies": studies,
+            "libraries": libraries,
+            "summary": {
+                "total_studies": len(studies),
+                "development_studies": len(studies) - synthetic,
+                "synthetic_studies": synthetic,
+            },
+            "disclaimer": DISCLAIMER,
+        }
 
     @app.get("/")
     @app.get("/about")
@@ -376,6 +404,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:  # noqa: PLR0915 - 
         return {
             "id": str(identifier),
             "result": result.model_dump(mode="json"),
+            "presentation": finding_presentation(result),
             "markdown": markdown,
             "downloads": {
                 "json": f"/api/results/{identifier}/json",

@@ -16,8 +16,11 @@ here are binding until changed by a later commit to this file.
 
 ## Priority (user decision, 2026-10-15)
 
-**Current engine priority (resumed 2026-10-16):** UI feature work remains frozen after
-v0.2.0; fixes and documentation only. The WP8 development runner, E000 baseline and bounded
+**Current priority (user update, 2026-10-16):** complete engine reliability and the newly
+requested UI/UX usability improvements. The user explicitly authorized a full UX review,
+recommendations, plan, implementation, fresh screenshots and end-to-end verification.
+This permits targeted study-library, navigation, feedback, help and results improvements;
+advanced reference overlays and LAN inference remain deferred. The WP8 development runner, E000 baseline and bounded
 Q4/Q8 calibration readiness smoke are complete. Per-case diagnostic evidence and
 interruption-safe checkpoints are implemented. Resolve useful-output reliability on calibration data
 before full E001–E004 experiments. Keep internal-test cases out of tuning.
@@ -97,6 +100,29 @@ Status: ✅ done · 🔄 in progress · ⏳ open · ✖ dropped
 | 🔄 WP12 | GitHub About + ten topics applied ✅; project review + course correction ✅; `docs/vision_traceability.md` ✅; closing ranked gaps ⏳ | all | lead |
 
 ## Current activity
+
+- 🔄 **User-authorized UX completion (2026-10-16):** eight confirmed should-fix findings
+  and acceptance checks are recorded in [the UX review](ux-review-2026-10-16.md) and
+  [offline HTML review](ux-review-2026-10-16.html). Prioritize library discovery/search,
+  mobile study → viewer → model order, educational result context, nearby model setup,
+  session-preserving About navigation, delayed accessible tooltips, result settings
+  identity and translated finding names. Add library-source health/count metadata and
+  shared report-derived educational display codes. Refresh synthetic screenshots and
+  README snippets after implementation. Run synthetic browser flows in both languages,
+  both themes and mobile, plus the full gate and self-review. Do not claim UX completion
+  before these checks pass.
+- ✅ **Local preview for the user:** stable v0.3.15 runs on loopback port 8000 from
+  `.pipeline/calibration-clean`, with the repository's original `data/` library. The
+  inventory contains 48 LIDC-IDRI and 22 NSCLC development studies plus the demo. The
+  initial isolated demo-only data directory was corrected. Live synthetic demo → viewer
+  → HU analysis → downloadable HTML was verified. Keep this preview running until replaced
+  deliberately after a green gate. Do not take screenshots of its real development studies.
+- 🔄 **Parallel completion:** cohort HTML/CSV exports and comparison have 39 focused tests;
+  all 15 model manifests have 31 offline validation tests. Shared split/freeze path guards
+  now reject unsafe identifiers and symlink escapes before file reads (25 targeted tests).
+  The evidence/context fix passed the full gate and is pushed as v0.3.16 (`5c16ba1`).
+  Its bounded cue-ablation run is in progress from a separate clean checkout; model outcomes
+  remain inspectable. Tooltip delay is 650 ms and passed its focused browser regression.
 
 - 🔄 **Resumed completion work (2026-10-16):** clean starting point `c509525`, v0.3.15.
   The corrected uniform two-image diagnostic completed from an isolated clean checkout:
@@ -330,7 +356,9 @@ from here**: read this section and *Next steps*, then `git log --oneline | head 
 5. Keep LAN implementation and 40 GB runner verification deferred until resumed explicitly.
 6. Close remaining ranked gaps: calibration fitting, training-overlap column, E005–E008
    configurations, model manifests, CLI `compare` and remaining cohort report tasks.
-7. Keep UI feature work frozen. Maintain existing behavior and documentation.
+7. Complete the eight authorized UX fixes in `docs/ux-review-2026-10-16.md`, refresh
+   synthetic screenshots/snippets and verify the end-to-end browser workflow. Advanced
+   reference-scored UI remains deferred.
 8. After the user triggers recording and readiness passes, implement the recorder and
    capture the synthetic workflow using [both pilot scripts](linkedin-video-plan.md).
    Do not record or publish before that trigger.

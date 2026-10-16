@@ -65,6 +65,8 @@ def test_demo_slices_analysis_and_downloads(client: TestClient) -> None:
     assert result.status_code == 200, result.text
     body = result.json()
     assert body["result"]["report"]["abstain"] is False
+    assert body["presentation"]["educational_only"] is True
+    assert any(row["severity"] is not None for row in body["presentation"]["findings"])
     assert "Pulmonary nodule" in body["markdown"]
     assert "not medical advice" in body["markdown"]
     saved = client.get(body["downloads"]["json"])
@@ -236,7 +238,14 @@ def test_only_indexed_development_studies_can_open(settings: Settings) -> None:
     index.parent.mkdir(parents=True)
     index.write_text(json.dumps([entry.model_dump(mode="json")]))
     client = TestClient(api.create_app(settings))
-    listed = client.get("/api/studies").json()["studies"]
+    inventory = client.get("/api/studies").json()
+    listed = inventory["studies"]
+    assert inventory["summary"]["development_studies"] == 1
+    assert next(row for row in inventory["libraries"] if row["dataset"] == "lidc_idri") == {
+        "dataset": "lidc_idri",
+        "status": "ready",
+        "available_studies": 1,
+    }
     assert len(listed) == 1
     assert listed[0]["case_id"] == case
     for _ in range(2):
@@ -443,3 +452,33 @@ def test_service_inventory_and_pull_reject_non_loopback(settings: Settings) -> N
         client.post("/api/models/gemma3-4b/pull", json={"terms_acknowledged": True}).status_code
         == 422
     )
+
+
+def test_library_status_explains_missing_and_unavailable_sources(settings: Settings) -> None:
+    client = TestClient(api.create_app(settings))
+    payload = client.get("/api/studies").json()
+    assert payload["summary"] == {
+        "total_studies": 0,
+        "development_studies": 0,
+        "synthetic_studies": 0,
+    }
+    assert all(row["status"] == "split_required" for row in payload["libraries"])
+    split = make_split(
+        [CaseRecord(dataset="lidc_idri", patient_id=f"P{i}", case_id=f"P{i}") for i in range(5)],
+        "lidc_idri",
+    )
+    save_split(split, settings.data_dir, settings.manifests_dir)
+    payload = client.get("/api/studies").json()
+    assert (
+        next(row for row in payload["libraries"] if row["dataset"] == "lidc_idri")["status"]
+        == "not_indexed"
+    )
+    index = settings.data_path("index", "lidc_idri.json")
+    index.parent.mkdir(parents=True)
+    index.write_text("malformed index")
+    payload = client.get("/api/studies").json()
+    assert (
+        next(row for row in payload["libraries"] if row["dataset"] == "lidc_idri")["status"]
+        == "unavailable"
+    )
+    assert str(settings.data_dir) not in json.dumps(payload)

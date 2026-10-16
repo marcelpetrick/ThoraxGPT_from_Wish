@@ -20,8 +20,11 @@ do not leave essential information only in chat or temporary files.
 
 The CLI engine and frozen pilot holdout are available. The **local UI MVP** is implemented
 (2026-10-15): maintain its tested research workflow around the existing engine and keep
-model-quality limitations visible. **UI feature work is frozen after v0.2.0** (fixes and
-docs only). The WP8 benchmark runner and the E000 development baseline exist. Benchmark requests
+model-quality limitations visible. **User update (2026-10-16):** targeted UX improvements are now authorized after a full
+review: study discovery/search, mobile flow, model setup, session-preserving navigation,
+result context, translated labels and delayed accessible tooltips. The review and acceptance
+checks are in `docs/ux-review-2026-10-16.md`. Advanced reference overlays and unrelated
+UI features remain deferred. The WP8 benchmark runner and the E000 development baseline exist. Benchmark requests
 use the experiment's configured labels. Preserve each invocation in its own timestamp/hash/UUID
 output folder; never overwrite previous partial or full runs. Persist each terminal
 case/variant before proceeding. Refuse resume after code/configuration, data/index/split,

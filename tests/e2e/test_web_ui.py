@@ -69,6 +69,7 @@ def ui_page(ui_server: str) -> Iterator[Page]:
         context = browser.new_context(locale="de-DE", color_scheme="dark", accept_downloads=True)
         page = context.new_page()
         page.set_default_timeout(15_000)
+        page.clock.install()
         page.goto(ui_server)
         yield page
         context.close()
@@ -140,6 +141,7 @@ def test_synthetic_study_analysis_downloads_and_about(
     )
     expect(page.get_by_role("table").first).to_be_visible()
     expect(page.get_by_role("table").first).to_contain_text(re.compile("nodule", re.I))
+    expect(page.locator("#metric-images")).to_have_text("0")
     _check_findings_scores(page, language)
     _check_control_tooltips(page)
     with page.expect_download() as downloaded:
@@ -210,6 +212,7 @@ def _check_control_tooltips(page: Page) -> None:
             continue
         control.scroll_into_view_if_needed()
         control.focus()
+        page.clock.fast_forward(700)
         expect(
             page.get_by_role("tooltip"),
             f"keyboard help for {control.get_attribute('id') or control.inner_text()}",
@@ -223,7 +226,7 @@ def _check_findings_scores(page: Page, language: str) -> None:
     emphysema = page.locator("#findings-table tbody tr").filter(has_text="emphysema")
     expect(emphysema).to_contain_text("Not detected" if language == "en" else "Nicht erkannt")
     expect(emphysema).to_contain_text("0.02")
-    nodule = page.locator("#findings-table tbody tr").filter(has_text="pulmonary nodule")
+    nodule = page.locator("#findings-table tbody tr").filter(has_text="pulmonary_nodule")
     expect(nodule).to_contain_text("0.79")
 
 
@@ -254,6 +257,7 @@ def test_abstention_failure_and_missing_confidence_are_explicit(ui_page: Page) -
     page.route("**/api/analyze", lambda route: route.fulfill(json=response))
     page.locator("#run-analysis").click()
     expect(page.locator("#metric-status")).to_have_text("Abstained")
+    expect(page.locator("#metric-images")).to_have_text("—")
     expect(page.locator("#notice")).to_contain_text("The engine abstained")
     row = page.locator("#findings-body tr").first
     expect(row).to_have_text("No prediction")
@@ -305,7 +309,7 @@ def _check_research_disclaimer(page: Page, language: str) -> None:
 def _check_about(page: Page, language: str) -> None:
     page.locator("#nav-about").click()
     expect(page.get_by_text("Marcel Petrick", exact=False).first).to_be_visible()
-    expect(page.get_by_text(re.compile("GPL-3.0", re.I)).first).to_be_visible()
+    expect(page.locator("#about-license")).to_contain_text("GPL-3.0")
     _check_research_disclaimer(page, language)
     licenses = page.get_by_role("table").first
     expect(licenses).to_be_visible()
@@ -325,7 +329,6 @@ def test_request_elapsed_advances_while_pending_and_freezes(ui_page: Page, outco
         pending.append(route)
 
     page.route("**/api/analyze", hold_request)
-    page.clock.install()
     page.locator("#run-analysis").click()
     expect(page.locator("#request-timer")).to_be_visible()
     assert len(pending) == 1
@@ -368,7 +371,7 @@ def _mock_model_output(model_id: str, *, abstain: bool = False) -> dict[str, obj
         "id": f"run-{model_id}",
         "result": {
             "model_id": model_id,
-            "perf": {"total_s": 0.1},
+            "perf": {"total_s": 0.1, "n_images": 0 if model_id == "heuristic-hu" else 9},
             "report": {
                 "abstain": abstain,
                 "findings": []
@@ -429,7 +432,6 @@ def test_recommended_comparison_is_sequential_and_keeps_partial_results(ui_page:
 
     page.route("**/api/analyze", respond)
     page.route("**/api/compare", export)
-    page.clock.install()
     page.locator("#run-analysis").click()
     expect(page.locator("#batch-status")).to_contain_text("heuristic-hu")
     assert requested == ["heuristic-hu"]
@@ -454,7 +456,7 @@ def _check_comparison_results(
     expect(page.locator("#comparison-body tr[data-model='qwen3-vl-4b']")).to_contain_text(
         "Synthetic service offline"
     )
-    expect(page.locator("#comparison-findings-table")).to_contain_text("pulmonary nodule")
+    expect(page.locator("#comparison-findings-table")).to_contain_text("pulmonary_nodule")
     expect(page.locator("#comparison-findings-table")).to_contain_text("0.80")
     expect(page.locator("#comparison-findings-body tr td").nth(3)).to_have_text(
         "Not detected · 0.10; Present · 0.80"
@@ -465,6 +467,10 @@ def _check_comparison_results(
     assert len(export_requests) == 1
     assert len(export_requests[0]["result_ids"]) == 3
     assert {entry["status"] for entry in export_requests[0]["omissions"]} == {"skipped", "error"}
+    expect(page.locator("#comparison-body tr[data-model='medgemma1.5-q8'] td").nth(2)).to_have_text(
+        "9"
+    )
+    expect(page.locator("#metric-images")).to_have_text("9")
     expect(page.locator("#metric-model")).to_have_text("medgemma1.5-q8")
     page.locator("#comparison-body tr[data-model='heuristic-hu'] button").click()
     expect(page.locator("#metric-model")).to_have_text("heuristic-hu")
@@ -481,7 +487,8 @@ def _check_comparison_results(
     page.clock.fast_forward(5000)
     expect(page.locator("#request-elapsed")).to_have_text(stopped)
     page.locator("#study-select").dispatch_event("change")
-    expect(page.locator("#comparison-body")).not_to_contain_text("Synthetic service offline")
+    expect(page.locator("#comparison-body")).to_contain_text("Synthetic service offline")
+    _check_comparison_preserved_after_study_change(page)
     expect(page.locator("#batch-status")).to_be_hidden()
 
 
@@ -497,15 +504,23 @@ def test_missing_confidence_is_uncertain_and_model_text_is_escaped(ui_page: Page
     ]
     page.route("**/api/analyze", lambda route: route.fulfill(json=response))
     page.locator("#run-analysis").click()
-    row = page.locator("#findings-body tr").first
+    row = page.locator("#findings-body tr").filter(has_text="<img src=x onerror=alert(1)>")
     expect(row.locator("td").nth(1)).to_have_text("Uncertain")
     expect(row.locator("td").nth(2)).to_have_text("—")
     expect(row).to_contain_text("<img src=x onerror=alert(1)>")
     expect(row.locator("img")).to_have_count(0)
-    expect(page.locator("#findings-body tr").nth(1)).to_contain_text("Not detected")
-    expect(page.locator("#findings-body tr").nth(1)).to_contain_text("0.20")
-    expect(page.locator("#findings-body tr").nth(2)).to_contain_text("Present")
-    expect(page.locator("#findings-body tr").nth(2)).to_contain_text("0.80")
+    expect(
+        page.locator("#findings-body tr").filter(has_text="positive_low_confidence")
+    ).to_contain_text("Not detected")
+    expect(
+        page.locator("#findings-body tr").filter(has_text="positive_low_confidence")
+    ).to_contain_text("0.20")
+    expect(
+        page.locator("#findings-body tr").filter(has_text="negative_low_confidence")
+    ).to_contain_text("Present")
+    expect(
+        page.locator("#findings-body tr").filter(has_text="negative_low_confidence")
+    ).to_contain_text("0.80")
 
 
 @pytest.mark.parametrize("outcome", ["completed", "error"])
@@ -572,7 +587,6 @@ def test_model_download_requires_terms_and_reports_actual_layer_bytes(
             }
         ),
     )
-    page.clock.install()
     _start_and_check_download(page, requested)
     inventory[1]["available"] = outcome == "completed"
     page.clock.fast_forward(1500)
@@ -615,3 +629,363 @@ def _start_and_check_download(page: Page, requested: list[dict[str, object]]) ->
     expect(page.locator("#create-demo")).to_be_disabled()
     expect(gemma.get_by_role("checkbox")).to_be_disabled()
     expect(page.locator("#refresh-models")).to_be_disabled()
+
+
+def test_slice_target_help_and_actual_prepared_image_count_are_distinct(ui_page: Page) -> None:
+    page = ui_page
+    page.route(
+        "**/api/models",
+        lambda route: route.fulfill(
+            json={
+                "models": [
+                    {"id": "medgemma1.5-q4", "available": True, "recommended": True},
+                ]
+            }
+        ),
+    )
+    page.reload()
+    page.locator("#create-demo").click()
+    expect(page.locator("#run-analysis")).to_be_enabled()
+    page.locator("#model-select").select_option("medgemma1.5-q4")
+    page.locator("#image-count").fill("2")
+    label = page.locator("label[for='image-count']")
+    expect(label).to_have_text("Target source slices")
+    label.focus()
+    expect(page.get_by_role("tooltip")).to_contain_text("more landmark slices than requested")
+    expect(page.get_by_role("tooltip")).to_contain_text(
+        "coronal and multi-window views can add images"
+    )
+
+    def respond(route: Route) -> None:
+        assert route.request.post_data_json["n_images"] == 2
+        route.fulfill(json=_mock_model_output("medgemma1.5-q4"))
+
+    page.route("**/api/analyze", respond)
+    page.locator("#run-analysis").click()
+    expect(page.locator("#metric-images")).to_have_text("9")
+    expect(page.locator("#image-count")).to_have_value("2")
+    summary = page.locator("#prepared-image-summary")
+    expect(summary).to_contain_text("Actual prepared model images")
+    summary.focus()
+    expect(page.get_by_role("tooltip")).to_contain_text("not the requested source-slice target")
+    page.locator("#language-toggle").click()
+    expect(label).to_have_text("Zielanzahl der Quellschichten")
+    expect(summary).to_contain_text("Tatsächlich vorbereitete Modellbilder")
+    expect(page.locator("#metric-images")).to_have_text("9")
+    label.focus()
+    expect(page.get_by_role("tooltip")).to_contain_text("mehr Landmarken-Schichten")
+    summary.focus()
+    expect(page.get_by_role("tooltip")).to_contain_text(
+        "nicht die angeforderte Quellschicht-Zielanzahl"
+    )
+
+
+def test_tooltip_delay_cancels_on_leave_blur_switch_and_escape(ui_page: Page) -> None:
+    page = ui_page
+    page.clock.pause_at(page.evaluate("Date.now() / 1000 + 1"))
+    theme = page.locator("#theme-toggle")
+    language = page.locator("#language-toggle")
+    tooltip = page.get_by_role("tooltip")
+    theme.hover()
+    expect(tooltip).to_be_hidden()
+    page.clock.fast_forward(600)
+    expect(tooltip).to_be_hidden()
+    # Focus and hover on the same control preserve the existing dwell timer.
+    theme.focus()
+    page.clock.fast_forward(50)
+    expect(tooltip).to_be_visible()
+    expect(tooltip).to_contain_text("light and dark")
+    language.hover()
+    expect(tooltip).to_be_hidden()
+    page.mouse.move(0, 0)
+    page.clock.fast_forward(1000)
+    expect(tooltip).to_be_hidden()
+    language.focus()
+    page.clock.fast_forward(400)
+    language.blur()
+    page.clock.fast_forward(1000)
+    expect(tooltip).to_be_hidden()
+    language.focus()
+    page.clock.fast_forward(650)
+    expect(tooltip).to_contain_text("English and German")
+    language.press("Escape")
+    expect(tooltip).to_be_hidden()
+    page.clock.fast_forward(1000)
+    expect(tooltip).to_be_hidden()
+    # Escape also cancels a tooltip whose delay has not elapsed.
+    theme.focus()
+    page.clock.fast_forward(300)
+    theme.press("Escape")
+    page.clock.fast_forward(1000)
+    expect(tooltip).to_be_hidden()
+
+
+def test_library_search_groups_recovery_and_mobile_progression(ui_page: Page) -> None:
+    page = ui_page
+    page.locator("#create-demo").click()
+    expect(page.locator("#run-analysis")).to_be_enabled()
+    png = page.request.get(f"{page.url.rstrip('/')}/api/studies/demo/phantom/slice/0.png").body()
+    page.route("**/slice/**", lambda route: route.fulfill(body=png, content_type="image/png"))
+    rows = [
+        {
+            "dataset": "demo",
+            "case_id": "phantom",
+            "n_slices": 64,
+            "phase": "synthetic",
+            "qc_adequate": True,
+        },
+        {
+            "dataset": "synthetic_development",
+            "case_id": "synthetic-a",
+            "n_slices": 64,
+            "phase": "calibration",
+            "qc_adequate": True,
+        },
+        {
+            "dataset": "synthetic_other",
+            "case_id": "synthetic-b",
+            "n_slices": 64,
+            "phase": "internal_test",
+            "qc_adequate": True,
+        },
+    ]
+    libraries = [
+        {"dataset": "synthetic_missing", "status": "not_indexed", "available_studies": 0},
+        {"dataset": "synthetic_unsplit", "status": "split_required", "available_studies": 0},
+    ]
+    refreshed: list[str] = []
+
+    def library(route: Route) -> None:
+        refreshed.append(route.request.url)
+        route.fulfill(json={"studies": rows, "libraries": libraries})
+
+    page.route("**/api/studies", library)
+    page.reload()
+    expect(page.locator("#study-select")).to_have_value("1")
+    expect(page.locator("#study-select optgroup")).to_have_count(3)
+    expect(page.locator("#library-counts")).to_contain_text("2 development studies")
+    expect(page.locator("#library-status")).to_contain_text("Development index missing")
+    expect(page.locator("#library-status")).to_contain_text("Create the development/sealed split")
+    page.locator("#study-search").fill("synthetic-b")
+    expect(page.locator("#study-select option")).to_have_count(1)
+    expect(page.locator("#study-select")).to_have_value("2")
+    page.locator("#dataset-filter").select_option("synthetic_development")
+    expect(page.locator("#study-select")).to_contain_text("No matching studies")
+    expect(page.locator("#run-analysis")).to_be_disabled()
+    page.locator("#study-search").fill("")
+    expect(page.locator("#study-select")).to_have_value("1")
+    page.locator("#dataset-filter").select_option("")
+    page.locator("#study-select").select_option("1")
+    rows[:] = [rows[1], rows[2], rows[0]]
+    with page.expect_response("**/api/studies"):
+        page.locator("#refresh-studies").click()
+    expect(page.locator("#library-counts")).to_contain_text("3 / 3 visible")
+    expect(page.locator("#study-select")).to_have_value("0")
+    expect(page.locator("#study-select option:checked")).to_have_text("synthetic-a")
+    assert len(refreshed) == 2
+    page.set_viewport_size({"width": 390, "height": 844})
+    assert page.evaluate(
+        "document.querySelector('#study-panel').getBoundingClientRect().top < "
+        "document.querySelector('.viewer-panel').getBoundingClientRect().top && "
+        "document.querySelector('.viewer-panel').getBoundingClientRect().top < "
+        "document.querySelector('#model-panel').getBoundingClientRect().top"
+    )
+    assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
+
+
+def test_about_history_preserves_pending_analysis_and_result_context(ui_page: Page) -> None:
+    page = ui_page
+    page.locator("#create-demo").click()
+    expect(page.locator("#run-analysis")).to_be_enabled()
+    pending: list[Route] = []
+
+    def hold(route: Route) -> None:
+        pending.append(route)
+
+    page.route("**/api/analyze", hold)
+    page.locator("#run-analysis").click()
+    expect(page.locator("#run-analysis")).to_be_disabled()
+    page.locator("#nav-about").click()
+    expect(page.locator("#about-page")).to_be_visible()
+    expect(page.locator("#libraries-table")).to_contain_text("fastapi")
+    page.clock.fast_forward(2000)
+    page.go_back()
+    expect(page.locator("#analysis-page")).to_be_visible()
+    expect(page.locator("#run-analysis")).to_be_disabled()
+    assert len(pending) == 1
+    pending[0].fulfill(json=_mock_model_output("heuristic-hu"))
+    expect(page.locator("#run-analysis")).to_be_enabled()
+    expect(page.locator("#result-context")).to_contain_text("demo / phantom")
+    href = page.locator("#download-html").get_attribute("href")
+    page.locator("#nav-about").click()
+    page.locator("#nav-analysis").click()
+    expect(page.locator("#download-html")).to_have_attribute("href", href or "")
+    page.locator("#image-count").evaluate(
+        "element => {element.value = '8'; element.dispatchEvent(new Event('input'));}"
+    )
+    expect(page.locator("#previous-settings")).to_be_visible()
+    expect(page.locator("#result-context")).to_contain_text("Target source slices: 4")
+    expect(page.locator("#download-html")).to_have_attribute("href", href or "")
+    page.locator("#image-count").evaluate(
+        "element => {element.value = '4'; element.dispatchEvent(new Event('input'));}"
+    )
+    expect(page.locator("#previous-settings")).to_be_hidden()
+    page.locator("#image-count").evaluate(
+        "element => {element.value = '8'; element.dispatchEvent(new Event('input'));}"
+    )
+    allowed = "['thoraxbench.language', 'thoraxbench.theme', 'thoraxbench.duration-history']"
+    assert page.evaluate(f"Object.keys(localStorage).every(key => {allowed}.includes(key))")
+    page.go_back()
+    expect(page.locator("#about-page")).to_be_visible()
+    page.go_forward()
+    expect(page.locator("#analysis-page")).to_be_visible()
+    expect(page.locator("#previous-settings")).to_be_visible()
+
+
+def test_translated_findings_and_education_require_explicit_presentation(ui_page: Page) -> None:
+    page = ui_page
+    page.locator("#create-demo").click()
+    expect(page.locator("#run-analysis")).to_be_enabled()
+    response = _mock_model_output("heuristic-hu")
+    response["presentation"] = {
+        "findings": [
+            {
+                "finding_index": 0,
+                "label": "pulmonary_nodule",
+                "status": "present",
+                "severity": "moderate",
+                "attention": "soon",
+            }
+        ]
+    }
+    page.route("**/api/analyze", lambda route: route.fulfill(json=response))
+    page.locator("#run-analysis").click()
+    row = page.locator("#findings-body tr").filter(has_text="pulmonary_nodule")
+    expect(row).to_contain_text("Pulmonary nodule")
+    expect(row.locator("td").nth(5)).to_have_text("Moderate")
+    expect(row.locator("td").nth(6)).to_have_text("Earlier review")
+    page.locator("#language-toggle").click()
+    expect(row).to_contain_text("Lungenrundherd")
+    expect(row).to_contain_text("pulmonary_nodule")
+    expect(row.locator("td").nth(5)).to_have_text("Mäßig")
+    response.pop("presentation")
+    page.locator("#run-analysis").click()
+    expect(row.locator("td").nth(5)).to_have_text("—")
+    expect(row.locator("td").nth(6)).to_have_text("—")
+
+
+def test_help_descriptions_are_stable_and_tooltip_is_hoverable(ui_page: Page) -> None:
+    page = ui_page
+    page.clock.pause_at(page.evaluate("Date.now() / 1000 + 1"))
+    theme = page.locator("#theme-toggle")
+    language = page.locator("#language-toggle")
+    theme_description = theme.get_attribute("aria-describedby")
+    language_description = language.get_attribute("aria-describedby")
+    assert theme_description != language_description
+    theme.hover()
+    page.clock.fast_forward(650)
+    tooltip = page.get_by_role("tooltip")
+    expect(tooltip).to_be_visible()
+    tooltip.hover()
+    page.clock.fast_forward(1000)
+    expect(tooltip).to_be_visible()
+    expect(theme).to_have_accessible_description(re.compile("light and dark"))
+    expect(language).to_have_accessible_description(re.compile("English and German"))
+    page.keyboard.press("Escape")
+    expect(tooltip).to_be_hidden()
+
+
+def test_slice_failure_has_specific_recovery_and_clears_after_success(ui_page: Page) -> None:
+    page = ui_page
+    page.locator("#create-demo").click()
+    expect(page.locator("#run-analysis")).to_be_enabled()
+    page.route("**/slice/**", lambda route: route.fulfill(status=500, body="Synthetic failure"))
+    page.locator("#slice-slider").press("ArrowRight")
+    expect(page.locator("#viewer-empty-title")).to_have_text("Slice unavailable")
+    expect(page.locator("#viewer-empty-note")).to_contain_text("another slice or display window")
+    expect(page.locator("#viewer-empty-note")).not_to_contain_text("demo")
+    page.locator("#language-toggle").click()
+    expect(page.locator("#viewer-empty-title")).to_have_text("Schicht nicht verfügbar")
+    page.unroute("**/slice/**")
+    page.locator("#window-select").select_option("bone")
+    page.wait_for_function(
+        "document.querySelector('#ct-image').complete && "
+        "document.querySelector('#ct-image').naturalWidth > 0"
+    )
+    expect(page.locator("#viewer-empty")).to_be_hidden()
+    expect(page.locator("#notice")).to_be_hidden()
+
+
+def test_direct_about_and_nearby_model_setup_are_reachable(ui_page: Page) -> None:
+    page = ui_page
+    page.goto(f"{page.url.rstrip('/')}/about")
+    expect(page.locator("#about-page")).to_be_visible()
+    expect(page.locator("#libraries-table")).to_contain_text("fastapi")
+    page.locator("#nav-analysis").click()
+    expect(page.locator("#analysis-page")).to_be_visible()
+    page.locator("#open-model-setup").click()
+    expect(page.locator("#model-setup")).to_have_attribute("open", "")
+    expect(page.locator("#model-setup-body tr:focus")).to_have_count(1)
+    expect(page.locator("#model-setup-table")).to_be_visible()
+
+
+def _check_comparison_preserved_after_study_change(page: Page) -> None:
+    combined = page.locator("#comparison-download").get_attribute("href")
+    model_link = page.locator("#comparison-body tr[data-model='heuristic-hu'] a").first
+    individual = model_link.get_attribute("href")
+    png = page.request.get(f"{page.url.rstrip('/')}/api/studies/demo/phantom/slice/0.png").body()
+    page.route("**/slice/**", lambda route: route.fulfill(body=png, content_type="image/png"))
+    studies = [
+        {
+            "dataset": "demo",
+            "case_id": case,
+            "n_slices": 64,
+            "phase": "synthetic",
+            "qc_adequate": True,
+        }
+        for case in ["phantom", "phantom-other"]
+    ]
+    page.route("**/api/studies", lambda route: route.fulfill(json={"studies": studies}))
+    with page.expect_response("**/api/studies"):
+        page.locator("#refresh-studies").click()
+    page.locator("#study-search").fill("phantom-other")
+    expect(page.locator("#comparison-previous-settings")).to_be_visible()
+    expect(page.locator("#comparison-download")).to_have_attribute("href", combined or "")
+    page.locator("#study-search").fill("")
+    page.locator("#study-select").select_option("1")
+    expect(model_link).to_have_attribute("href", individual or "")
+    page.locator("#comparison-body tr[data-model='heuristic-hu'] button").click()
+    expect(page.locator("#result-context")).to_contain_text("demo / phantom")
+    expect(page.locator("#previous-settings")).to_be_visible()
+    expect(page.locator("#comparison-download")).to_have_attribute("href", combined or "")
+
+
+CONTRAST_SCRIPT = r"""() => {
+  const luminance = color => {
+    const rgb = color.match(/[\d.]+/g).slice(0,3).map(Number).map(value => value / 255);
+    const linear = rgb.map(
+      value => value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4
+    );
+    return linear[0] * 0.2126 + linear[1] * 0.7152 + linear[2] * 0.0722;
+  };
+  const pairs = [
+    ['.page-heading p', 'body'],
+    ['.research-banner', '.research-banner'],
+    ['#study-phase', '#study-phase'],
+  ];
+  return pairs.map(([text, background]) => {
+    const foreground = luminance(getComputedStyle(document.querySelector(text)).color);
+    const behind = luminance(
+      getComputedStyle(document.querySelector(background)).backgroundColor
+    );
+    return (Math.max(foreground, behind) + 0.05) / (Math.min(foreground, behind) + 0.05);
+  });
+}"""
+
+
+def test_small_text_contrast_in_primary_muted_and_badge_contexts(ui_page: Page) -> None:
+    page = ui_page
+    for _ in range(2):
+        ratios = page.evaluate(CONTRAST_SCRIPT)
+        assert all(ratio >= 4.5 for ratio in ratios), ratios
+        page.locator("#theme-toggle").click()
