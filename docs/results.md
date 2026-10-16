@@ -256,3 +256,29 @@ a strict small axial selection. Its hash differs from this historical run. It ha
 live yet. Recheck actual prepared inputs before the next calibration diagnostic. This
 configuration change does not isolate the effects of prompt, sampling, input count or
 heuristic context.
+
+## Corrected uniform two-image diagnostic (2026-10-16)
+
+A clean isolated checkout of v0.3.15 (`c509525`) ran the corrected configuration with
+`--limit 1`, using the same local Q4 digest recorded above. Configuration SHA-256:
+`ef5c47faaa4ac848f41f77a023681d51a1c49b07185ed775893cfadd9137b405`.
+
+| Observation | Result |
+|---|---|
+| Actual prepared images | Two per case, uniform sampling, 256 px, no coronal |
+| Cases | One calibration case per dataset; two scored, no abstentions/failures/not-indexed |
+| Active wall time | 49.6 s |
+| Provider request time | 20.0 s and 21.9 s |
+| Known-reference coverage | 2/3; the known-negative mass label was unavailable |
+| Evidence | Both positive outputs cited source-slice numbers outside the two attached images |
+| Heuristic context | Both copied deterministic nodule-candidate text and precise sizes |
+
+The run confirms actual image-count control, not visual detection reliability. These
+responses were recorded before the new evidence validation: their historical scored status
+and outputs are unchanged. Under the new constrained-positive guard, the unsupported
+positives would be unavailable. Do not recompute or relabel the old artifacts in place.
+
+The isolated checkout used the shared ignored data directory through `THORAXBENCH_DATA_DIR`
+and this checkout's locked Python environment. It did not read internal-test or sealed
+cases. Complete requests/responses/provenance remain under ignored E001-diagnostic outputs.
+The next bounded check holds images fixed and changes only heuristic prompt context.

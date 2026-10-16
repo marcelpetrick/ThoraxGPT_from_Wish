@@ -1,0 +1,32 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 Marcel Petrick <mail@marcelpetrick.it>
+# Readiness diagnostic only; run with --limit 1. No full-sweep readiness is implied.
+id: E001-cue-ablation
+title: MedGemma Q4 calibration-only heuristic-context ablation
+description: >-
+  Compare the same nine-target anatomy inputs and P2 prompt with and without deterministic
+  heuristic context. Invoke with --limit 1 for at most one calibration case per dataset
+  and two sequential variants. Check actual input counts, valid image references, omissions
+  and abstentions. Candidate copying and valid-number citations do not establish visual
+  correctness. No accuracy, runtime or model winner can be inferred from this small run.
+vision_ref: "Vision §19, §24, §26: bounded output-readiness diagnostic"
+split: development
+phases: [calibration]
+model: medgemma1.5-q4
+prompt: P2
+view_overrides:
+  strategy: anatomy
+  n: 9
+  size: 256
+  coronal: false
+datasets: [lidc_idri, nsclc_radiogenomics]
+labels: [pulmonary_nodule, pulmonary_mass]
+n_boot: 0
+seed: 0
+variants:
+  - id: with_cues
+    view_overrides:
+      include_cues: true
+  - id: without_cues
+    view_overrides:
+      include_cues: false

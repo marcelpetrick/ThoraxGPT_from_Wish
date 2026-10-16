@@ -258,7 +258,7 @@ class OllamaModel(ViewBackedModel):
         n = len(prepared.images)
         rendered = self.prompt.render(labels, n, prepared.image_captions, prepared.context)
         schema: dict[str, Any] | str = (
-            "json" if self.prompt.two_pass else self.prompt.schema(labels)
+            "json" if self.prompt.two_pass else self.prompt.schema(labels, n_images=n)
         )
         requests: list[dict[str, Any]] = []
         responses: list[dict[str, Any]] = []
@@ -285,7 +285,7 @@ class OllamaModel(ViewBackedModel):
                 second.system,
                 second.user,
                 [],
-                self.prompt.schema(labels),
+                self.prompt.schema(labels, n_images=n),
                 request_log=requests,
                 response_log=responses,
             )

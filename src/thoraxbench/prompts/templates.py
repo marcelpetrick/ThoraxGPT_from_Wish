@@ -85,9 +85,9 @@ class PromptTemplate:
         """Whether this prompt needs two model calls."""
         return self.second_pass is not None
 
-    def schema(self, labels: list[str]) -> dict[str, Any]:
+    def schema(self, labels: list[str], *, n_images: int | None = None) -> dict[str, Any]:
         """Output JSON schema; label-constrained prompts restrict ``findings[].label``."""
-        return findings_json_schema(labels if self.label_constrained else None)
+        return findings_json_schema(labels if self.label_constrained else None, n_images=n_images)
 
     def _values(
         self,
@@ -106,7 +106,7 @@ class PromptTemplate:
             or "(no captions supplied)",
             "context": context.strip() or NO_CONTEXT,
             "regions": "\n".join(f"{i}. {r}" for i, r in enumerate(REGION_ORDER, start=1)),
-            "schema": json.dumps(self.schema(labels), sort_keys=True),
+            "schema": json.dumps(self.schema(labels, n_images=n_images), sort_keys=True),
         }
 
     def render(

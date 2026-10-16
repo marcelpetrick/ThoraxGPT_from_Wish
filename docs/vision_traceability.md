@@ -4,7 +4,7 @@ Research use only. This self-made tool is not professional medical advice. Its f
 may be incorrect, incomplete or misleading. Do not use them for diagnosis or treatment.
 
 **Date:** 2026-10-16 (durable benchmark artifacts, resume and scoring/privacy follow-up).
-**Base:** implementation reviewed from `main` @ `9453bbe` plus this change; historical
+**Base:** implementation reviewed from `main` @ `c509525` plus this change; historical
 calibration measurement used clean commit `3af797f` (v0.3.8).
 
 ## Purpose
@@ -17,7 +17,10 @@ A passing test proves software behavior on synthetic data. It does not prove mod
 accuracy or clinical usefulness. Real-data evidence comprises E000's HU-heuristic development baseline and a two-study
 calibration-only Q4/Q8 readiness smoke ([`docs/results.md`](results.md)). Q4 abstained twice;
 Q8 missed the reference nodule in its only scorable response and truncated the other.
-Neither establishes clinical accuracy or generalization.
+Later Q4/P2 diagnostics produced parseable responses but copied heuristic candidates and
+cited invalid image numbers. The corrected uniform run used two images, 49.6 s and 2/3
+known-reference prediction coverage. New constrained-positive validation makes unsupported
+positives unavailable. No result establishes clinical accuracy or generalization.
 
 ## Status legend
 
@@ -110,7 +113,10 @@ applies it to real result sets yet.
    report, tasks C/D/F in the runner, and a reviewed sealed-evaluation workflow.
 2. **No reliable real-data model output** (§1, §3, §27, §32). The two-study
    calibration smoke yielded 3 abstentions and 1 scorable response that missed its reference
-   nodule. Resolve output reliability on calibration before full development sweeps.
+   nodule. Later parseable Q4/P2 output copied heuristic context and cited out-of-range images.
+   Bounded schemas/eligibility checks and a same-image context ablation address those failure
+   modes; numeric reference validity is not visible support. Resolve reliability on calibration
+   before full development sweeps.
 3. **Acquisition beyond TCIA** (§8, §23, §27). `thoraxbench acquire` covers approved NBIA
    collections with license, split, budget and checksum gates. Other hosts (Hugging Face,
    MosMed) have no acquirer.

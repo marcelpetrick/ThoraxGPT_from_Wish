@@ -61,8 +61,8 @@ synthetic result. The CLI prototype and frozen holdout are committed (`fb7d7b7`,
    `SealedAccessError` guard and tests make this hard to get wrong by accident.
 6. **Models**: the Ollama adapter is the main runtime (MedGemma 1.5 Q4/Q8, plus general VLM
    controls that fit in 8 GB VRAM). 3D-native models (CT-CLIP, M3D-LaMed, CT-CHAT, RadFM) and
-   HuatuoGPT-Vision sit behind an HTTP service adapter contract, with a reference service
-   container. They need weights or GPU memory we lack today, so they show up as
+   HuatuoGPT-Vision sit behind an HTTP service adapter contract, with an optional local service
+   contract. They need weights or GPU memory we lack today, so they show up as
    "unavailable" without blocking anything.
 7. **Stack**: pydicom + numpy for DICOM/HU, Pillow for rendering, pydantic for schemas,
    Typer for the CLI, FastAPI + Jinja2 for the local web UI, httpx for Ollama,
@@ -97,6 +97,16 @@ Status: ✅ done · 🔄 in progress · ⏳ open · ✖ dropped
 | 🔄 WP12 | GitHub About + ten topics applied ✅; project review + course correction ✅; `docs/vision_traceability.md` ✅; closing ranked gaps ⏳ | all | lead |
 
 ## Current activity
+
+- 🔄 **Resumed completion work (2026-10-16):** clean starting point `c509525`, v0.3.15.
+  The corrected uniform two-image diagnostic completed from an isolated clean checkout:
+  two scorable responses in 49.6 s, but both still copied heuristic candidates and used
+  invalid source-slice references. Add bounded image schemas and explicit unavailable
+  predictions for unsupported constrained positives; preserve raw responses. Add a hashed
+  heuristic-context ablation with unchanged images. Parallel work closes cohort HTML/CSV,
+  read-only run comparison, model manifests, and the UI target-versus-actual count fix.
+  Full E001–E004, sealed access, gated weights and LAN remain outside this work. Recording
+  still waits for a specific trigger and readiness. Commit each verified logical change.
 
 - ⏳ **LinkedIn recording waits for the user's trigger:** two scripts are ready in
   [the recording plan](linkedin-video-plan.md): a 60-second square introduction and a

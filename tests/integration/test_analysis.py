@@ -339,3 +339,102 @@ def test_no_available_requested_prediction_abstains(study: Study, kind: str) -> 
     assert result.perf.failed
     assert "no available requested-label predictions returned" in result.report.parse_warnings
     assert result.raw_meta["responses"]
+
+
+@pytest.mark.parametrize("prompt", ["P0", "P2", "P3", "P4"])
+@pytest.mark.parametrize("evidence", [[], [0, 70], [1, 1, 70]])
+def test_visual_evidence_bounds_preserve_raw_and_constrained_unknowns(
+    study: Study, prompt: str, evidence: list[int]
+) -> None:
+    raw = json.dumps(
+        {
+            "findings": [
+                {
+                    "label": "pulmonary_nodule",
+                    "present": True,
+                    "confidence": 0.9,
+                    "evidence_images": evidence,
+                }
+            ]
+        }
+    )
+
+    def respond(request: httpx.Request) -> httpx.Response:
+        if request.url.path == "/api/chat":
+            return httpx.Response(200, json={"message": {"content": raw}})
+        return httpx.Response(200, json={})
+
+    with httpx.Client(transport=httpx.MockTransport(respond)) as client:
+        result = analyze_study(
+            study,
+            "medgemma1.5-q4",
+            Settings(),
+            client=client,
+            prompt_id=prompt,
+            request=AnalysisRequest(prompt_id=prompt, labels=["pulmonary_nodule"]),
+            view_overrides={"strategy": "uniform", "n": 2, "size": 64, "coronal": False},
+        )
+    finding = result.report.findings[0]
+    assert result.raw_text == raw
+    assert finding.evidence_images == ([1] if 1 in evidence else [])
+    unsupported = prompt != "P0" and 1 not in evidence
+    assert result.report.abstain == unsupported
+    assert finding.presence_probability() == (None if unsupported else 0.9)
+    if unsupported:
+        assert any("marked unavailable" in warning for warning in result.report.parse_warnings)
+
+
+def test_context_ablation_preserves_empty_actual_model_context(study: Study) -> None:
+    messages: list[str] = []
+
+    def respond(request: httpx.Request) -> httpx.Response:
+        if request.url.path == "/api/chat":
+            messages.append(json.loads(request.content)["messages"][1]["content"])
+            return httpx.Response(200, json={"message": {"content": '{"findings": []}'}})
+        return httpx.Response(200, json={})
+
+    with httpx.Client(transport=httpx.MockTransport(respond)) as client:
+        result = analyze_study(
+            study,
+            "medgemma1.5-q4",
+            Settings(),
+            client=client,
+            prompt_id="P2",
+            view_overrides={
+                "strategy": "uniform",
+                "n": 2,
+                "size": 64,
+                "coronal": False,
+                "include_cues": False,
+            },
+        )
+    assert "No deterministic measurements are available" in messages[0]
+    assert "nodule candidate" not in messages[0]
+    assert result.context == ""
+    assert result.view_meta["include_cues"] is False
+
+
+@pytest.mark.parametrize(
+    ("present", "confidence", "expected", "abstain"),
+    [
+        (False, 0.1, None, True),
+        (True, 0.1, 0.1, False),
+        (False, 0.9, 0.1, False),
+        (False, 0.5, None, True),
+    ],
+)
+def test_evidence_guard_uses_implied_presence_probability(
+    study: Study, present: bool, confidence: float, expected: float | None, abstain: bool
+) -> None:
+    from thoraxbench.analysis import _check_image_evidence
+    from thoraxbench.schemas import Finding, FindingsReport
+
+    report = FindingsReport(
+        findings=[Finding(label="pulmonary_nodule", present=present, confidence=confidence)]
+    )
+    _check_image_evidence(report, 2, required=True)
+    if expected is None:
+        assert report.findings[0].presence_probability() is None
+    else:
+        assert report.findings[0].presence_probability() == pytest.approx(expected)
+    assert any("marked unavailable" in w for w in report.parse_warnings) == abstain

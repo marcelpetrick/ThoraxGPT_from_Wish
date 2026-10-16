@@ -93,6 +93,30 @@ def _resolver(overrides: dict[str, Any]) -> ViewResolver:
     return resolve
 
 
+def _check_image_evidence(report: FindingsReport, n_images: int, *, required: bool) -> None:
+    """Keep model-image references in range; unsupported constrained positives are unknown.
+
+    Raw responses remain unchanged for inspection. This validates reference bounds, not
+    visual correctness. Source-slice references from the HU baseline never enter here.
+    """
+    for finding in report.findings:
+        valid = list(dict.fromkeys(i for i in finding.evidence_images if 1 <= i <= n_images))
+        if valid != finding.evidence_images:
+            report.parse_warnings.append(
+                f"{finding.label}: invalid or duplicate image references removed; "
+                f"expected attached images 1..{n_images}"
+            )
+            finding.evidence_images = valid
+        probability = finding.presence_probability()
+        if required and probability is not None and probability >= 0.5 and not valid:
+            finding.present = None
+            finding.confidence = None
+            report.parse_warnings.append(
+                f"{finding.label}: positive has no valid attached-image evidence; "
+                "prediction marked unavailable"
+            )
+
+
 def analyze_study(
     study: Study,
     model_id: str,
@@ -141,6 +165,10 @@ def analyze_study(
                 raw = model.infer(prepared, req)
             with m.stage("parse"):
                 report = model.parse(raw)
+                if isinstance(model, OllamaModel):
+                    _check_image_evidence(
+                        report, len(prepared.images), required=model.prompt.label_constrained
+                    )
                 if not report.abstain and not report.findings and not report.negative_findings:
                     report.abstain = True
                     report.parse_warnings.append("no label predictions returned")
@@ -214,7 +242,9 @@ def analyze_study(
         image_captions=prepared.image_captions,
         slice_indices=prepared.slice_indices,
         view_meta={k: v for k, v in prepared.meta.items() if k != "cues"},
-        context=prepared.context or (study.cues.summary() if study.qc.adequate else ""),
+        context=prepared.context
+        if prepared.meta.get("include_cues") is False
+        else prepared.context or (study.cues.summary() if study.qc.adequate else ""),
         qc=study.qc.to_dict(),
         perf=perf,
         provenance=provenance,

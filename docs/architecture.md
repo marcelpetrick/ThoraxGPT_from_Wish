@@ -511,3 +511,25 @@ HU bytes, shape and spacing as well as image/tensor hashes and context, so heuri
 are covered too. Input hashing and provenance collection occur outside measured engine
 stages. The fingerprint includes software version/model ID and these hashes. Missing
 source identities remain unavailable; hashes do not validate reference labels.
+
+## 11. Visual evidence validation and cue ablation
+
+Prompt schemas bind one-based evidence indices to the actual prepared-image count and
+constrained negative labels to canonical requested IDs. P2/P3 distinguish heuristic
+candidates from visible observations and source-slice positions from image references.
+Prompt versions record the schema/text change. Raw provider responses remain unchanged.
+
+After Ollama parsing, analysis removes invalid/duplicate image references. For constrained
+P2–P4 positives, missing valid attached-image evidence makes that finding unavailable.
+The existing no-available-requested-label gate can then abstain. This is validation of
+reference bounds, not an independent test of visual correctness. P0/P1 control semantics
+and heuristic zero-based source-slice evidence remain separate.
+
+MultiSliceView version 2 adds hashed `include_cues` (default true). Setting false omits
+heuristic prompt context while keeping the prepared images/sampling unchanged. Serialized
+analysis keeps that context empty instead of filling it from study cues. Cues still serve
+preprocessing, so the ablation does not measure preprocessing cost.
+
+Evidence eligibility uses the shared implied presence probability at the default 0.5
+cutoff, including low-confidence absent verdicts that imply a positive probability.
+`include_cues` accepts only YAML booleans; null, numbers and strings are refused.

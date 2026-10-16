@@ -86,9 +86,11 @@ uv run thoraxbench benchmark configs/experiments/E001_calibration_diagnostic.yam
 ```
 
 The YAML does not enforce this case bound; `--limit 1` is required. The run uses existing P2,
-Q4 only, two 256-pixel axial images, two labels, no coronal view and no bootstrap. It changes
-both prompt and image count relative to E001-smoke; a difference cannot isolate either
-cause or establish detection accuracy. Inspect durable provider diagnostics before another
+Q4 only, uniform sampling, two 256-pixel axial images, two labels, no coronal view and no
+bootstrap. Prompt, sampling strategy and image count differ from E001-smoke; this cannot
+isolate their effects or establish detection accuracy. The earlier anatomy diagnostic
+actually prepared nine images per case. The corrected uniform run prepared two but still
+copied heuristic candidates and cited invalid image numbers. See [results](results.md). Inspect durable provider diagnostics before another
 run. This is not a full E001 sweep or a quantization comparison.
 
 ## 4. Interpret the accounting
@@ -254,3 +256,31 @@ study loading and scoring. Resume adds active time to the last saved checkpoint 
 excludes downtime. An interrupted tail after the last checkpoint is not recovered.
 Per-variant runtime covers evaluated units and excludes shared input hashing/loading.
 Completed resume verifies the existing output and retains its original timing.
+
+## Constrained visual evidence and context ablation
+
+P2–P4 Ollama requests bind evidence indices to actual attached images. Analysis removes
+invalid/duplicate references and makes unsupported positive predictions unavailable. A run
+abstains if no requested-label predictions remain available. Raw responses are preserved.
+P0/P1 free-form controls and the HU baseline keep their separate semantics. A valid index
+is a bounds check, not proof of a visual observation.
+
+For the next bounded diagnostic, run from the repository root after checking local prerequisites:
+
+```bash
+uv run thoraxbench benchmark configs/experiments/E001_cue_ablation.yaml --limit 1
+```
+
+Both variants use the same anatomy sampling, target nine axial images, size and P2 prompt.
+Only `include_cues` changes. The false variant sends no deterministic context and records
+empty context. Cues are still computed for preprocessing. Compare prepared image hashes,
+actual counts, coverage and abstentions before interpreting responses. The case limit is
+a CLI prerequisite. Keep internal-test and sealed data out of this check.
+
+**Checkpoint:** immutable artifacts retain both variants, including failures or abstentions.
+**Recovery:** inspect raw responses and valid evidence. Do not choose a model or claim
+accuracy from this small diagnostic. Preserve the run and create a new invocation for changes.
+
+Evidence eligibility uses the shared implied presence probability at the default 0.5
+cutoff, including low-confidence absent verdicts that imply a positive probability.
+`include_cues` accepts only YAML booleans; null, numbers and strings are refused.

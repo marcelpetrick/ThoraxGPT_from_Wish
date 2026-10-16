@@ -2,7 +2,7 @@
 # P4 — two-pass: (1) observations with evidence, (2) label mapping + impression (Vision §19,
 # docs/reading_practice.md §4.5). Guideline categories are assigned by code, not the model.
 id: P4
-version: "1.0.2"
+version: "1.0.3"
 title: Two-pass observation then impression
 label_constrained: true
 system: |
@@ -15,7 +15,9 @@ user: |
   captions are authoritative (window, plane, slab thickness, position):
   $captions
 
-  Deterministic HU measurements computed from the full volume (evidence):
+  Unverified deterministic HU context from the full volume follows. It can be wrong.
+  Source-slice numbers are not attached-image numbers; do not copy candidates as visual
+  observations or exact measurements:
   $context
 
   Search the regions in this order and list what you observe in each, with the image
@@ -29,16 +31,18 @@ second_pass: |
   PASS 2 — INTERPRETATION. These are your observations from pass 1:
   $first_pass
 
-  Deterministic HU measurements (evidence; do not contradict without explaining why):
+  Unverified heuristic context follows; visible pass-1 observations take precedence.
+  Do not turn a heuristic candidate into an observation:
   $context
 
   Map the observations to exactly these labels, each one once:
   $labels
 
   Rules: "present" true / false / null (uncertain) with a "confidence" between 0 and 1;
-  keep the evidence image indices from pass 1; sizes only as "size_bin"; pertinent
-  negatives for pneumothorax, pleural_effusion, pericardial_effusion, consolidation,
-  pulmonary_mass, aortic_abnormality and fracture; emergencies in "urgent_flags"; write a
+  keep only valid one-based attached-image indices 1..$n_images from pass 1. A positive
+  needs visible support; use null for insufficient visibility. Sizes only as "size_bin".
+  "negative_findings" may contain only requested canonical label IDs; put other observations
+  in "incidental_findings". Put emergencies in "urgent_flags"; write a
   short "impression". If pass 1 found the study inadequate, set "abstain": true.
   Return only JSON that follows this schema:
   $schema

@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # P3 — label-constrained classification with evidence requirement (Vision §19). Default prompt.
 id: P3
-version: "1.0.1"
+version: "1.0.2"
 title: Label-constrained with evidence
 label_constrained: true
 system: |
@@ -16,8 +16,10 @@ user: |
   for soft tissue and fluid, bone window for bones):
   $captions
 
-  Deterministic HU measurements computed from the full volume (evidence). Do not contradict
-  them without explaining why in "uncertainty":
+  Unverified deterministic HU measurements from the full volume follow. They can be wrong
+  and refer to source-slice numbers, not attached-image numbers. They are supporting context,
+  not a reference answer. Do not turn a candidate into a positive finding unless it is
+  visible in an attached image. Explain disagreements in "uncertainty":
   $context
 
   Search the regions in this order:
@@ -27,15 +29,21 @@ user: |
   $labels
 
   Rules:
+  - "evidence_images" contains only one-based attached-image numbers from 1 to $n_images.
+    Source-slice numbers in captions/context are not image references.
+  - A positive finding needs visible support in those images. When visibility is
+    insufficient, use "present": null; do not infer absence from missing coverage.
+  - Do not copy precise sizes or candidate descriptions from heuristic context.
   - One entry per label in "findings": "present" true / false / null (uncertain) and a
     "confidence" between 0 and 1 for that answer.
   - Every finding with "present": true must cite the supporting image indices in
     "evidence_images" and describe what is seen ("description" = observation, not diagnosis).
-    Without visible evidence, answer false or null instead.
+    Without visible evidence, answer null instead.
   - Sizes only as "size_bin" (<6mm, 6-8mm, >8mm, >30mm; small/moderate/large;
     normal/dilated/aneurysmal); never state precise millimetres.
-  - Pertinent negatives are required for pneumothorax, pleural_effusion,
-    pericardial_effusion, consolidation, pulmonary_mass, aortic_abnormality and fracture.
+  - "negative_findings" may contain only canonical IDs from the requested labels.
+    Include pertinent negatives for those requested labels; put any other observations
+    in "incidental_findings".
   - Emergencies go to "urgent_flags" regardless of the label list.
   - If the images are inadequate, set "study_quality.adequate": false and "abstain": true.
   Return only JSON that follows this schema:

@@ -83,8 +83,13 @@ class MultiSliceView:
     size: int = 512
     slab_mm: float = 0.0
     coronal: bool = True
+    include_cues: bool = True
     strategy_params: dict[str, Any] = field(default_factory=dict)
-    version: str = "1"
+    version: str = "2"
+
+    def __post_init__(self) -> None:
+        if type(self.include_cues) is not bool:
+            raise ValueError("include_cues must be a boolean")
 
     @property
     def sha256(self) -> str:
@@ -100,6 +105,7 @@ class MultiSliceView:
                     "size",
                     "slab_mm",
                     "coronal",
+                    "include_cues",
                     "strategy_params",
                     "version",
                 )
@@ -165,7 +171,7 @@ class MultiSliceView:
                 "contact sheet of axial lung-window slices, row-major, cranial first: "
                 + ", ".join(f"{i + 1}" for i in sel.indices)
             )
-        context = study.cues.summary()
+        context = study.cues.summary() if self.include_cues else ""
         if not study.qc.adequate:
             context += " Study-quality limitations: " + "; ".join(study.qc.limitations) + "."
         return PreparedInput(
@@ -181,6 +187,7 @@ class MultiSliceView:
                 "view_sha256": self.sha256,
                 "slab_mm": slab,
                 "n_images": len(images),
+                "include_cues": self.include_cues,
                 "tags": sel.tags,
             },
         )

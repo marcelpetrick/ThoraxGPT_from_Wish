@@ -209,3 +209,17 @@ Recording and recorder implementation wait for the user's explicit trigger and a
 readiness rehearsal. Use synthetic data only, preserve a full original take, label edited
 waits, and retain genuine failures/abstentions. Verify actual prepared-image counts; anatomy
 sampling can exceed `n`. Never imply clinical usefulness or model accuracy.
+
+## Visual evidence reliability
+
+Constrained Ollama prompts P2–P4 require valid one-based prepared-image evidence for a
+positive prediction. Remove invalid/duplicate references, retain raw responses, and mark
+unsupported positives unavailable before scoring. Valid numeric references are not proof
+of visual correctness. Preserve P0/P1 control semantics and heuristic source-slice indices.
+Use the versioned `include_cues` view parameter for heuristic-context ablations; record the
+actual context sent to the model, including empty context. Never refill a deliberate
+ablation with heuristic summaries in serialized analysis.
+
+Evidence eligibility uses the shared implied presence probability at the default 0.5
+cutoff, including low-confidence absent verdicts that imply a positive probability.
+`include_cues` accepts only YAML booleans; null, numbers and strings are refused.

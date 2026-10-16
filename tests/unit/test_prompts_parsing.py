@@ -20,7 +20,7 @@ def test_all_prompts_render(pid: str) -> None:
     assert "image 1: lung window axial" in r.user
     assert "image 2: mediastinal" in r.user
     assert "image 0:" not in r.user
-    assert p.version == ("1.0.2" if pid == "P4" else "1.0.1")
+    assert p.version == ("1.0.3" if pid == "P4" else "1.0.2")
     assert "$" not in r.user
     assert "No deterministic measurements" in r.user
     if p.two_pass:
@@ -160,3 +160,12 @@ def test_parse_probabilities() -> None:
     assert rep.findings[0].source == "probability"
     assert any("zz" in w for w in rep.parse_warnings)
     assert not parse_findings(RawOutput(probabilities={"emphysema": 0.4})).abstain
+
+
+def test_schema_binds_attached_image_bounds_and_negative_label_ids() -> None:
+    schema = findings_json_schema(["pulmonary_nodule"], n_images=2)
+    fields = schema["properties"]["findings"]["items"]["properties"]
+    assert fields["evidence_images"]["items"] == {"type": "integer", "minimum": 1, "maximum": 2}
+    assert schema["properties"]["negative_findings"]["items"]["enum"] == ["pulmonary_nodule"]
+    with pytest.raises(ValueError, match="negative"):
+        findings_json_schema(n_images=-1)

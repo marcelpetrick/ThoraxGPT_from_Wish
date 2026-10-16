@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # P2 — label-constrained classification (Vision §19): one verdict per requested label.
 id: P2
-version: "1.0.1"
+version: "1.0.2"
 title: Label-constrained classification
 label_constrained: true
 system: |
@@ -14,14 +14,21 @@ user: |
   authoritative (window, plane, slab thickness, position):
   $captions
 
-  Deterministic HU measurements computed from the full volume (evidence). Do not contradict
-  them without explaining why in "uncertainty":
+  Unverified deterministic HU measurements from the full volume follow. They can be wrong
+  and refer to source-slice numbers, not attached-image numbers. They are supporting context,
+  not a reference answer. Do not turn a candidate into a positive finding unless it is
+  visible in an attached image. Explain disagreements in "uncertainty":
   $context
 
   Classify exactly these labels, each one once, in this order:
   $labels
 
   Rules:
+  - "evidence_images" contains only one-based attached-image numbers from 1 to $n_images.
+    Source-slice numbers in captions/context are not image references.
+  - A positive finding needs visible support in those images. When visibility is
+    insufficient, use "present": null; do not infer absence from missing coverage.
+  - Do not copy precise sizes or candidate descriptions from heuristic context.
   - "findings" must contain one entry per label above, with "present" true, false, or null
     when you are uncertain, and a "confidence" between 0 and 1 for that answer.
   - Do not add labels that are not in the list; mention other observations in

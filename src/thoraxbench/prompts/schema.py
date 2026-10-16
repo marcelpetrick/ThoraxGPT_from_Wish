@@ -34,16 +34,25 @@ SIZE_BINS: dict[str, float | None] = {
 _STR_LIST: dict[str, Any] = {"type": "array", "items": {"type": "string"}}
 
 
-def findings_json_schema(labels: list[str] | None = None) -> dict[str, Any]:
+def findings_json_schema(
+    labels: list[str] | None = None, *, n_images: int | None = None
+) -> dict[str, Any]:
     """Return the JSON schema of the findings report.
 
     Args:
         labels: when given, ``findings[].label`` is restricted to these canonical ids
             (label-constrained prompts P2/P3/P4).
+        n_images: optional attached-image count; evidence references are one-based and
+            cannot exceed this count. No image reference is valid when the count is zero.
     """
     label_schema: dict[str, Any] = {"type": "string"}
     if labels:
         label_schema = {"type": "string", "enum": list(labels)}
+    evidence_item: dict[str, Any] = {"type": "integer", "minimum": 1}
+    if n_images is not None:
+        if n_images < 0:
+            raise ValueError("Image count cannot be negative")
+        evidence_item["maximum"] = n_images
     finding = {
         "type": "object",
         "properties": {
@@ -53,7 +62,7 @@ def findings_json_schema(labels: list[str] | None = None) -> dict[str, Any]:
             "laterality": {"type": "string", "enum": [m.value for m in Laterality]},
             "region": {"type": ["string", "null"]},
             "size_bin": {"type": ["string", "null"], "enum": [*SIZE_BINS, None]},
-            "evidence_images": {"type": "array", "items": {"type": "integer"}},
+            "evidence_images": {"type": "array", "items": evidence_item},
             "description": {"type": "string"},
         },
         "required": ["label", "present", "confidence"],
@@ -67,7 +76,7 @@ def findings_json_schema(labels: list[str] | None = None) -> dict[str, Any]:
                 "required": ["adequate", "limitations"],
             },
             "findings": {"type": "array", "items": finding},
-            "negative_findings": _STR_LIST,
+            "negative_findings": {"type": "array", "items": label_schema},
             "incidental_findings": _STR_LIST,
             "impression": _STR_LIST,
             "urgent_flags": _STR_LIST,

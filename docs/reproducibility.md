@@ -256,3 +256,17 @@ These items are **planned**:
 * container digests for local PyTorch model services;
 * `manifests/models/` with model manifests;
 * a CLI command to freeze an experiment config.
+
+## Visual-evidence method update
+
+P0–P3 are version 1.0.2 and P4 is 1.0.3. Schemas now restrict attached-image numbers and
+constrained negative-label IDs. P2/P3 explicitly separate heuristic candidates from visual
+support. P2–P4 analysis makes positives without valid image evidence unavailable. These
+changes affect eligibility and metrics; keep old measurements under their original method.
+MultiSliceView version 2 hashes `include_cues` and preserves empty model context when false.
+The calibration-only E001-cue-ablation configuration compares identical images with and
+without that text; valid-number citations still cannot establish visual correctness.
+
+Evidence eligibility uses the shared implied presence probability at the default 0.5
+cutoff, including low-confidence absent verdicts that imply a positive probability.
+`include_cues` accepts only YAML booleans; null, numbers and strings are refused.

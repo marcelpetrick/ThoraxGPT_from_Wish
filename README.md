@@ -404,3 +404,20 @@ its evidence and limitations are in the [MVP test record](docs/mvp-test.md).
 Current scoring treats missing confidence and uncertain presence as unavailable. Task E
 reports coverage and omissions; Task G records its eligible-study denominator. Prompt
 captions are one-based. Historical aggregate results retain their original definitions.
+
+## Inspect evidence before scoring visual predictions
+
+Constrained local vision prompts (P2–P4) use one-based attached-image references. New analysis
+removes invalid/duplicate references and marks a positive without valid attached evidence
+unavailable. Raw provider responses stay intact for audit. In-range citations still do not
+prove that a finding is visible or correct. P0/P1 unconstrained controls retain their own
+semantics. The deterministic HU baseline keeps zero-based source-slice illustrations.
+
+For a controlled readiness check, use `configs/experiments/E001_cue_ablation.yaml` with
+`--limit 1`. The two variants share prepared images and differ only in heuristic prompt
+context (`include_cues: true` / `false`). Do not tune on internal-test or sealed cases.
+This configuration is calibration-only and does not establish detection accuracy.
+
+Evidence eligibility uses the shared implied presence probability at the default 0.5
+cutoff, including low-confidence absent verdicts that imply a positive probability.
+`include_cues` accepts only YAML booleans; null, numbers and strings are refused.

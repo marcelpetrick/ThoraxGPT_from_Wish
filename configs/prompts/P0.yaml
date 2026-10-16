@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # P0 — minimal open-ended prompt (Vision §19). Baseline with the least guidance.
 id: P0
-version: "1.0.1"
+version: "1.0.2"
 title: Minimal open-ended
 label_constrained: false
 system: |

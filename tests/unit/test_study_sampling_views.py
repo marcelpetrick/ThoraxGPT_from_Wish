@@ -135,3 +135,25 @@ def test_heuristic_on_real_cues(study: Study) -> None:
     assert report.label_probability("pleural_effusion") is not None
     raw = heuristic_findings({"metal_voxels": 50})
     assert any(f["label"] == "medical_device" for f in raw["findings"])
+
+
+def test_cue_ablation_hash_and_actual_context(study: Study) -> None:
+    from thoraxbench.views.builders import MultiSliceView
+
+    with_cues = MultiSliceView("medgemma_ct_v1", "medgemma", n=2, size=64, coronal=False)
+    without_cues = MultiSliceView(
+        "medgemma_ct_v1", "medgemma", n=2, size=64, coronal=False, include_cues=False
+    )
+    assert with_cues.sha256 != without_cues.sha256
+    prepared = without_cues.build(study, AnalysisRequest())
+    assert prepared.context == ""
+    assert prepared.meta["include_cues"] is False
+    assert prepared.images == with_cues.build(study, AnalysisRequest()).images
+
+
+@pytest.mark.parametrize("invalid", [None, 0, 1, "false", "true"])
+def test_cue_ablation_rejects_non_boolean_configuration(invalid: object) -> None:
+    from thoraxbench.views.builders import get_view
+
+    with pytest.raises(ValueError, match="include_cues must be a boolean"):
+        get_view("medgemma_ct_v1", include_cues=invalid)
