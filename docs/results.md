@@ -214,3 +214,45 @@ Current prompt rendering uses one-based image captions consistently. P0–P3 are
 runs do not contain enough raw provider evidence to reconstruct their failures in detail.
 Use the new durable per-case artifacts for future diagnostics. Do not describe old results
 as measurements of these revised methods or compare them as controlled before/after runs.
+
+## Q4/P2 calibration diagnostic — output inspection (2026-10-16)
+
+This is a two-case readiness diagnostic, not an accuracy benchmark. No sealed or internal-test
+case was used. Code was clean v0.3.13 (`ec929c4`). The installed Q4 digest was
+`433252621ab154668b5d8be6aff6c1b771bacba045e46e6193da8d6ad1630f2c`.
+
+Command from the repository root, using the historical configuration bytes at that commit:
+
+```bash
+uv run thoraxbench benchmark configs/experiments/E001_calibration_diagnostic.yaml --limit 1
+```
+
+| Item | Observed result |
+|---|---|
+| Config SHA-256 | `33c76f8327ca73b188afaf32ca9599262442c43c7cd6230b30dec535560e0d07` |
+| Setup | Q4, P2, 256 px, anatomy sampling, `n: 2`, no coronal |
+| Actual inputs | **Nine images per case**: anatomy retains landmarks beyond its fill target |
+| Cases | One calibration case per dataset; two scored, zero abstained/failed/not-indexed |
+| Active wall time | 99.0 s, including input hashing/loading |
+| Provider HTTP request time | 50.3 s and 37.2 s; one response per case |
+| Known-reference prediction coverage | 2 of 3 (66.7%); one omission |
+| Label output | Both reference-positive nodules predicted positive at confidence 1.0; no usable known-negative mass prediction |
+| Evidence validity | Both outputs used source-slice numbers outside the nine prepared-image captions |
+
+Both responses repeated nodule-candidate descriptions from the deterministic heuristic
+context. Those are not independent visual detections or validated lesion measurements.
+The displayed confidence 1.0 is not calibrated. There are no negative nodule examples,
+AUROC is undefined, and the perfect F1 over the two available nodule predictions does not
+establish useful detection performance. Current rendering must continue refusing invalid
+finding-to-image associations. No full E001–E004 sweep is justified by this result.
+
+The complete requests, decoded provider responses, parsed reports and provenance were
+checkpointed under ignored `data/results/benchmark/E001-diagnostic/`. Nothing from the
+case artifacts is published here beyond aggregate observations. Existing artifact bytes
+remain unchanged.
+
+**Configuration correction:** the current diagnostic uses `uniform` with `n: 2` to request
+a strict small axial selection. Its hash differs from this historical run. It has not run
+live yet. Recheck actual prepared inputs before the next calibration diagnostic. This
+configuration change does not isolate the effects of prompt, sampling, input count or
+heuristic context.

@@ -30,7 +30,10 @@ readiness smoke produced three abstentions and one scorable response that missed
 reference nodule. New benchmark invocations preserve per-case raw-response/request/provenance
 artifacts and atomic checkpoints. Resume only pending units after strict identity and
 integrity checks; terminal failures/abstentions stay preserved. Next: output reliability on
-calibration data before the full E001–E004 experiments. Follow
+calibration data before the full E001–E004 experiments. A later bounded Q4/P2 diagnostic
+returned two scorable responses but copied heuristic candidate text, omitted a known label
+and supplied out-of-range image references. Anatomy sampling retains landmarks beyond `n`;
+use uniform sampling for a strict small-image diagnostic and inspect actual image counts. Follow
 the ranked gaps in
 `docs/vision_traceability.md`. See `docs/plan.md` → *Priority* and *Next steps*.
 Keep `manual.html` and `manual.pdf` synchronized with user-facing configuration and commands.

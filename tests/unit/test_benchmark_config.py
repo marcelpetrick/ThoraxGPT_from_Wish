@@ -240,5 +240,5 @@ def test_calibration_diagnostic_is_separate_q4_only_existing_p2() -> None:
     run = config.runs()[0]
     assert run.model == "medgemma1.5-q4"
     assert run.prompt == "P2"
-    assert run.view_overrides == {"strategy": "anatomy", "n": 2, "size": 256, "coronal": False}
+    assert run.view_overrides == {"strategy": "uniform", "n": 2, "size": 256, "coronal": False}
     assert "--limit 1" in config.description

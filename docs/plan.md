@@ -98,12 +98,22 @@ Status: ✅ done · 🔄 in progress · ⏳ open · ✖ dropped
 
 ## Current activity
 
+- ✅ **Bounded calibration diagnostic (2026-10-16):** clean `ec929c4`, Q4/P2, one
+  calibration case per dataset: two scored responses, zero abstentions/failures, 99.0 s
+  active wall time. Both repeated heuristic candidate text and used out-of-range image
+  references. Requested-label coverage was 2/3 known references. The anatomy strategy
+  actually prepared nine images per case despite `n: 2`; that parameter is a fill target,
+  not a landmark cap. Corrected the next diagnostic configuration to `uniform`, `n: 2`.
+  The corrected configuration has not run live. Preserve the original run and hash;
+  do not call this detection accuracy or full-sweep readiness. See `docs/results.md`.
+
 - ✅ **Engine durability and documentation integration (2026-10-16):** scoring/caption
   corrections and redacted provider diagnostics are committed and pushed. Added immutable
   terminal case artifacts, atomic checkpoints and explicit identity-validated resume.
   Total runtime includes active input hashing/loading and excludes resume downtime.
   Documentation audit and synchronized manuals include the normal `ollama run` auto-pull
-  path and optional browser download. Full integration verification is in progress.
+  path and optional browser download. Full local gate passed: **470 tests, 98.46% coverage**, including 11 browser tests,
+  build, clean-wheel installation and dependency audit. Commit `ec929c4` is pushed.
 
 Updated with every commit (newest first). **If a session breaks, the next agent resumes
 from here**: read this section and *Next steps*, then `git log --oneline | head -20`.
@@ -284,9 +294,11 @@ from here**: read this section and *Next steps*, then `git log --oneline | head 
 
 ## Next steps (in order)
 
-1. Run the bounded two-image calibration diagnostic with its committed configuration and
-   `--limit 1`. Inspect complete raw responses, thinking/content, generation limits and
-   requested-label coverage. Do not tune on internal-test or sealed data.
+1. Check the corrected uniform two-image configuration on calibration only with
+   `--limit 1` when resuming output-reliability work. Inspect actual prepared-image counts,
+   copied heuristic text, invalid evidence indices and requested-label coverage. The
+   completed anatomy diagnostic used nine images per case. Do not tune on internal-test
+   or sealed data.
 2. Resolve empty/truncated structured output on calibration data. Use a separate hashed
    configuration for each change. Useful-output readiness is still unproven.
 3. Only after readiness passes, run full E001–E004 development experiments. The completed

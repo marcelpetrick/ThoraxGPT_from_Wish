@@ -6,7 +6,7 @@ id: E001-diagnostic
 title: MedGemma Q4 calibration-only structured-output diagnostic
 description: >-
   Diagnose provider responses and requested-label coverage using existing P2, Q4 only,
-  two 256-pixel axial inputs and two labels. Invoke with --limit 1 for at most one
+  uniform sampling with two 256-pixel axial inputs and two labels. Invoke with --limit 1 for at most one
   calibration case per dataset. Preserve raw diagnostics before considering another
   run. This changes both prompt and image count from E001-smoke, so it cannot isolate
   their effects or establish detection accuracy or a quantization winner.
@@ -16,7 +16,7 @@ phases: [calibration]
 model: medgemma1.5-q4
 prompt: P2
 view_overrides:
-  strategy: anatomy
+  strategy: uniform
   n: 2
   size: 256
   coronal: false
