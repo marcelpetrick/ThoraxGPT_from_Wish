@@ -165,6 +165,9 @@ def analyze_study(
                 raw = model.infer(prepared, req)
             with m.stage("parse"):
                 report = model.parse(raw)
+                if not report.study_quality.adequate:
+                    report.abstain = True
+                    report.parse_warnings.append("model marked prepared study inadequate")
                 if isinstance(model, OllamaModel):
                     _check_image_evidence(
                         report, len(prepared.images), required=model.prompt.label_constrained

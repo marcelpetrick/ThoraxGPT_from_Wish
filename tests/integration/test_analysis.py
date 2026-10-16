@@ -438,3 +438,33 @@ def test_evidence_guard_uses_implied_presence_probability(
     else:
         assert report.findings[0].presence_probability() == pytest.approx(expected)
     assert any("marked unavailable" in w for w in report.parse_warnings) == abstain
+
+
+def test_model_declared_inadequate_abstains_even_when_raw_abstain_is_false(study: Study) -> None:
+    text = json.dumps(
+        {
+            "study_quality": {"adequate": False, "limitations": ["not visible"]},
+            "findings": [{"label": "pulmonary_nodule", "present": False, "confidence": 0.9}],
+            "abstain": False,
+        }
+    )
+
+    def respond(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200, json={"message": {"content": text}} if request.url.path == "/api/chat" else {}
+        )
+
+    with httpx.Client(transport=httpx.MockTransport(respond)) as client:
+        result = analyze_study(
+            study,
+            "medgemma1.5-q4",
+            Settings(),
+            client=client,
+            view_overrides={"strategy": "uniform", "n": 2, "size": 64, "coronal": False},
+        )
+    assert result.report.abstain
+    assert not result.report.study_quality.adequate
+    assert result.report.label_probability("pulmonary_nodule") is None
+    assert result.perf.failed
+    assert result.raw_text == text
+    assert "model marked prepared study inadequate" in result.report.parse_warnings
