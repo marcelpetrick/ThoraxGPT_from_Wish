@@ -148,6 +148,48 @@ Obtain required access approval and weights. Check hardware/dependencies. Start 
 service at its configured loopback URL. Select **Refresh model availability** to recheck it.
 A successful health response establishes service availability, not model accuracy.
 
+## Review stored benchmark runs (Evaluation)
+
+**Evaluation** is a read-only section beside **Analyze one study** and **About**. It reads
+completed invocations below `data/results/benchmark/<experiment>/<run>/`. It never starts
+inference, writes files, re-renders images or reads raw studies.
+
+Prerequisite: a benchmark run finished from the CLI (see the README section *Run a
+development benchmark*).
+
+1. Select **Evaluation** in the sidebar. The runs table lists every invocation folder with
+   experiment, run folder, configuration hash, start time, state, variants and status counts.
+2. Select **Open** on a complete run. The run details show each variant's stored metrics and
+   one row per case and variant: dataset, case, phase, variant, status, reference labels,
+   prediction, abstention/parse warnings and the evidence check.
+3. Narrow the rows with **Status filter**, **Evidence filter** or **Variant filter**.
+4. Select **Details** on a row. The case detail shows reference versus prediction per label,
+   the images sent to the model, the evidence check per finding, the parsed response (JSON),
+   the raw model response as plain text and the text context sent.
+5. To compare, select two or more setups with the checkboxes, then **Compare selected**. The
+   table uses the existing descriptive comparison: basis, differences, shared cases, paired
+   available predictions and experimental factors. It never ranks models.
+
+**Checkpoint:** complete runs open; the state column explains every other folder.
+**Recovery:** *Incomplete* runs open after the CLI run finishes (or after `--resume`).
+*Unavailable* folders are legacy, corrupt or non-checkpointed outputs; rerun the benchmark.
+*Refused* runs have a stored selection that fails the current development split guard; do
+not edit split files to open them. Select **Refresh runs** after a new CLI run.
+
+Boundaries:
+
+- Only complete, integrity-checked development runs open. Each open re-checks the current
+  split guard before any case artifact is read. Rows from a non-development phase are
+  skipped and counted; sealed cases never appear.
+- Benchmark artifacts store no prepared image pixels. The case detail states this and shows
+  the recorded image count and captions; it never re-renders or substitutes images.
+- Evidence verdicts classify the stored bounds check. In-range references are not proof of
+  visual correctness. HU-baseline references are zero-based source slices.
+- Identifiers are validated path components; symlinked experiment or run folders are
+  ignored. All stored model text is shown as plain text.
+- Navigating to Evaluation keeps the single-study analysis session, including a running
+  request, its result and downloads.
+
 ## Language, appearance and help
 
 - **English and light are explicit first-visit defaults**, even when the browser requests
@@ -176,6 +218,7 @@ A successful health response establishes service availability, not model accurac
 | Inference | Same analysis function as CLI; local adapters; clear loading, failure and abstention states |
 | Exports | Findings/provenance JSON, English research Markdown and standalone HTML with embedded actual images and finding/evidence links; no user-authored HTML execution |
 | Privacy | Research IDs only; do not expose patient names/dates or unnecessary absolute paths |
+| Evaluation | Read-only `GET /api/evaluation/*` over complete benchmark runs; split guard re-checked per open; no inference, writes or image re-rendering |
 | Screenshots | Only the code-generated synthetic phantom, captured by `scripts/capture_screenshots.py` into `docs/assets/`; never commit patient images or real-study renders |
 
 ## Current screens
@@ -201,7 +244,7 @@ Run the browser checks from the repository root:
 
 ```bash
 uv run playwright install chromium
-uv run pytest tests/e2e/test_web_ui.py -m "not live"
+uv run pytest tests/e2e -m "not live"
 ```
 
 Install Chromium only if the browser is missing. The test suite starts its own temporary

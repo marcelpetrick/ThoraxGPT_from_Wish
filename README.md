@@ -371,10 +371,18 @@ reference nodule) and hit its generation limit on the other. See [recorded resul
 **Recovery:** `Benchmark failed` (exit status 1) names the cause, for example a missing
 index or split. `--unseal` is refused with exit status 2; the sealed holdout stays untouched.
 
+To inspect a finished run in the browser, start `uv run thoraxbench serve` and select
+**Evaluation**. It lists the runs, compares setups descriptively, and shows per-case
+reference labels next to stored predictions, warnings and evidence checks. It is read-only:
+it never starts inference or reads sealed cases. Prepared images are not stored in benchmark
+artifacts; the case detail shows the recorded image count instead. See [the Evaluation
+procedure](docs/ui.md#review-stored-benchmark-runs-evaluation).
+
 The synthetic phantom exercises the full DICOM path without patient data. Failed inference,
 invalid responses and inadequate studies abstain; inspect saved output for details. Scores
 are uncalibrated; educational guideline context is not a patient care plan. Sealed-holdout
-evaluation, calibrated scores, CLI `compare` and a reference-scored GUI view remain open;
+evaluation and calibrated scores remain open; stored runs are reviewable with
+`thoraxbench compare` and the read-only **Evaluation** view;
 see [the current plan](docs/plan.md).
 
 This workstation has the locked Python dependencies, MedGemma Q4/Q8 and qwen3-vl:4b, and

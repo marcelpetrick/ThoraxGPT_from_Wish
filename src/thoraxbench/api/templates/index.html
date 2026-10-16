@@ -17,6 +17,7 @@
     <div class="nav-caption" data-i18n="workspace">Workspace</div>
     <nav aria-label="Main navigation" data-aria="navigation">
       <a href="/" id="nav-analysis" class="nav-item active" data-tip="analysisTip"><span aria-hidden="true">◫</span><span data-i18n="analysis">Analysis</span></a>
+      <a href="/evaluation" id="nav-evaluation" class="nav-item" data-tip="evaluationTip"><span aria-hidden="true">▤</span><span data-i18n="evaluation">Evaluation</span></a>
       <a href="/about" id="nav-about" class="nav-item" data-tip="aboutTip"><span aria-hidden="true">ⓘ</span><span data-i18n="about">About</span></a>
     </nav>
     <div class="sidebar-bottom"><span class="local-dot" aria-hidden="true"></span><span tabindex="0" data-tip="localTip" data-i18n="local">Runs on your workstation</span><p data-i18n="privacy">Local inference. No telemetry.</p></div>
@@ -77,6 +78,46 @@
           <p class="muted small" tabindex="0" data-tip="severityTip" data-i18n="educationCaution">Severity and review context are educational reference information, not advice for this study. Inspect evidence in the HTML report.</p>
           <div class="table-scroll"><table id="findings-table" aria-label="Findings"><thead><tr><th tabindex="0" data-tip="findingTip" data-i18n="finding">Finding</th><th tabindex="0" data-tip="presenceTip" data-i18n="presence">Presence</th><th tabindex="0" data-tip="scoreTip" data-i18n="score">Presence score</th><th tabindex="0" data-tip="sideTip" data-i18n="side">Side</th><th tabindex="0" data-tip="sizeTip" data-i18n="size">Size</th><th tabindex="0" data-tip="severityTip" data-i18n="severity">Educational severity</th><th tabindex="0" data-tip="attentionTip" data-i18n="attention">Typical review context</th></tr></thead><tbody id="findings-body"></tbody></table></div>
           <details id="report-details"><summary data-tip="reportBodyTip" data-i18n="reportHeading">English research report</summary><p class="muted small" data-i18n="reportLanguage">The reproducible research report stays in English. The interface language does not change model prompts or results.</p><pre id="report-content"></pre></details></div>
+        </section>
+      </section>
+      <section id="evaluation-page" hidden aria-labelledby="evaluation-heading">
+        <div class="page-heading"><div><div class="eyebrow" data-i18n="evalEyebrow">STORED BENCHMARK OUTPUTS</div><h1 id="evaluation-heading" data-i18n="evalHeading">Evaluation of stored runs</h1><p data-i18n="evalIntro">Compare reference labels with stored predictions, abstentions, failures and evidence checks of completed development benchmark runs.</p></div><span class="badge" tabindex="0" data-tip="evalReadOnlyTip" data-i18n="evalReadOnly">Read-only · no inference</span></div>
+        <p class="result-caution eval-framing" tabindex="0" data-tip="evalFramingTip" data-i18n="evalFraming">Stored development-split results only.</p>
+        <p id="eval-notice" class="notice" role="status" aria-live="polite" tabindex="0" data-tip="evalRunsTip" hidden></p>
+        <section class="panel results-panel" aria-labelledby="eval-runs-heading">
+          <div class="results-heading"><h2 id="eval-runs-heading" data-i18n="evalRuns">Benchmark runs</h2><div class="downloads"><button id="eval-refresh" type="button" class="button secondary" data-tip="evalRefreshTip" data-i18n="evalRefresh">Refresh runs</button><button id="eval-compare" type="button" class="button secondary" data-tip="evalCompareTip" data-i18n="evalCompare" disabled>Compare selected</button></div></div>
+          <p id="eval-runs-summary" class="muted small" tabindex="0" data-tip="evalRunsTip" role="status"></p>
+          <div class="table-scroll"><table id="eval-runs-table"><thead><tr id="eval-runs-head"></tr></thead><tbody id="eval-runs-body"></tbody></table></div>
+        </section>
+        <section id="eval-comparison" class="panel results-panel" aria-labelledby="eval-comparison-heading" hidden>
+          <h2 id="eval-comparison-heading" data-i18n="evalComparisonHeading">Run comparison</h2>
+          <p class="muted" data-i18n="evalComparisonNote">Descriptive only.</p>
+          <div class="table-scroll"><table id="eval-setups-table"><thead><tr id="eval-setups-head"></tr></thead><tbody id="eval-setups-body"></tbody></table></div>
+          <div class="table-scroll"><table id="eval-pairs-table"><thead><tr id="eval-pairs-head"></tr></thead><tbody id="eval-pairs-body"></tbody></table></div>
+        </section>
+        <section id="eval-run" class="panel results-panel" aria-labelledby="eval-run-heading" hidden>
+          <h2 id="eval-run-heading" data-i18n="evalRunHeading">Run details</h2>
+          <p id="eval-run-context" class="result-context" tabindex="0" data-tip="evalRunTip"></p>
+          <div class="table-scroll"><table id="eval-variants-table"><thead><tr id="eval-variants-head"></tr></thead><tbody id="eval-variants-body"></tbody></table></div>
+          <h3 id="eval-cases-heading" data-i18n="evalCasesHeading">Cases: reference vs. prediction</h3>
+          <div class="eval-filters"><div><label for="eval-filter-status" tabindex="0" data-tip="evalFilterStatusTip" data-i18n="evalFilterStatus">Status filter</label><select id="eval-filter-status" data-tip="evalFilterStatusTip"></select></div><div><label for="eval-filter-evidence" tabindex="0" data-tip="evalFilterEvidenceTip" data-i18n="evalFilterEvidence">Evidence filter</label><select id="eval-filter-evidence" data-tip="evalFilterEvidenceTip"></select></div><div><label for="eval-filter-variant" tabindex="0" data-tip="evalFilterVariantTip" data-i18n="evalFilterVariant">Variant filter</label><select id="eval-filter-variant" data-tip="evalFilterVariantTip"></select></div></div>
+          <p id="eval-cases-count" class="muted small" role="status" tabindex="0" data-tip="evalFilterStatusTip"></p>
+          <div class="table-scroll"><table id="eval-cases-table"><thead><tr id="eval-cases-head"></tr></thead><tbody id="eval-cases-body"></tbody></table></div>
+        </section>
+        <section id="eval-case" class="panel results-panel" aria-labelledby="eval-case-heading" tabindex="-1" hidden>
+          <h2 id="eval-case-heading" data-i18n="evalCaseHeading">Case detail</h2>
+          <p id="eval-case-context" class="result-context" tabindex="0" data-tip="evalCaseTip"></p>
+          <div class="table-scroll"><table id="eval-labels-table"><thead><tr id="eval-labels-head"></tr></thead><tbody id="eval-labels-body"></tbody></table></div>
+          <h3 data-i18n="evalImagesHeading">Images sent to the model</h3>
+          <p id="eval-images-note" class="result-caution" tabindex="0" data-tip="evalImagesTip"></p>
+          <ol id="eval-captions" class="eval-captions" tabindex="0" data-tip="evalCaptionsTip"></ol>
+          <h3 data-i18n="evalEvidenceHeading">Evidence check</h3>
+          <p id="eval-case-verdict" class="result-context" tabindex="0" data-tip="evalEvidenceTip"></p>
+          <div class="table-scroll"><table id="eval-evidence-table"><thead><tr id="eval-evidence-head"></tr></thead><tbody id="eval-evidence-body"></tbody></table></div>
+          <p id="eval-case-warnings" class="muted small" tabindex="0" data-tip="evalWarningsTip"></p>
+          <details id="eval-parsed-details" open><summary data-tip="evalParsedTip" data-i18n="evalParsed">Parsed response (JSON)</summary><pre id="eval-parsed"></pre></details>
+          <details id="eval-raw-details" open><summary data-tip="evalRawTip" data-i18n="evalRaw">Raw model response (plain text)</summary><pre id="eval-raw"></pre></details>
+          <details id="eval-context-details"><summary data-tip="evalContextTip" data-i18n="evalContext">Text context sent</summary><pre id="eval-context"></pre></details>
         </section>
       </section>
       <section id="about-page" hidden><p id="about-load-error" class="notice error" role="alert" hidden></p><div class="page-heading"><div><div class="eyebrow" data-i18n="aboutEyebrow">TRANSPARENT BY DESIGN</div><h1 data-i18n="aboutHeading">About ThoraxBench Local</h1><p data-i18n="aboutIntro">A local laboratory for reproducible thoracic CT model research.</p></div></div><div class="about-grid"><section class="panel about-card"><h2 data-i18n="project">The project</h2><p data-i18n="projectText">Inspect the path from DICOM input to model output, with explicit quality checks and provenance. This MVP supports individual study exploration; comparative benchmarking is still pending.</p><dl><div><dt tabindex="0" data-tip="authorTip" data-i18n="author">Author</dt><dd id="about-author">Marcel Petrick</dd></div><div><dt tabindex="0" data-tip="versionTip" data-i18n="version">Version</dt><dd id="about-version">—</dd></div><div><dt tabindex="0" data-tip="licenseTip" data-i18n="license">Project license</dt><dd id="about-license">GPL-3.0-or-later</dd></div></dl><p class="muted small" data-i18n="aiNote">Self-made with AI assistance and to the best of our knowledge. Errors and omissions remain possible; research outputs require independent evaluation.</p></section><section class="panel about-card"><h2 data-i18n="libraries">Libraries &amp; licenses</h2><p class="muted" data-i18n="librariesNote">Installed runtime dependencies and their declared licenses.</p><div class="table-scroll"><table id="libraries-table" aria-label="Dependency licenses"><thead><tr><th tabindex="0" data-tip="libraryTip" data-i18n="library">Library</th><th tabindex="0" data-tip="versionTip" data-i18n="version">Version</th><th tabindex="0" data-tip="licenseTip" data-i18n="licenseShort">License</th></tr></thead><tbody id="libraries-body"></tbody></table></div></section></div></section>

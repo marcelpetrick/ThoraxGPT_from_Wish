@@ -11,7 +11,7 @@ from urllib.parse import urlsplit
 from uuid import UUID, uuid4
 
 import httpx
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -21,6 +21,7 @@ from thoraxbench import __version__
 from thoraxbench.adapters.base import ModelConfig, list_model_configs
 from thoraxbench.adapters.factory import require_local_endpoint
 from thoraxbench.analysis import DISCLAIMER, AnalysisResult, analyze_study
+from thoraxbench.api.evaluation import Evaluation, EvaluationError
 from thoraxbench.api.licenses import runtime_libraries
 from thoraxbench.api.model_pulls import ModelPullJobs, PullBusyError
 from thoraxbench.api.presentation import finding_presentation
@@ -121,6 +122,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:  # noqa: PLR0915 - 
     cache: dict[tuple[str, str], Study] = {}
     downloads: dict[UUID, dict[str, Path]] = {}
     pulls = ModelPullJobs(config.ollama_url)
+    evaluation = Evaluation(config)
     demo = config.data_path("demo", "ui")
 
     @app.middleware("http")
@@ -242,11 +244,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:  # noqa: PLR0915 - 
 
     @app.get("/")
     @app.get("/about")
+    @app.get("/evaluation")
     def page(request: Request) -> Response:
         return templates.TemplateResponse(
             request=request,
             name="index.html",
-            context={"active_page": "about" if request.url.path == "/about" else "analysis"},
+            context={"active_page": request.url.path.strip("/") or "analysis"},
         )
 
     @app.get("/api/studies")
@@ -466,6 +469,32 @@ def create_app(settings: Settings | None = None) -> FastAPI:  # noqa: PLR0915 - 
             }[kind],
             filename=path.name,
         )
+
+    def evaluated(call: Callable[[], dict[str, Any]]) -> dict[str, Any]:
+        try:
+            return call()
+        except EvaluationError as exc:
+            raise HTTPException(exc.status, exc.message) from exc
+
+    @app.get("/api/evaluation/runs")
+    def evaluation_runs() -> dict[str, Any]:
+        return evaluated(evaluation.runs)
+
+    @app.get("/api/evaluation/runs/{experiment}/{run}")
+    def evaluation_run(experiment: str, run: str) -> dict[str, Any]:
+        return evaluated(lambda: evaluation.run(experiment, run))
+
+    @app.get("/api/evaluation/runs/{experiment}/{run}/cases/{variant}/{dataset}/{case_id}")
+    def evaluation_case(
+        experiment: str, run: str, variant: str, dataset: str, case_id: str
+    ) -> dict[str, Any]:
+        return evaluated(lambda: evaluation.case(experiment, run, variant, dataset, case_id))
+
+    @app.get("/api/evaluation/compare")
+    def evaluation_compare(
+        run: list[str] = Query(default_factory=list, max_length=8),  # noqa: B008 - FastAPI idiom
+    ) -> dict[str, Any]:
+        return evaluated(lambda: evaluation.compare(run))
 
     @app.get("/api/about")
     def about() -> dict[str, Any]:

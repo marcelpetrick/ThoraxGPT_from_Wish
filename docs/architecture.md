@@ -74,7 +74,7 @@ C4Container
 
     System_Boundary(tb, "ThoraxBench Local (one Python 3.14 package: thoraxbench)") {
         Container(cli, "CLI", "Typer", "thoraxbench analyze | benchmark | acquire | split | index | privacy | datasets | models | serve (planned: compare, report)")
-        Container(web, "Local web UI", "FastAPI + Jinja2", "Study browser, model runner, findings, score, export")
+        Container(web, "Local web UI", "FastAPI + Jinja2", "Study browser, model runner, findings, score, export, read-only Evaluation of stored benchmark runs")
         Container(core, "Core library", "Python", "Registry, DICOM, preprocessing, sampling, adapters, scoring, calibration, reports")
         ContainerDb(data, "Data directory", "Filesystem (git-ignored)", "data/raw, cache, rendered, labels, splits, sealed, results — 10 GB budget")
         ContainerDb(repo, "Versioned configs + manifests", "Git", "configs/*.yaml, prompts, split manifests (hashes), acquisition manifests")

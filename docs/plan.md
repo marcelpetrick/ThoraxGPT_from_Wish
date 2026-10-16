@@ -125,12 +125,21 @@ Status: ✅ done · 🔄 in progress · ⏳ open · ✖ dropped
      (evidence constraint), Q8 vs Q4, general VLM control `qwen3-vl:4b`.
   4. ⏳ Fine-tuning/adaptation strategy in `docs/fine-tuning-plan.md` (research only; no
      training before output reliability passes; calibration split only).
-  5. ⏳ **Evaluation section (decided 2026-10-16, user delegated the decision):** read-only
-     UI over `data/results/benchmark/` — runs list, run comparison (existing `compare`),
-     per-case reference-vs-prediction table filterable by status/abstention/evidence
-     validity, case detail with the actual prepared images, raw/parsed response and
-     evidence verdict. Never starts inference, never reads sealed data, honours split
-     guards, escapes model text. Single-study analysis remains as the second mode.
+  5. ✅ **Evaluation section (decided 2026-10-16, user delegated; implemented v0.4.0):**
+     read-only `/evaluation` page and `GET /api/evaluation/*` (`api/evaluation.py`) over
+     `data/results/benchmark/<experiment>/<run>/`. Runs list (experiment, config hash, start
+     time, state with reason, variants, status counts); descriptive comparison through
+     `benchmark/compare.py`; per-case table (dataset, case, phase, variant, status, reference,
+     prediction, warnings, evidence verdict) filterable by status, evidence and variant; case
+     detail with parsed and plain-text raw response, per-finding evidence check and image
+     information. Every open passes `load_completed_run` (integrity + current split guard);
+     non-development rows are skipped and counted; symlinked/unsafe folders are ignored.
+     **Limitation:** benchmark artifacts store no prepared image pixels, so the case detail
+     shows the recorded sent-image count and captions and says so (no re-render). Storing
+     prepared images is an engine change for a later decision. Evidence: 17 integration
+     tests (`tests/integration/test_evaluation_api.py`) and 5 browser tests
+     (`tests/e2e/test_evaluation_ui.py`) over `thoraxbench.synthetic_runs` (real runner over
+     phantoms; scripted, labelled vision outputs). "Analyze one study" remains the first mode.
   Housekeeping: an older `commit.sh` stash (16:16, base `9453bbe`) is kept, not dropped;
      its content appears superseded by later commits — the user decides.
   6. ⏳ Refresh synthetic screenshots, README snippets and `manual.html`/`manual.pdf`;
