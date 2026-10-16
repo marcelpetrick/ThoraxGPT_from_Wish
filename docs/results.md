@@ -282,3 +282,99 @@ The isolated checkout used the shared ignored data directory through `THORAXBENC
 and this checkout's locked Python environment. It did not read internal-test or sealed
 cases. Complete requests/responses/provenance remain under ignored E001-diagnostic outputs.
 The next bounded check holds images fixed and changes only heuristic prompt context.
+
+## E001-cue-ablation — heuristic-context ablation (2026-10-16)
+
+This is a two-case, two-variant readiness diagnostic, not an accuracy benchmark. An
+isolated clean checkout of v0.3.16 (`5c16ba1`, not dirty) ran it with `--limit 1`. It used
+one calibration case per dataset. No internal-test or sealed case was read.
+
+```bash
+uv run thoraxbench benchmark configs/experiments/E001_cue_ablation.yaml --limit 1
+```
+
+| Item | Observed result |
+|---|---|
+| Config SHA-256 | `9d8f5a8e24533c056750c70a867e261e65761ffff5977b7075b34441571868a2` |
+| Setup | Q4 (`433252621ab1…`), P2 1.0.2 (`f5741b3999c9…`), anatomy target `n: 9`, 256 px, no coronal |
+| Actual inputs | Nine axial images per case in both variants |
+| Variants | `with_cues` (HU summary in context) and `without_cues` (empty context) |
+| Case outcomes | 4/4 abstained; 0 scored, 0 failed |
+| Provider requests | 39.0 s and 72.1 s with cues; 49.7 s and 74.3 s without cues |
+| Total experiment wall time | 241.3 s |
+| Stop reason | `done_reason: stop` for all four; 129–149 generated tokens; no truncation |
+| Prompt tokens | 3936–3942 with cues; 3757 without cues |
+
+All four responses were schema-valid JSON. Every requested label had `"present": null`
+with `"confidence": 0.0` and no evidence images. Three of four responses set
+`study_quality.adequate: false` ("The study is inadequate." or "Incomplete coverage of the
+apex"). The descriptions often said "No evidence of … in the images" while the verdict
+stayed `null`. Both reference cases are nodule-positive, so the model returned no
+usable decision on a known-positive label in either variant.
+
+Removing heuristic context removed copied candidate text, but it did not produce a
+visual decision. The P2 rule "use null when visibility is insufficient" plus 256-pixel
+images is a likely cause. This run cannot separate those effects. A later geometric check
+(E001-coverage below) shows that the anatomy setting places reference lesions on an
+attached image for only about a quarter of calibration LIDC lesions. In the LIDC case of
+this run, four of seven reference lesions intersected an attached slice under the
+spherical approximation, yet the model still returned `null`.
+
+The case artifacts, requests and responses stay under ignored
+`data/results/benchmark/E001-cue-ablation/`.
+
+## E001-coverage — reference-lesion coverage of sampled inputs (2026-10-16)
+
+This measurement uses no model and reads no DICOM pixels. It uses the development index
+geometry (slice count, spacing, cached HU cues and LIDC reader-XML consensus lesions
+≥3 mm) of the **38 LIDC calibration patients** only. `CaseGuard` selects the calibration
+phase; other index entries are skipped before validation. It runs the same strategy code
+and slab arithmetic as the image view. The anatomy indices it computes reproduced the
+nine slices of the E001-cue-ablation run.
+
+```bash
+uv run thoraxbench coverage lidc_idri --output data/results/coverage/E001-coverage-lidc-calibration.json
+```
+
+Definitions:
+
+* **Lesion covered:** the lesion's z-extent (centre ± diameter/2) intersects at least one
+  prepared slice or MIP slab. **Centre covered:** a prepared image contains the centre slice.
+* **Max rendered slab:** thickest slab actually rendered, after rounding to whole slices.
+  A nominal 10 mm slab renders as 15 mm on 3 mm volumes.
+* **Prompt tokens:** estimate = 1000 + 325 × images, from measured P2 prompt counts
+  (1522 tokens with 2 images, 3779 with 9). **Fits:** estimate + 1024 generation tokens
+  ≤ `num_ctx` 16384.
+* 51 reference lesions (43 ≥6 mm) in 24 nodule-positive calibration studies.
+
+Selected rows (the full 70-row table is in the ignored JSON):
+
+| Setting | Images (mean/max) | Max rendered slab | Est. tokens | Lesions covered | Centre covered | Positive studies covered |
+|---|---:|---:|---:|---:|---:|---:|
+| `uniform`, n 2 (E001-diagnostic) | 2/2 | 3 mm | 1650 | 0/51 (0.0%) | 0/51 | 0/24 |
+| `anatomy`, n 9 (E001-cue-ablation) | 9/9 | 3 mm | 3925 | 13/51 (25.5%) | 5/51 | 9/24 |
+| `uniform`, n 9, 10 mm slab | 9/9 | 15 mm | 3925 | 30/51 (58.8%) | 19/51 | 17/24 |
+| `mip_slabs`, n 9 (auto-widened slabs) | 9/9 | 42.5 mm | 3925 | 51/51 (100%) | 50/51 | 24/24 |
+| `lung_extent`, n 16, 5 mm slab | 16/16 | 9 mm | 6200 | 41/51 (80.4%) | 25/51 | 21/24 |
+| `lung_extent`, n 16, 10 mm slab | 16/16 | 15 mm | 6200 | 50/51 (98.0%) | 39/51 | 23/24 |
+| `lung_extent`, n 24, no slab | 24/24 | 3 mm | 8800 | 41/51 (80.4%) | 11/51 | 20/24 |
+| **`lung_extent`, n 24, 5 mm slab** | 24/24 | 9 mm | 8800 | **49/51 (96.1%)** | 36/51 | 23/24 |
+| `anatomy`, n 24, 5 mm slab | 24/24 | 9 mm | 8800 | 46/51 (90.2%) | 37/51 | 21/24 |
+| `lung_extent`, n 24, 10 mm slab | 24/24 | 15 mm | 8800 | 51/51 (100%) | 49/51 | 24/24 |
+| `mip_slabs`, n 32, 10 mm | 28.6/32 | 15 mm | 11400 | 51/51 (100%) | 51/51 | 24/24 |
+| `uniform`, n 48, no slab | 48/48 | 3 mm | 16600 (does not fit) | 48/51 (94.1%) | 22/51 | 24/24 |
+
+**Pick:** the smallest setting with ≥90 % lesion coverage that fits the context and keeps
+rendered slabs ≤12.5 mm is `lung_extent`, n 24, 5 mm view slab (96.1 %). If 15 mm
+rendered slabs are acceptable, `lung_extent`, n 16, 10 mm slab reaches 98.0 % with
+fewer images.
+
+Interpretation:
+
+* All earlier MedGemma diagnostics showed the model few or no reference lesions.
+  `uniform` with n 2 selects the first and last slice of the volume and covered **no**
+  calibration lesion. Their abstentions and misses say nothing about visual detection.
+* Wide auto-widened MIP slabs reach 100 % geometrically, but a 25–40 mm MIP can hide a
+  small nodule among vessels. Coverage is necessary, not sufficient, for visibility.
+* The z-extent is a spherical approximation of reader contours. NSCLC tumour masks are
+  not included. These are aggregate geometric counts, not model results.

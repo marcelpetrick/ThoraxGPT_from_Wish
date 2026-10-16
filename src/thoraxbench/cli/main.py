@@ -11,6 +11,7 @@ from thoraxbench import __version__
 from thoraxbench.cli.acquire import acquire
 from thoraxbench.cli.benchmark import benchmark
 from thoraxbench.cli.compare import benchmark_export, compare
+from thoraxbench.cli.coverage import coverage
 from thoraxbench.cli.privacy import privacy_app
 from thoraxbench.config import get_settings
 from thoraxbench.splits import Phase
@@ -31,6 +32,7 @@ app.command()(benchmark)
 app.command()(benchmark_export)
 app.command()(compare)
 app.command()(acquire)
+app.command()(coverage)
 app.add_typer(privacy_app)
 
 
