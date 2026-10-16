@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "snapshot_version": 1,
+  "snapshot_date": "2026-10-16",
+  "model_id": "huatuo-vision-7b",
+  "source_config": "configs/models/huatuo-vision-7b.yaml",
+  "source_config_sha256": "0dd1617d438a3ce7a0b4656f2d1c2d4d02e7d073456e8c857ee8a615b38cbe0e",
+  "adapter": "http_service",
+  "family": "huatuo-vision",
+  "tag": null,
+  "service": "huatuo_vision",
+  "quantization": null,
+  "declared_license": "Apache-2.0",
+  "references": [
+    "configs/models/huatuo-vision-7b.yaml",
+    "docs/model_cards.md",
+    "https://huggingface.co/FreedomIntelligence/HuatuoGPT-Vision-7B"
+  ],
+  "recorded_digest": null,
+  "digest_evidence": null,
+  "current_availability": "unknown",
+  "terms_acceptance": "unknown",
+  "possible_training_overlap": "unknown",
+  "overlap_rationale": "Model-level snapshot has no evaluation dataset or exhaustive verified training history. Determine dataset-specific exposure separately; absence of evidence is not verified non-overlap."
+}

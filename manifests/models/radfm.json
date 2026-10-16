@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "snapshot_version": 1,
+  "snapshot_date": "2026-10-16",
+  "model_id": "radfm",
+  "source_config": "configs/models/radfm.yaml",
+  "source_config_sha256": "1ae18562f5c019942eba9592601acbce8bb53e0635c8424213cb95b13237d4e9",
+  "adapter": "http_service",
+  "family": "radfm",
+  "tag": null,
+  "service": "radfm",
+  "quantization": null,
+  "declared_license": "see upstream",
+  "references": [
+    "configs/models/radfm.yaml",
+    "docs/model_cards.md",
+    "https://github.com/chaoyi-wu/RadFM"
+  ],
+  "recorded_digest": null,
+  "digest_evidence": null,
+  "current_availability": "unknown",
+  "terms_acceptance": "unknown",
+  "possible_training_overlap": "unknown",
+  "overlap_rationale": "Model-level snapshot has no evaluation dataset or exhaustive verified training history. Determine dataset-specific exposure separately; absence of evidence is not verified non-overlap."
+}

@@ -1,0 +1,194 @@
+{
+  "$defs": {
+    "DigestEvidence": {
+      "additionalProperties": false,
+      "description": "A historical digest quoted from the committed aggregate results, never a live probe.",
+      "properties": {
+        "source_file": {
+          "const": "docs/results.md",
+          "default": "docs/results.md",
+          "title": "Source File",
+          "type": "string"
+        },
+        "source_section": {
+          "minLength": 1,
+          "title": "Source Section",
+          "type": "string"
+        },
+        "source_label": {
+          "minLength": 1,
+          "title": "Source Label",
+          "type": "string"
+        },
+        "recorded_at": {
+          "format": "date",
+          "title": "Recorded At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source_section",
+        "source_label",
+        "recorded_at"
+      ],
+      "title": "DigestEvidence",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Version-one source-config snapshot with explicitly unverified runtime state.",
+  "properties": {
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "snapshot_version": {
+      "minimum": 1,
+      "title": "Snapshot Version",
+      "type": "integer"
+    },
+    "snapshot_date": {
+      "format": "date",
+      "title": "Snapshot Date",
+      "type": "string"
+    },
+    "model_id": {
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]*$",
+      "title": "Model Id",
+      "type": "string"
+    },
+    "source_config": {
+      "title": "Source Config",
+      "type": "string"
+    },
+    "source_config_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Config Sha256",
+      "type": "string"
+    },
+    "adapter": {
+      "enum": [
+        "ollama",
+        "http_service",
+        "heuristic"
+      ],
+      "title": "Adapter",
+      "type": "string"
+    },
+    "family": {
+      "title": "Family",
+      "type": "string"
+    },
+    "tag": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Tag"
+    },
+    "service": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Service"
+    },
+    "quantization": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Quantization"
+    },
+    "declared_license": {
+      "title": "Declared License",
+      "type": "string"
+    },
+    "references": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "References",
+      "type": "array"
+    },
+    "recorded_digest": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Recorded Digest"
+    },
+    "digest_evidence": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/DigestEvidence"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "current_availability": {
+      "const": "unknown",
+      "default": "unknown",
+      "title": "Current Availability",
+      "type": "string"
+    },
+    "terms_acceptance": {
+      "const": "unknown",
+      "default": "unknown",
+      "title": "Terms Acceptance",
+      "type": "string"
+    },
+    "possible_training_overlap": {
+      "const": "unknown",
+      "default": "unknown",
+      "title": "Possible Training Overlap",
+      "type": "string"
+    },
+    "overlap_rationale": {
+      "minLength": 1,
+      "title": "Overlap Rationale",
+      "type": "string"
+    }
+  },
+  "required": [
+    "snapshot_version",
+    "snapshot_date",
+    "model_id",
+    "source_config",
+    "source_config_sha256",
+    "adapter",
+    "family",
+    "tag",
+    "service",
+    "quantization",
+    "declared_license",
+    "references",
+    "overlap_rationale"
+  ],
+  "title": "ModelManifest",
+  "type": "object"
+}

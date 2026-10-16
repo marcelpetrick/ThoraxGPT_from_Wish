@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "snapshot_version": 1,
+  "snapshot_date": "2026-10-16",
+  "model_id": "minicpm-v",
+  "source_config": "configs/models/minicpm-v.yaml",
+  "source_config_sha256": "a3d722023df2726f0f445757810ee574313e6ec55ff2a7027fc2de4b39a85f90",
+  "adapter": "ollama",
+  "family": "minicpm-v",
+  "tag": "minicpm-v:latest",
+  "service": null,
+  "quantization": "Q4_0",
+  "declared_license": "MiniCPM Model License",
+  "references": [
+    "configs/models/minicpm-v.yaml",
+    "src/thoraxbench/api/app.py",
+    "https://ollama.com/library/minicpm-v"
+  ],
+  "recorded_digest": null,
+  "digest_evidence": null,
+  "current_availability": "unknown",
+  "terms_acceptance": "unknown",
+  "possible_training_overlap": "unknown",
+  "overlap_rationale": "Model-level snapshot has no evaluation dataset or exhaustive verified training history. Determine dataset-specific exposure separately; absence of evidence is not verified non-overlap."
+}

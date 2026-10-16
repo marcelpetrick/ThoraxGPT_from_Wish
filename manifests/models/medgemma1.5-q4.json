@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "snapshot_version": 1,
+  "snapshot_date": "2026-10-16",
+  "model_id": "medgemma1.5-q4",
+  "source_config": "configs/models/medgemma1.5-q4.yaml",
+  "source_config_sha256": "69c66675a746c8ee0aa3b21d368add97b0267357b65aea1a649cbd1ce824ddce",
+  "adapter": "ollama",
+  "family": "medgemma",
+  "tag": "medgemma1.5:4b-it-q4_K_M",
+  "service": null,
+  "quantization": "Q4_K_M",
+  "declared_license": "Health AI Developer Foundations terms",
+  "references": [
+    "configs/models/medgemma1.5-q4.yaml",
+    "src/thoraxbench/api/app.py",
+    "https://ollama.com/library/medgemma1.5"
+  ],
+  "recorded_digest": "433252621ab154668b5d8be6aff6c1b771bacba045e46e6193da8d6ad1630f2c",
+  "digest_evidence": {
+    "source_file": "docs/results.md",
+    "source_section": "E001-smoke — calibration-only MedGemma readiness (2026-10-16)",
+    "source_label": "Q4 model digest",
+    "recorded_at": "2026-10-16"
+  },
+  "current_availability": "unknown",
+  "terms_acceptance": "unknown",
+  "possible_training_overlap": "unknown",
+  "overlap_rationale": "Model-level snapshot has no evaluation dataset or exhaustive verified training history. Determine dataset-specific exposure separately; absence of evidence is not verified non-overlap."
+}

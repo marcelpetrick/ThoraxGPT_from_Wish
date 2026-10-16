@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "snapshot_version": 1,
+  "snapshot_date": "2026-10-16",
+  "model_id": "heuristic-hu",
+  "source_config": "configs/models/heuristic-hu.yaml",
+  "source_config_sha256": "6a98a316a37fccc8b236af7a259587cbd05b23ff6c532f3210f122bbb2b07002",
+  "adapter": "heuristic",
+  "family": "rules",
+  "tag": null,
+  "service": null,
+  "quantization": null,
+  "declared_license": "GPL-3.0-or-later",
+  "references": [
+    "configs/models/heuristic-hu.yaml",
+    "src/thoraxbench/adapters/heuristic.py",
+    "LICENSE"
+  ],
+  "recorded_digest": null,
+  "digest_evidence": null,
+  "current_availability": "unknown",
+  "terms_acceptance": "unknown",
+  "possible_training_overlap": "unknown",
+  "overlap_rationale": "Model-level snapshot has no evaluation dataset or exhaustive verified training history. Determine dataset-specific exposure separately; absence of evidence is not verified non-overlap."
+}

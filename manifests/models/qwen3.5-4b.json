@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "snapshot_version": 1,
+  "snapshot_date": "2026-10-16",
+  "model_id": "qwen3.5-4b",
+  "source_config": "configs/models/qwen3.5-4b.yaml",
+  "source_config_sha256": "5695a51d580f233d6e305a5de1a0af8b08d471afa77d932d4b4f1eaa0b833a91",
+  "adapter": "ollama",
+  "family": "qwen3.5",
+  "tag": "qwen3.5:4b",
+  "service": null,
+  "quantization": "Q4_K_M",
+  "declared_license": "Apache-2.0",
+  "references": [
+    "configs/models/qwen3.5-4b.yaml",
+    "src/thoraxbench/api/app.py",
+    "https://ollama.com/library/qwen3.5"
+  ],
+  "recorded_digest": null,
+  "digest_evidence": null,
+  "current_availability": "unknown",
+  "terms_acceptance": "unknown",
+  "possible_training_overlap": "unknown",
+  "overlap_rationale": "Model-level snapshot has no evaluation dataset or exhaustive verified training history. Determine dataset-specific exposure separately; absence of evidence is not verified non-overlap."
+}
