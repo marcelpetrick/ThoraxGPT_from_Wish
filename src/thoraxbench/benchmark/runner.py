@@ -22,20 +22,30 @@ from datetime import UTC, datetime
 from enum import StrEnum
 from pathlib import Path
 from typing import Any
+from uuid import uuid4
 
 from pydantic import BaseModel, Field
 
 from thoraxbench.adapters.base import load_model_config
 from thoraxbench.analysis import DISCLAIMER, AnalysisResult, analyze_study
+from thoraxbench.benchmark.checkpoint import BenchmarkStore, runtime_identity
 from thoraxbench.benchmark.config import LoadedExperiment, RunSpec
 from thoraxbench.config import Settings
 from thoraxbench.index import IndexEntry, index_path, load_index, open_study
-from thoraxbench.provenance import RunProvenance, sha256_of_file, sha256_of_obj
+from thoraxbench.privacy import settings_redactor
+from thoraxbench.provenance import (
+    RunProvenance,
+    git_state,
+    scoring_source_hash,
+    sha256_of_file,
+    sha256_of_obj,
+)
 from thoraxbench.schemas import AnalysisRequest, FindingsReport
 from thoraxbench.scoring import CaseRecord as ScoreRecord
 from thoraxbench.scoring import task_a, task_b, task_e, task_g
 from thoraxbench.splits import CaseGuard, Phase, SealedAccessError
 from thoraxbench.study import Study
+from thoraxbench.study_access import guard_study_input
 
 FRAMING = (
     "Development-split pipeline measurement. Scores compare parsed outputs with the indexed "
@@ -105,6 +115,7 @@ class RunResult(BaseModel):
 class ExperimentResult(BaseModel):
     """Everything the benchmark writes for one experiment execution."""
 
+    output_dir: Path | None = Field(default=None, exclude=True, repr=False)
     experiment_id: str
     title: str
     description: str
@@ -244,6 +255,8 @@ def _provenance(
         prompt_hash=_combine([p.prompt_hash for p in per_case]),
         preprocess_hash=_combine([p.preprocess_hash for p in per_case]),
         seed=loaded.config.seed,
+        scoring_hash=scoring_source_hash(),
+        ground_truth_hash=sha256_of_obj({s.dataset: s.index_sha256 for s in summaries}),
         dataset_manifest_hash=sha256_of_obj(
             {s.dataset: [s.dataset_manifest_sha256, s.index_sha256] for s in summaries}
         ),
@@ -251,67 +264,343 @@ def _provenance(
     )
 
 
+def _input_identity(case: _Case, settings: Settings) -> dict[str, str | None] | None:
+    if case.entry is None:
+        return None
+    folder = settings.data_dir / case.entry.path
+    try:
+        dataset, patient = guard_study_input(folder, settings)
+        if (dataset, patient) != (case.dataset, case.entry.patient_id):
+            raise SealedAccessError("Indexed study identity differs from guarded development input")
+        return {
+            "sha256": sha256_of_obj(
+                {
+                    sha256_of_obj(str(path.relative_to(folder))): sha256_of_file(path)
+                    for path in sorted(folder.rglob("*"))
+                    if path.is_file()
+                }
+            ),
+            "error": None,
+        }
+    except SealedAccessError:
+        raise
+    except (OSError, ValueError) as exc:
+        return {"sha256": None, "error": type(exc).__name__}
+
+
+def _resume_identity(
+    loaded: LoadedExperiment,
+    settings: Settings,
+    limit: int | None,
+    selections: list[tuple[list[_Case], DatasetSummary]],
+) -> dict[str, Any]:
+    package = Path(__file__).resolve().parents[1]
+    source_hash = sha256_of_obj(
+        {
+            str(path.relative_to(package)): sha256_of_file(path)
+            for path in sorted(package.rglob("*"))
+            if path.is_file() and path.suffix in {".py", ".yaml"}
+        }
+    )
+    models: dict[str, Any] = {}
+    runtime: dict[str, Any] = {}
+    for spec in loaded.config.runs():
+        model = load_model_config(spec.model, settings.configs_dir / "models")
+        prompt = spec.prompt or model.prompt or "P3"
+        models[spec.variant] = {
+            "spec": spec.to_dict(),
+            "model": model.model_dump(mode="json"),
+            "model_file": sha256_of_file(settings.configs_dir / "models" / f"{spec.model}.yaml"),
+            "prompt": prompt,
+            "prompt_file": sha256_of_file(settings.configs_dir / "prompts" / f"{prompt}.yaml"),
+        }
+        if spec.model not in runtime:
+            runtime[spec.model] = runtime_identity(model, settings)
+    return {
+        "schema_version": 1,
+        "experiment_file": loaded.file_sha256,
+        "experiment_canonical": loaded.canonical_sha256,
+        "config": loaded.config.model_dump(mode="json"),
+        "limit": limit,
+        "models": models,
+        "runtime_models": runtime,
+        "source_hash": source_hash,
+        "git_commit": git_state(settings.repo_root)[0],
+        "dependencies": _optional_hash(package.parents[1] / "uv.lock"),
+        "datasets": [summary.model_dump(mode="json") for _, summary in selections],
+        "development_splits": {
+            summary.dataset: sha256_of_file(settings.data_path("splits", f"{summary.dataset}.json"))
+            for _, summary in selections
+        },
+        "registry": {
+            summary.dataset: _optional_hash(
+                settings.configs_dir / "datasets" / f"{summary.dataset}.yaml"
+            )
+            for _, summary in selections
+        },
+        "selected": [
+            {
+                "dataset": case.dataset,
+                "case_id": case.case_id,
+                "phase": case.phase.value,
+                "entry": sha256_of_obj(case.entry.model_dump(mode="json")) if case.entry else None,
+                "input": _input_identity(case, settings),
+            }
+            for cases, _ in selections
+            for case in cases
+        ],
+    }
+
+
+def _unit_key(case: _Case, spec: RunSpec) -> str:
+    return sha256_of_obj([case.dataset, case.case_id, spec.variant])
+
+
+def _resolved_spec(spec: RunSpec, model: dict[str, Any]) -> dict[str, Any]:
+    return spec.to_dict() | {
+        "prompt": model["prompt"],
+        "view": model["model"]["view"],
+        "view_params": {**model["model"]["view_params"], **spec.view_overrides},
+    }
+
+
 def run_experiment(
     loaded: LoadedExperiment,
     settings: Settings,
     *,
     limit: int | None = None,
+    resume: Path | None = None,
     progress: Callable[[str], None] = lambda _msg: None,
     analyze: Analyzer = analyze_study,
     open_case: Callable[[IndexEntry, Settings], Study] = open_study,
 ) -> ExperimentResult:
-    """Run every model setup of *loaded* on the selected development cases and score them.
+    """Run/resume a guarded development invocation with durable terminal case artifacts.
 
-    Args:
-        loaded: Parsed experiment configuration with its file hash.
-        settings: Paths and endpoints.
-        limit: Use at most this many development cases per dataset (split order, after
-            the configured phase filter).
-        progress: Receives one line per case and setup.
-        analyze: Single-study analysis function (injectable for tests).
-        open_case: Guarded study loader (injectable for tests).
-
-    Raises:
-        FileNotFoundError: if a split or index is missing.
-        SealedAccessError: if any sealed or unknown case would be touched.
+    The explicit resume directory must match configuration, source, weights and input bytes.
+    Failed, abstained and not-indexed units are terminal; retries need a new invocation.
+    No sealed records are read. Persistence failures abort before any subsequent inference.
     """
+    from thoraxbench.reports.html_report import require_results_path  # noqa: PLC0415
+
+    invocation_started = time.perf_counter()
     cfg = loaded.config
-    started = datetime.now(UTC)
-    t0 = time.perf_counter()
-    specs = cfg.runs()
+    if sha256_of_file(loaded.path) != loaded.file_sha256:
+        raise ValueError("Experiment identity mismatch: file changed after loading")
+    if limit is not None and limit < 1:
+        raise ValueError("Benchmark limit must be positive")
+    base = settings.data_path("results", "benchmark", cfg.id)
+    require_results_path(base / "preflight", settings)
     selections = [_select(ds, settings, limit, list(cfg.phases)) for ds in cfg.datasets]
+    identity = _resume_identity(loaded, settings, limit, selections)
+    if resume is None:
+        stamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%S.%fZ")
+        folder = base / f"{stamp}-{loaded.file_sha256[:12]}-{uuid4().hex}"
+        require_results_path(folder / "manifest.json", settings)
+        folder.mkdir(parents=True, exist_ok=False)
+    else:
+        folder = resume
+        require_results_path(folder / "manifest.json", settings)
+        if not folder.is_dir() or not folder.resolve().is_relative_to(base.resolve()):
+            raise ValueError("Resume requires an existing invocation directory for this experiment")
+    store = BenchmarkStore(folder, settings)
+    with store.locked():
+        store.initialize(identity, resume=resume is not None)
+        progress(f"Invocation: {folder}")
+        if store.state.status == "complete":
+            expected = {
+                _unit_key(case, spec)
+                for cases, _ in selections
+                for case in cases
+                for spec in cfg.runs()
+            }
+            if set(store.state.units) != expected or set(store.state.outputs) != {
+                "json",
+                "markdown",
+            }:
+                raise ValueError("Completed checkpoint has incomplete unit/output accounting")
+            result = ExperimentResult.model_validate_json(
+                store.verify(store.state.outputs["json"]).read_text()
+            )
+            result.output_dir = folder
+            return result
+        return _execute(
+            loaded, settings, selections, store, progress, analyze, open_case, invocation_started
+        )
+
+
+def _restore_unit(
+    saved: dict[str, Any],
+    base: dict[str, Any],
+    spec: RunSpec,
+    labels: list[str],
+    model: dict[str, Any],
+) -> tuple[CaseOutcome, RunProvenance | None]:
+    try:
+        if saved.get("runtime_identity_error"):
+            raise ValueError("Case result came from a changed runtime model")
+        request = AnalysisRequest(labels=list(labels), prompt_id=model["prompt"]).model_dump(
+            mode="json"
+        )
+        if (
+            saved["schema_version"] != 1
+            or saved["resolved_spec"] != _resolved_spec(spec, model)
+            or saved["request"] != request
+        ):
+            raise ValueError("Case artifact request/setup mismatch")
+        outcome = CaseOutcome.model_validate(saved["outcome"])
+        if any(getattr(outcome, key) != value for key, value in base.items()):
+            raise ValueError("Case artifact selected identity mismatch")
+        outcome.report = (
+            FindingsReport.model_validate(saved["report"]) if saved["report"] is not None else None
+        )
+        if saved["analysis"] is None:
+            if (
+                outcome.status not in {CaseStatus.FAILED, CaseStatus.NOT_INDEXED}
+                or outcome.report is not None
+            ):
+                raise ValueError("Case artifact is missing its analysis")
+            return outcome, None
+        restored = AnalysisResult.model_validate(saved["analysis"])
+        expected = _from_result(base, restored, labels)
+        if (
+            restored.model_id != spec.model
+            or restored.dataset != base["dataset"]
+            or restored.case_id != base["case_id"]
+            or restored.request.model_dump(mode="json") != request
+            or expected.model_dump(mode="json") != outcome.model_dump(mode="json")
+            or restored.report != outcome.report
+        ):
+            raise ValueError("Case artifact analysis/outcome mismatch")
+        return outcome, restored.provenance
+    except (KeyError, TypeError, ValueError) as exc:
+        raise ValueError("Invalid checkpointed case artifact") from exc
+
+
+def _execute(  # noqa: PLR0912, PLR0915, PLR0917 - one ordered checkpoint transaction
+    loaded: LoadedExperiment,
+    settings: Settings,
+    selections: list[tuple[list[_Case], DatasetSummary]],
+    store: BenchmarkStore,
+    progress: Callable[[str], None],
+    analyze: Analyzer,
+    open_case: Callable[[IndexEntry, Settings], Study],
+    invocation_started: float,
+) -> ExperimentResult:
+    prior_runtime = store.state.active_runtime_s
+    cfg, specs = loaded.config, loaded.config.runs()
     summaries = [summary for _, summary in selections]
     outcomes: dict[str, list[CaseOutcome]] = {s.variant: [] for s in specs}
     provenances: dict[str, list[RunProvenance]] = {s.variant: [] for s in specs}
     runtimes: dict[str, float] = dict.fromkeys(outcomes, 0.0)
+    expected = {
+        _unit_key(case, spec) for cases, _ in selections for case in cases for spec in specs
+    }
+    if set(store.state.units) - expected:
+        raise ValueError("Checkpoint contains unexpected selected units")
     for cases, _ in selections:
         for case in cases:
+            CaseGuard.load(settings.data_dir, settings.manifests_dir, case.dataset).check(
+                case.case_id, Phase.DEVELOPMENT
+            )
             base = _base_outcome(case, cfg.labels)
-            if case.entry is None:
-                for spec in specs:
-                    outcomes[spec.variant].append(
-                        CaseOutcome(
+            study: Study | None = None
+            load_error: str | None = None
+            opened = False
+            input_identity = next(
+                value["input"]
+                for value in store.identity["selected"]
+                if (value["dataset"], value["case_id"]) == (case.dataset, case.case_id)
+            )
+            for spec in specs:
+                key = _unit_key(case, spec)
+                saved = store.load_unit(key)
+                if saved is not None:
+                    outcome, provenance = _restore_unit(
+                        saved,
+                        base,
+                        spec,
+                        cfg.labels,
+                        store.identity["models"][spec.variant],
+                    )
+                    if provenance is not None:
+                        provenances[spec.variant].append(provenance)
+                    runtimes[spec.variant] += store.state.units[key].elapsed_s
+                else:
+                    if not opened and case.entry is not None:
+                        opened = True
+                        if not input_identity or input_identity["sha256"] is None:
+                            load_error = "Study input identity could not be verified"
+                        else:
+                            try:
+                                study = open_case(case.entry, settings)
+                            except SealedAccessError:
+                                raise
+                            except RECOVERABLE as exc:
+                                load_error = settings_redactor(settings).redact(
+                                    f"study load failed: {exc}"
+                                )
+                    t_case = time.perf_counter()
+                    analysis: AnalysisResult | None = None
+                    if case.entry is None:
+                        outcome = CaseOutcome(
                             **base,
                             status=CaseStatus.NOT_INDEXED,
                             error="development case missing from the index",
                         )
+                    else:
+                        evaluated = _run_case(
+                            study, load_error, base, spec, settings, analyze, cfg.labels
+                        )
+                        if isinstance(evaluated, AnalysisResult):
+                            analysis = evaluated
+                            outcome = _from_result(base, analysis, cfg.labels)
+                            provenances[spec.variant].append(analysis.provenance)
+                        else:
+                            outcome = evaluated
+                    elapsed = time.perf_counter() - t_case
+                    runtimes[spec.variant] += elapsed
+                    chosen_prompt = store.identity["models"][spec.variant]["prompt"]
+                    expected_digest = store.identity["runtime_models"][spec.model].get("digest")
+                    actual_digest = analysis.provenance.model_hash if analysis else None
+                    runtime_error = (
+                        "Runtime model digest changed during this invocation"
+                        if expected_digest and actual_digest and expected_digest != actual_digest
+                        else None
                     )
-                progress(f"{case.dataset}/{case.case_id}: not indexed")
-                continue
-            try:
-                study: Study | None = open_case(case.entry, settings)
-                load_error = None
-            except SealedAccessError:
-                raise
-            except RECOVERABLE as exc:
-                study, load_error = None, f"study load failed: {exc}"
-            for spec in specs:
-                t_case = time.perf_counter()
-                outcome = _run_case(study, load_error, base, spec, settings, analyze, cfg.labels)
-                runtimes[spec.variant] += time.perf_counter() - t_case
-                if isinstance(outcome, AnalysisResult):
-                    provenances[spec.variant].append(outcome.provenance)
-                    outcome = _from_result(base, outcome, cfg.labels)
+                    if runtime_error:
+                        outcome = outcome.model_copy(
+                            update={
+                                "status": CaseStatus.FAILED,
+                                "y_score": {},
+                                "positive_labels": [],
+                                "error": runtime_error,
+                            }
+                        )
+                    store.state.active_runtime_s = (
+                        prior_runtime + time.perf_counter() - invocation_started
+                    )
+                    store.save_unit(
+                        key,
+                        {
+                            "schema_version": 1,
+                            "unit": key,
+                            "resolved_spec": _resolved_spec(
+                                spec, store.identity["models"][spec.variant]
+                            ),
+                            "request": AnalysisRequest(
+                                labels=list(cfg.labels), prompt_id=chosen_prompt
+                            ).model_dump(mode="json"),
+                            "outcome": outcome.model_dump(mode="json"),
+                            "report": outcome.report.model_dump(mode="json")
+                            if outcome.report
+                            else None,
+                            "analysis": analysis.model_dump(mode="json") if analysis else None,
+                            "runtime_identity_error": runtime_error,
+                        },
+                        elapsed,
+                    )
+                    if runtime_error:
+                        raise RuntimeError(runtime_error)
                 outcomes[spec.variant].append(outcome)
                 progress(f"{case.dataset}/{case.case_id} [{spec.variant}]: {outcome.status.value}")
     runs = [
@@ -326,7 +615,8 @@ def run_experiment(
         )
         for spec in specs
     ]
-    return ExperimentResult(
+    result = ExperimentResult(
+        output_dir=store.folder,
         experiment_id=cfg.id,
         title=cfg.title,
         description=cfg.description,
@@ -336,12 +626,17 @@ def run_experiment(
         config_canonical_sha256=loaded.canonical_sha256,
         config=cfg.model_dump(mode="json"),
         split=cfg.split,
-        started_at=started.isoformat(timespec="seconds"),
-        runtime_s=time.perf_counter() - t0,
-        limit_per_dataset=limit,
+        started_at=store.state.started_at,
+        runtime_s=prior_runtime + time.perf_counter() - invocation_started,
+        limit_per_dataset=store.identity["limit"],
         datasets=summaries,
         runs=runs,
     )
+    from thoraxbench.benchmark.report import render_markdown  # noqa: PLC0415 - report imports schema
+
+    store.state.active_runtime_s = result.runtime_s
+    store.finish(result.model_dump_json(indent=1) + "\n", render_markdown(result))
+    return result
 
 
 def _run_case(  # noqa: PLR0917 - private helper of the case loop
@@ -369,7 +664,13 @@ def _run_case(  # noqa: PLR0917 - private helper of the case loop
     except SealedAccessError:
         raise
     except RECOVERABLE as exc:
-        return CaseOutcome(**base, status=CaseStatus.FAILED, error=f"{type(exc).__name__}: {exc}")
+        return CaseOutcome(
+            **base,
+            status=CaseStatus.FAILED,
+            error=settings_redactor(settings, study.identifiers).redact(
+                f"{type(exc).__name__}: {exc}"
+            ),
+        )
 
 
 def _counts(cases: list[CaseOutcome]) -> dict[str, int]:

@@ -39,8 +39,8 @@ Playwright. Ollama and the 3D services point at an unused loopback port, so no r
 runs and no network access happens. The comparison outputs and the download progress are
 mocked in the browser and labeled as mocked. Never capture patient studies.
 
-The table lists what the script writes. Only `ui-about.png` is committed today; the other
-PNGs exist after the first successful capture.
+The table lists the seven committed synthetic screenshots. The capture script can
+regenerate them; compare the output before replacing tracked images.
 
 | PNG in `docs/assets/` | Content |
 |---|---|

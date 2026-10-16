@@ -16,11 +16,16 @@ here are binding until changed by a later commit to this file.
 
 ## Priority (user decision, 2026-10-15)
 
-**Course correction (project review, 2026-10-15):** UI feature work is frozen after v0.2.0;
-only fixes and documentation. Next is WP8 → WP11: the benchmark runner wires the development
-index, analysis, scoring and reports, then produces a reference-scored development baseline.
-Rationale: Vision §1 defines the first release as a benchmark framework, and the scoring and
-calibration modules are not yet used by any pipeline. See `docs/review-2026-10-15.md`.
+**Current engine priority (resumed 2026-10-16):** UI feature work remains frozen after
+v0.2.0; fixes and documentation only. The WP8 development runner, E000 baseline and bounded
+Q4/Q8 calibration readiness smoke are complete. Per-case diagnostic evidence and
+interruption-safe checkpoints are implemented. Resolve useful-output reliability on calibration data
+before full E001–E004 experiments. Keep internal-test cases out of tuning.
+
+The 2026-10-15 project review moved work from the UI back to WP8 → WP11. At that time the
+scoring/calibration libraries were not wired into a pipeline; the runner now applies scoring
+and the calibration library still has no fitted real-model workflow. See
+`docs/review-2026-10-15.md` and the current ranked gaps in `docs/vision_traceability.md`.
 
 **Delivered (user update, 2026-10-15):** a polished, tested **local UI MVP** around
 `analyze`, plus a documented test walkthrough, model-selection chart and reproducible
@@ -93,6 +98,13 @@ Status: ✅ done · 🔄 in progress · ⏳ open · ✖ dropped
 
 ## Current activity
 
+- ✅ **Engine durability and documentation integration (2026-10-16):** scoring/caption
+  corrections and redacted provider diagnostics are committed and pushed. Added immutable
+  terminal case artifacts, atomic checkpoints and explicit identity-validated resume.
+  Total runtime includes active input hashing/loading and excludes resume downtime.
+  Documentation audit and synchronized manuals include the normal `ollama run` auto-pull
+  path and optional browser download. Full integration verification is in progress.
+
 Updated with every commit (newest first). **If a session breaks, the next agent resumes
 from here**: read this section and *Next steps*, then `git log --oneline | head -20`.
 
@@ -100,7 +112,26 @@ from here**: read this section and *Next steps*, then `git log --oneline | head 
   confidence is no longer imputed as a definite prediction. Task E reports prediction
   coverage/omissions; Task G exposes its eligible false-reassurance denominator. Captions
   use one-based numbering; affected prompt versions are bumped. Historical measurements
-  retain their original definitions. Durable benchmark artifacts/checkpoints remain next.
+  retain their original definitions. Durable benchmark artifacts/checkpoints were the next task; they are now implemented.
+- 🔄 **Resumed engine work (2026-10-16):** implement durable per-case analysis artifacts,
+  complete redacted provider requests/responses and atomic benchmark checkpoints with
+  explicit, identity-validated resume. Preserve completed, failed, abstained and missing-index
+  units; never overwrite another invocation or retry terminal units silently. Add input,
+  scoring/reference and available manifest hashes. Collect direct identifying header values
+  in memory for output redaction. Correct missing-confidence scoring and caption numbering;
+  version affected prompt artifacts and preserve historical aggregate measurements.
+  Synthetic/mocked verification comes first. Do not launch full E001–E004 sweeps, download
+  weights, change UI features, enable LAN inference or read sealed studies.
+  Documentation and both manuals are being synchronized with the final command contract.
+- ⏸ **User-requested restart handover (2026-10-16, 10:11 CEST):** pause after this
+  plan commit and push (historical request; resumed by the user below). Completed work is published through v0.3.9 (`9453bbe`);
+  its full local gate and GitHub Actions passed: **386 tests, 99.18% coverage**.
+  The working tree was clean before this handover update. No experiment is running.
+  The user has now explicitly resumed this work. Start with durable per-case raw-response/provenance artifacts
+  and incremental benchmark checkpoints, then investigate structured-output reliability
+  on calibration cases only. Keep UI feature work frozen, LAN work deferred and the
+  sealed holdout untouched. Use `TMPDIR=/var/tmp/thoraxbench-pipeline-mpetrick` for
+  checks while shared `/tmp` is full. No model download or full E001–E004 sweep is queued.
 - ✅ **MedGemma readiness smoke (2026-10-16):** clean v0.3.8 commit `3af797f`, separate
   `E001_calibration_smoke.yaml`, calibration-only 1 case per dataset, 4×256 px axial
   inputs, 2 labels, Q4/Q8. Wall time **290.8 s**. Q4: 0 scored / 2 empty-output abstentions.
@@ -112,7 +143,8 @@ from here**: read this section and *Next steps*, then `git log --oneline | head 
   unique preserved result directories and output preflight before inference. Both manuals
   are synchronized. Full gate **386 tests, 99.18% coverage** including 11 browser tests;
   build, wheel, dependency audit and GitHub Actions passed.
-- 🔄 **Handover now:** publish the measured outcome and updated priorities. Next engine
+- ✅ **Outcome published:** v0.3.9 (`9453bbe`) records the measured outcome and priorities.
+  Next engine
   task: preserve complete per-case raw responses/provenance and incremental checkpoints,
   then diagnose empty/truncated responses on calibration cases. Current benchmark output
   stores scores/warnings/fingerprints, not full raw responses; interruption has no checkpoint.
@@ -252,29 +284,23 @@ from here**: read this section and *Next steps*, then `git log --oneline | head 
 
 ## Next steps (in order)
 
-1. Preserve complete per-case raw responses, request/provenance and incremental checkpoints
-   in benchmark outputs; test resumability/failure accounting before larger model sweeps.
-2. Diagnose empty/truncated structured output on calibration data. Check prompt/schema
-   constraints, parsing and image coverage. Keep the internal test and sealed holdout out
-   of tuning; use a separate hashed configuration for each change.
-3. Only after useful-output readiness passes, run the full E001–E004 development experiments
-   and record aggregate measurements. The completed two-study smoke is not an accuracy run.
-4. Audit leakage: confirm the 5 non-development entries of the former NSCLC index never
-   reached analysis or results (compare against the hash-only split manifest).
-5. Tomorrow: implement/test the optional trusted LAN endpoint mode with an explicit allowlist;
-   inventory the 40 GB runner, verify candidate models and actual VRAM under bounded context.
-6. Close ranked gaps from `docs/vision_traceability.md`: header-value redaction in `analyze`,
-   empty provenance hashes in `analyze`, calibration fitting, training-overlap column,
-   E005–E008 configs and the `compare` report.
-7. Add advanced reference-scored UI, overlays and coronal/MIP navigation after benchmark
-   outputs exist (UI feature freeze until then).
+1. Run the bounded two-image calibration diagnostic with its committed configuration and
+   `--limit 1`. Inspect complete raw responses, thinking/content, generation limits and
+   requested-label coverage. Do not tune on internal-test or sealed data.
+2. Resolve empty/truncated structured output on calibration data. Use a separate hashed
+   configuration for each change. Useful-output readiness is still unproven.
+3. Only after readiness passes, run full E001–E004 development experiments. The completed
+   two-study smoke is not an accuracy benchmark.
+4. Preserve the historical NSCLC index uncertainty. The metadata audit found zero
+   outside-development entries in three preserved results, but cannot establish whether
+   the five former entries were ever inspected. Seek historical logs without reading sealed data.
+5. Keep LAN implementation and 40 GB runner verification deferred until resumed explicitly.
+6. Close remaining ranked gaps: calibration fitting, training-overlap column, E005–E008
+   configurations, model manifests, CLI `compare` and remaining cohort report tasks.
+7. Keep UI feature work frozen. Maintain existing behavior and documentation.
 
 ## Self-review gates
 
 * After every work package: full `./localPipeline.sh` green, then commit and push.
 * After WP8 and at the end: walk through `docs/vision_traceability.md` (one row for every
   Vision section) and close any gaps.
-
-## Diagnostic artifact checkpoint (2026-10-16)
-
-Completed rendered Ollama request/response capture, malformed-response handling, direct-header output redaction and available input/reference/scoring/manifest hashes. Zero available requested-label predictions abstain. Added a two-image, calibration-only diagnostic configuration; invoke with `--limit 1` for one case per dataset. No live diagnostic has been run under these changes. Durable benchmark checkpoint/resume integration remains next.

@@ -149,8 +149,8 @@ including package build, clean-wheel installation and locked-dependency audit.
 
 See the [HTML operator manual](../manual.html) or [matching PDF](../manual.pdf) for the complete
 setup and run procedure. The manual was checked at desktop/mobile widths, all navigation
-anchors resolved, and the eight-page A4 PDF was checked by text extraction and rendered-page
-inspection. Neither manual contains patient images.
+anchors resolved, and that historical eight-page A4 PDF was checked by text extraction
+and rendered-page inspection. The current manual has expanded CLI/benchmark coverage. Neither manual contains patient images.
 
 A further Playwright smoke check exercised the user's running loopback UI at v0.1.1:
 create synthetic demo → heuristic findings → HTML download → offline images and visible

@@ -223,28 +223,38 @@ the configured `data/results/` directory; paths and symlinks leading outside are
 
 ## Set up an unavailable model
 
-Open **Model availability & setup** in the workbench. Inspect the model's adapter, terms,
-provider information and availability. The built-in `heuristic-hu` needs no download.
+The built-in `heuristic-hu` needs no download. For Ollama, the normal CLI workflow
+works: `ollama run` downloads a missing tag and starts an interactive session.
 
-For a configured Ollama model:
+Prerequisites: installed local Ollama, enough disk space, and permission under the
+publisher's terms. Use the exact `tag` in `configs/models/`, not the app's model ID.
+For example, app ID `medgemma1.5-q4` uses this tag. Run from the repository root:
 
-1. Start local Ollama and check its disk space.
-2. Open **Model terms**.
-3. Review the publisher's access requirements and permitted uses.
-4. Check **I reviewed and may comply with the applicable model terms** only if applicable.
-5. Select **Download model weights**.
-6. Inspect **Model download** until **Download finished** or **Download failed** appears.
-7. Confirm the refreshed availability before running analysis.
+```bash
+ollama run medgemma1.5:4b-it-q4_K_M
+```
 
-**Checkpoint:** downloads require an explicit action and terms acknowledgement. Ollama
-stores weights in its own configured model store, outside `data/`. **Active layer bytes**
-reports actual bytes for the current layer; it can reset between layers. It is not a
-whole-model percentage. Analysis/setup controls lock while the download is pending.
+1. Wait for the download and interactive prompt.
+2. Enter `/bye` to leave the chat.
+3. Run `ollama list`.
+4. Select **Refresh model availability** in the workbench.
 
-**Recovery:** inspect a failed download's reason. Check terms/access, network, disk space
-and local Ollama before an explicit retry. The app has no cancel endpoint; closing the
-browser does not confirm cancellation. Installing weights does not prove GPU capacity
-or useful findings.
+For download only, use `ollama pull medgemma1.5:4b-it-q4_K_M` instead. If the server
+is not running, start your installed Ollama service or run `ollama serve` in another
+terminal. Keep the service on loopback. See [Ollama's CLI reference](https://docs.ollama.com/cli).
+
+**Checkpoint:** the exact configured tag appears locally and the UI reports it available.
+Ollama stores weights in its own model store, outside `data/`. Availability does not
+establish GPU capacity or useful findings. Analysis in this app does not auto-download.
+
+The optional browser alternative is **Model availability & setup** → **Model terms** →
+terms acknowledgement → **Download model weights**. Wait for **Download finished**, then
+confirm availability. **Active layer bytes** can reset between layers; it is not a
+whole-model percentage. Analysis/setup controls lock during this explicit UI download.
+
+**Recovery:** inspect download errors and check the exact tag, terms/access, network,
+disk space and local service. Retry explicitly. The app has no cancel endpoint; closing
+the page does not confirm cancellation.
 
 For an optional HTTP service, read its provider links and **Provider configuration
 (English)**. Obtain upstream approval and permitted weights first. Check hardware and
@@ -328,8 +338,21 @@ Prerequisite: the datasets named in the experiment are split and indexed.
    ```
 
 2. Run the full experiment without `--limit`.
-3. Open the printed `Report:` path. Each invocation has its own timestamp/hash/UUID
-   subdirectory under `data/results/benchmark/<experiment-id>/`; earlier runs remain intact.
+3. Save the printed `Invocation:` path. Before inference, it contains the immutable
+   manifest and atomic checkpoint; each terminal case/variant adds its own raw-response/
+   request/provenance artifact under `cases/` (no prepared image bytes). Ollama diagnostics
+   include redacted rendered text, actual settings and decoded provider responses;
+   malformed response text is bounded. Optional HTTP-service diagnostics remain limited.
+4. Open the printed `Report:` path when the run finishes. Each invocation has its own
+   timestamp/hash/UUID directory under `data/results/benchmark/<experiment-id>/`.
+   Earlier runs remain intact.
+
+To continue an interrupted new-format run, use the same experiment and limit with
+`--resume <printed-invocation-directory>`. Resume validates code/configuration, data,
+index/split, model/prompt settings and runtime identity. It reuses all checkpointed terminal
+outcomes, including failures and abstentions, and runs only pending units. A complete run
+returns its existing files. Changed identity, corrupt artifacts or legacy runs without
+checkpoints refuse reuse; start a new invocation. See [resume and recovery](docs/benchmarking.md#6-resume-an-interrupted-invocation).
 
 **Checkpoint:** the command prints per-variant status counts, the result and report paths
 and the config SHA-256. It reads development cases only. Failures and abstentions stay
@@ -380,15 +403,3 @@ its evidence and limitations are in the [MVP test record](docs/mvp-test.md).
 Current scoring treats missing confidence and uncertain presence as unavailable. Task E
 reports coverage and omissions; Task G records its eligible-study denominator. Prompt
 captions are one-based. Historical aggregate results retain their original definitions.
-
-## Provider diagnostics and privacy
-
-Analysis retains rendered Ollama request text/settings and decoded responses, including failed passes. Image payloads become hashes. Selected direct DICOM header identifiers and source paths are redacted in output text. This is not OCR or an anonymity guarantee. Available manifest, reference, scoring and input hashes identify the setup.
-
-For a bounded calibration diagnostic, run from the repository root:
-
-```bash
-uv run thoraxbench benchmark configs/experiments/E001_calibration_diagnostic.yaml --limit 1
-```
-
-Checkpoint: inspect scored, abstained and failed counts. This is output-readiness work, not an accuracy benchmark. Do not expand the sweep when useful outputs remain unreliable.

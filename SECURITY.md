@@ -74,8 +74,22 @@ LAN inference on a second machine is **planned** only. The proposed design is in
 * `thoraxbench privacy audit DIR` checks DICOM headers against a subset of the PS3.15
   Basic Profile. It prints tag keywords and counts, never values
   (`src/thoraxbench/privacy.py`).
-* `analyze` results, reports, HTML exports, web API responses and CLI errors redact
-  absolute paths. See [`docs/architecture.md`](docs/architecture.md#9-privacy-checks-vision-29).
+* Study loading collects configured direct identifying header values in memory, even
+  with cached pixels. The shared analysis redactor uses these values and absolute paths
+  for request/report text, raw responses/errors, metadata, context, timings, QC and captions.
+* Dataset/case/patient pseudonym keys, series UIDs and provenance hashes remain intact for
+  scoring and split checks. Selected direct-value redaction is not full de-identification.
+  The in-memory identifier set is not serialized. If original headers are unavailable,
+  cached pixels alone cannot recover it. Printed local output paths remain actionable.
+* Ollama diagnostics retain rendered text and decoded provider responses in redacted
+  `raw_meta`; image bytes become hashes. These files remain controlled local data.
+  Non-JSON response diagnostics are bounded; HTTP services do not have equivalent full
+  provider capture. No packet headers or base64 image payloads are archived.
+* Results, HTML exports and web responses use the redacted analysis. CLI error paths are
+  also redacted. See [`docs/architecture.md`](docs/architecture.md#9-privacy-checks-vision-29).
+* Benchmark case artifacts/checkpoints stay inside the invocation's ignored results path.
+  Checksums detect changed files; they do not authenticate against a malicious local editor.
+  Resume validates identity/integrity and refuses concurrent writers or symlink escapes.
 
 ### Sealed holdout
 
@@ -87,7 +101,9 @@ against a local administrator. See [`DATA_POLICY.md`](DATA_POLICY.md#4-sealed-ho
 These items are not implemented (Vision §29,
 [`docs/vision_traceability.md`](docs/vision_traceability.md)):
 
-* pixel-level detection of burned-in text (the header audit does not inspect pixels);
+* pixel-level detection of burned-in text (the header audit/redactor does not inspect pixels);
+* complete free-text anonymity: unknown or unmatched values, short strings and retained research
+  pseudonyms are not guaranteed to be removed; inspect outputs before sharing;
 * a complete `data/` write quota: only `acquire` enforces the disk budget, for its own
   downloads;
 * redaction of `data/cache/` and `data/index/` files, which keep DICOM `PatientID` values

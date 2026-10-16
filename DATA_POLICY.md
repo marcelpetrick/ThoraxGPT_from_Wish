@@ -62,7 +62,7 @@ it. Set `THORAXBENCH_DATA_DIR` to use another location.
 | `data/cache/` | derived volume (`.npz`) and tensor (`.npy`) caches | study loading and 3D-service views, when a cache directory is used |
 | `data/demo/` | synthetic phantom studies | `thoraxbench demo-data`, web UI |
 | `data/results/` | result JSON, Markdown and HTML reports | `thoraxbench analyze`, web UI |
-| `data/results/benchmark/<experiment>/` | benchmark `result.json` and `report.md` | `thoraxbench benchmark` |
+| `data/results/benchmark/<experiment>/<invocation>/` | immutable identity manifest, atomic checkpoint, terminal case artifacts and final JSON/Markdown | `thoraxbench benchmark` |
 
 Vision §7 also proposes `normalized/`, `rendered/`, `labels/` and `reports/`
 subdirectories. They are **planned** and not created by the current code.
@@ -135,8 +135,10 @@ first downloaded manually; their frozen selections and acquisition manifests are
 Every approved dataset gets a patient-level split before any real-study indexing or
 analysis (`src/thoraxbench/splits/`).
 
-* 20 % of patients per stratum form the **sealed** validation set. Each stratum with two
-  or more patients contributes at least one sealed patient.
+* The current CLI pilot split is pseudorandom and independent of labels. It assigns
+  approximately 20 % of whole patients to **sealed** validation.
+* The general library also supports strata: each stratum with two or more patients
+  contributes at least one sealed patient. This is not label stratification of the pilot.
 * The remaining 80 % is **development**: 80 % `calibration`, 20 % `internal_test`.
 * Splitting is by patient, never by study or slice.
 * Order is `sha256(salt:patient_id)` with the versioned salt `thoraxbench-split-v1`.
@@ -240,5 +242,20 @@ Never commit:
 * plaintext patient or case IDs of the sealed set;
 * sensitive source metadata.
 
-Before the repository becomes public, run a license and data audit and remove anything
-that cannot be redistributed (Vision §30).
+The repository is public. Run the license and data audit before every publication or
+release; remove anything that cannot be redistributed (Vision §30).
+
+## 7. Durable artifacts and output redaction
+
+Keep benchmark manifests, checkpoints, raw provider responses, requests and per-case
+provenance under ignored `data/results/`. Hash-based filenames do not make their contents
+anonymous. Never publish complete case artifacts or checkpoint payloads as aggregate results.
+
+Study loading collects selected direct identifying header values in memory. Analysis uses
+them to redact free-text/metadata outputs, including when volume pixels came from a cache.
+Pseudonym keys, series UIDs and provenance hashes stay intact. This is not pixel OCR or a
+complete anonymity guarantee. Inspect outputs and minimize data before sharing.
+
+Resume reuses terminal artifacts only after identity/integrity checks. Keep the complete
+invocation folder until the research record can be retired. Do not edit checkpoints to
+force a resume, overwrite historical responses, or treat an orphan file as a committed unit.

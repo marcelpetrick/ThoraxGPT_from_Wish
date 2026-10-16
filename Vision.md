@@ -24,8 +24,12 @@ Adopted implementation decisions (2026-10-15) clarify the original proposals bel
 - The pilot uses frozen metadata-only pseudorandom patient splits independent of labels:
   80% development (calibration/internal test), 20% sealed holdout, with whole-patient rounding.
   Stratification and CT-RATE's official splits remain research designs for later cohorts.
-- The local UI MVP and exploratory output comparison were brought forward. Reference-scored
-  benchmarking, advanced review and the final frozen holdout evaluation remain open.
+- The local UI MVP and exploratory output comparison were brought forward. UI feature work
+  is now frozen after v0.2.0. Development reference scoring exists in the CLI benchmark;
+  advanced review, full E001–E004 sweeps and frozen holdout evaluation remain open.
+- Benchmark invocations preserve terminal raw-response/request/provenance artifacts and
+  atomic checkpoints. Explicit resume requires unchanged identity and valid integrity.
+  The small calibration smoke demonstrated poor output readiness, not an accuracy result.
 - Inference is loopback-only. A trusted LAN runner is a separate proposal, not current behavior.
 
 Before implementing a requirement:

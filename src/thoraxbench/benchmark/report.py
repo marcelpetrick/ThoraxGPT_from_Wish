@@ -106,10 +106,14 @@ def _run_section(run: RunResult) -> list[str]:
         f"{e['contradictions']} contradictions, {e['omissions']} omissions, "
         f"{e['hallucinated_positives']} hallucinated positives over "
         f"{e['reference_labels']} known reference labels.",
+        f"* Available label predictions: {_fmt(e.get('available_predictions'))}; "
+        f"prediction coverage {_fmt(e.get('prediction_coverage'))}.",
         f"* Abstention rate {_fmt(g['abstention_rate'])}; high-confidence error rate "
         f"{_fmt(g['high_confidence_error_rate'])} ({g['high_confidence_decisions']} decisions); "
         f"false reassurance rate {_fmt(g['false_reassurance_rate'])}; fabricated measurement "
         f"rate {_fmt(g['fabricated_measurement_rate'])}.",
+        f"* False reassurance: {_fmt(g.get('false_reassurance_studies'))} over "
+        f"{_fmt(g.get('false_reassurance_eligible_studies'))} eligible studies.",
         "",
         "### Cases",
         "",
@@ -154,6 +158,20 @@ def render_markdown(result: ExperimentResult) -> str:
 
 def write_outputs(result: ExperimentResult, settings: Settings) -> tuple[Path, Path]:
     """Write a unique timestamp/config-hash/UUID run directory; preserve prior outputs."""
+    base = settings.data_path("results", "benchmark", result.experiment_id)
+    require_results_path(base / "preflight", settings)
+    if result.output_dir is not None:
+        from thoraxbench.benchmark.checkpoint import BenchmarkStore  # noqa: PLC0415
+
+        if not result.output_dir.resolve().is_relative_to(base.resolve()):
+            raise ValueError("Invocation directory differs from the experiment")
+        store = BenchmarkStore(result.output_dir, settings)
+        store.state = store.read_checkpoint()
+        if store.state.status != "complete":
+            raise ValueError("Benchmark invocation has not completed")
+        return store.verify(store.state.outputs["json"]), store.verify(
+            store.state.outputs["markdown"]
+        )
     stamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%S.%fZ")
     run_id = f"{stamp}-{result.config_sha256[:12]}-{uuid4().hex}"
     out = settings.data_path("results", "benchmark", result.experiment_id, run_id)

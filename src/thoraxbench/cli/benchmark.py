@@ -24,6 +24,12 @@ def benchmark(
         int | None,
         typer.Option(min=1, help="Use at most N development cases per dataset (quick runs)."),
     ] = None,
+    resume: Annotated[
+        Path | None,
+        typer.Option(
+            help="Resume this exact checkpointed invocation directory; terminal units are reused."
+        ),
+    ] = None,
     unseal: Annotated[
         bool,
         typer.Option("--unseal", help="Sealed-holdout evaluation (not implemented; refused)."),
@@ -44,10 +50,13 @@ def benchmark(
         settings = get_settings()
         loaded = load_experiment(experiment)
         require_results_path(settings.data_path("results", "benchmark", loaded.config.id), settings)
-        result = run_experiment(loaded, settings, limit=limit, progress=typer.echo)
+        result = run_experiment(loaded, settings, limit=limit, resume=resume, progress=typer.echo)
         json_path, md_path = write_outputs(result, settings)
     except (OSError, ValueError, RuntimeError, KeyError) as exc:
-        typer.echo(f"Benchmark failed: {exc}\n{FAILURE_NOTE}", err=True)
+        from thoraxbench.privacy import settings_redactor  # noqa: PLC0415 - exception redaction
+
+        redactor = settings_redactor(get_settings())
+        typer.echo(f"Benchmark failed: {redactor.redact(str(exc))}\n{FAILURE_NOTE}", err=True)
         raise typer.Exit(1) from exc
     for run in result.runs:
         counts = ", ".join(f"{k} {v}" for k, v in run.status_counts.items())

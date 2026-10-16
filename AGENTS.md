@@ -23,10 +23,14 @@ The CLI engine and frozen pilot holdout are available. The **local UI MVP** is i
 model-quality limitations visible. **UI feature work is frozen after v0.2.0** (fixes and
 docs only). The WP8 benchmark runner and the E000 development baseline exist. Benchmark requests
 use the experiment's configured labels. Preserve each invocation in its own timestamp/hash/UUID
-output folder; never overwrite previous partial or full runs. The two-study calibration
+output folder; never overwrite previous partial or full runs. Persist each terminal
+case/variant before proceeding. Refuse resume after code/configuration, data/index/split,
+model/prompt/runtime identity changes or integrity failure; never weaken these checks. The two-study calibration
 readiness smoke produced three abstentions and one scorable response that missed its
-reference nodule. Next: durable per-case raw-response/provenance artifacts and checkpoints,
-then output reliability on calibration data before the full E001–E004 experiments. Follow
+reference nodule. New benchmark invocations preserve per-case raw-response/request/provenance
+artifacts and atomic checkpoints. Resume only pending units after strict identity and
+integrity checks; terminal failures/abstentions stay preserved. Next: output reliability on
+calibration data before the full E001–E004 experiments. Follow
 the ranked gaps in
 `docs/vision_traceability.md`. See `docs/plan.md` → *Priority* and *Next steps*.
 Keep `manual.html` and `manual.pdf` synchronized with user-facing configuration and commands.
@@ -152,6 +156,10 @@ Apply the flight-manual writing style throughout repository documentation:
   patient data.
 * Every artifact that affects results (prompt, preprocessing transform, sampling strategy,
   scoring) is versioned and hashed into the run provenance (Vision §24).
+* Preserve available manifest/reference, scoring/schema and prepared-input hashes. Leave
+  unavailable identity fields empty rather than inventing them. Collect direct header
+  identifiers in memory for output redaction, including cached studies; never persist
+  that identifier collection or claim OCR/anonymity. Keep pseudonym keys stable for guards.
 
 ## 4. Repository map
 
@@ -182,7 +190,7 @@ scripts/commit.sh "feat(dicom): …"   # bump + gate + commit + push
 uv run thoraxbench --help            # CLI
 uv run thoraxbench acquire <id> --dry-run            # plan + budget verdict, no download
 uv run thoraxbench privacy audit data/demo/mvp       # header identifiers, never values
-uv run thoraxbench benchmark configs/experiments/E001_heuristic_hu_baseline.yaml --limit 2
+uv run thoraxbench benchmark configs/experiments/E000_heuristic_hu_baseline.yaml --limit 2
 ```
 
 Run commands from the repository root.
@@ -190,7 +198,3 @@ Run commands from the repository root.
 Current scoring treats missing confidence and uncertain presence as unavailable. Task E
 reports coverage and omissions; Task G records its eligible-study denominator. Prompt
 captions are one-based. Historical aggregate results retain their original definitions.
-
-## Provider diagnostic contract
-
-Preserve rendered Ollama requests and decoded response metadata, including failed passes. Replace image bytes with hashes. Collect selected direct header identifiers only in memory and redact outputs; do not claim anonymity. Source-unavailable caches cannot recover those identifiers. Record available manifest, reference, scoring and canonical-input hashes. Zero available requested-label predictions abstain. Keep diagnostic experiments bounded and calibration-only.

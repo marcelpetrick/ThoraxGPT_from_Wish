@@ -30,8 +30,11 @@ is written.
 | `git_commit` | `git rev-parse HEAD` of the checkout | set inside a Git checkout |
 | `git_dirty` | `true` when tracked files have uncommitted changes | set inside a Git checkout |
 | `thoraxbench_version` | `__version__` from `src/thoraxbench/__init__.py` | always set |
-| `dataset_manifest_hash` | hash of the dataset acquisition manifest and index | `benchmark` only; `null` in `analyze` |
-| `split_manifest_hash` | hash of the split manifest | `benchmark` only; `null` in `analyze` |
+| `dataset_manifest_hash` | acquisition manifest hash; benchmark summary combines manifests/indexes | set when a matching manifest exists; otherwise `null` |
+| `split_manifest_hash` | split manifest hash; combined across benchmark datasets | set when a matching manifest exists; otherwise `null` |
+| `ground_truth_hash` | bytes of the dataset reference index | set when the index exists; identifies reference state, not its correctness |
+| `scoring_hash` | bytes of scoring and shared prediction-schema source files | set from the current implementation |
+| `input_hash` | canonical HU bytes/shape/spacing plus prepared image/tensor hashes and context | set outside measured engine stages; no image bytes are persisted in this field |
 | `model_id` | configured model id, e.g. `heuristic-hu` | always set |
 | `model_hash` | Ollama model digest | Ollama models only |
 | `container_digest` | service container digest | **planned**; currently `null` |
@@ -49,13 +52,24 @@ Hashes use SHA-256 over canonical JSON (sorted keys, no whitespace), see
 `canonical_json` and `sha256_of_obj`.
 
 `RunProvenance.fingerprint()` hashes the result-determining fields (`git_commit`, the
-manifest, model, prompt, preprocessing and config hashes, and `seed`). It excludes time
+manifest, model, prompt, preprocessing and config hashes, `ground_truth_hash`,
+`scoring_hash`, `input_hash`, software version, model ID and `seed`). It excludes time
 and hardware. `thoraxbench benchmark` writes it per case (`fingerprint`); `analyze` does
 not write it.
 
-Not yet recorded (**planned**): ground-truth and scoring versions, and the dataset and
-split manifest hashes in `analyze`. See gap 6 in
-[`vision_traceability.md`](vision_traceability.md).
+Unavailable manifests or indexes remain `null`; no version is invented. Source/index byte
+hashes now identify scoring rules and reference state. This does not establish that labels
+are complete or independent of model pretraining. The standalone `analyze` JSON still does
+not include a separate fingerprint field. See [remaining gaps](vision_traceability.md).
+
+Study loading collects selected direct identifying header values in memory, including
+when cached pixels are used. The shared analysis redactor applies them and absolute-path
+redaction to the request, report, raw output/errors, metadata, context, timings, QC and
+image captions. Dataset/case/patient pseudonym keys, series UIDs and hashes stay unchanged.
+This is not OCR or proof of anonymity; caches/indexes and unmatched free text still need
+controlled handling. A cache alone cannot recover identifier values if source headers are
+unavailable. The identifier collection is not serialized. Printed local output paths remain
+actionable and are not blanket-redacted. See [the security policy](../SECURITY.md).
 
 ## 2. Pinned software
 
@@ -164,6 +178,39 @@ paths. Earlier runs and historical flat files remain intact.
 The result records the config file SHA-256, a canonical config hash, the dataset, index
 and split manifest hashes, per-run provenance and per-case fingerprints.
 
+New runs create `manifest.json` and an atomic `checkpoint.json` before inference. Each
+terminal case/variant receives an immutable `cases/<unit-hash>-<uuid>.json` artifact. It
+contains the resolved spec, structured request, outcome, report and serialized analysis
+when one exists. Raw text, metadata, errors, timings and provenance remain available;
+prepared image bytes are excluded. No response is fabricated for a pre-analysis failure.
+For Ollama, `raw_meta.requests` records rendered system/user messages and actual
+model/options/format/schema/keep-alive/thinking settings. Image bytes are omitted and
+replaced by image SHA-256 values with `image_bytes_omitted: true`.
+`raw_meta.responses` retains HTTP status, latency and complete decoded JSON provider
+bodies when available, including content, thinking, stop reason and token counts.
+Malformed/non-JSON HTTP bodies retain bounded diagnostic text (up to 300 characters),
+not a promise of complete response bytes. Transport failures retain error type, reason
+and latency. Two-pass requests/responses remain available if the second pass fails.
+The shared analysis redactor processes this metadata before persistence.
+
+These are provider diagnostics, not packet capture: no network headers or base64 pixels
+are archived. Optional HTTP model services do not yet retain equivalent full provider
+request/response diagnostics. Their ordinary parsed/raw analysis fields remain available.
+
+The manifest also binds guarded input bytes, selected phases/cases, code/commit,
+the dependency lockfile, model and prompt settings, and known runtime model digests.
+
+Use `--resume <original-invocation-directory>` with the same experiment and `--limit` to
+continue pending units. Identity and integrity checks run before reuse. Completed failures,
+abstentions and missing-index units remain terminal; use a fresh invocation to retry them.
+A validated complete run returns existing aggregates without inference or rewriting.
+Legacy runs without checkpoints cannot resume. See [the exact procedure and refusal
+conditions](benchmarking.md#6-resume-an-interrupted-invocation).
+
+Checkpoints use integrity checksums, not authentication against a malicious editor. Preserve
+the entire invocation directory. A case file absent from the authoritative checkpoint
+can be an orphan from interruption and is not reused merely because it exists.
+
 Prerequisites: the experiment's datasets are split and indexed. Start in the repository
 root.
 
@@ -180,19 +227,31 @@ root.
 match the recorded run. Timings differ.
 
 **Recovery:** a different config hash means the YAML changed; record a new run instead of
-overwriting the old entry. `--limit N` produces a partial run; do not compare it with a
+overwriting the old entry. Resume also refuses changed code/commit, data, index/split,
+model/prompt settings or runtime identity. Do not edit the checkpoint to force reuse. `--limit N` produces a partial run; do not compare it with a
 full run. `--unseal` is refused (exit status 2).
 
 Recorded runs are in [`results.md`](results.md). E000 is a pipeline baseline of a
 deterministic HU heuristic. No result in this repository measures model accuracy on the
 sealed holdout.
 
+### Metric and prompt version changes
+
+Current scoring leaves unknown presence and missing confidence unavailable. Zero available
+requested-label predictions cause abstention; partial coverage scores available labels
+without inventing negative predictions. Task E counts
+unavailable predictions as omissions for all known reference labels, exposes prediction
+coverage, and does not credit an omitted negative. Task G excludes abstained/unknown
+measurements and reports the eligible false-reassurance denominator. P0–P4 captions use
+one-based model image numbers. Historical results were not recomputed under these changes.
+Record a new invocation for the changed code/prompt hashes; do not reinterpret old metrics
+as if they came from the current implementation.
+
 ## 7. Open gaps
 
 These items are **planned**:
 
-* dataset and split manifest hashes in the provenance of `analyze`;
-* ground-truth and scoring versions in the provenance;
+* exact source/label validity checks beyond the recorded index and scoring hashes;
 * the result fingerprint in `analyze` results;
 * container digests for local PyTorch model services;
 * `manifests/models/` with model manifests;

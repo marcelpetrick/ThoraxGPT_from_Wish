@@ -74,7 +74,8 @@ Keep the patterns narrow. They still pass through the normal permission prompts.
 ## Current operator status (2026-10-16)
 
 The publication handover is resolved. At resumption, GitHub main was v0.3.6 at 03754d1.
-The unrestricted session has since pushed v0.3.7 and v0.3.8; see docs/plan.md for current work.
+The unrestricted session subsequently pushed through v0.3.9; see docs/plan.md for current
+work. This paragraph is an environment handover record, not a fixed latest-version claim.
 The public v0.2.0 release points to 083971a and includes both operator manuals.
 Do not repeat the historical tag/release commands.
 
@@ -91,8 +92,9 @@ TMPDIR=/var/tmp/thoraxbench-pipeline-mpetrick ./localPipeline.sh
 ```
 
 **Checkpoint:** every stage passes, including Playwright. Review synthetic-only screenshots
-and commit through scripts/commit.sh, with the same TMPDIR if required. Then run bounded
-MedGemma development experiments. Never pass --unseal.
+and commit through scripts/commit.sh, with the same TMPDIR if required. Then follow the current engine priority in docs/plan.md. Preserve durable artifacts before
+bounded calibration-only experiments. Full sweeps require useful-output readiness.
+Never pass --unseal.
 
 The sandbox settings above describe the previous restricted environment. They are not
 instructions to change settings in this unrestricted session.

@@ -7,7 +7,8 @@
 
 The user brought the GUI MVP forward on 2026-10-15: a testable local graphical workflow now
 ships alongside the engine. Exploratory model-output comparison is implemented.
-Reference-scored benchmarking and advanced review screens follow later.
+Development reference scoring exists in the CLI. Reference-scored GUI views and advanced
+review remain deferred. UI feature work is frozen after v0.2.0; only fixes/docs are in scope.
 The CLI and GUI call the same core functions and enforce the same development split guards.
 
 ## Two concrete proposals
@@ -105,6 +106,16 @@ existing guarded results rather than triggering additional inference. Restart an
 running server after upgrading so its API and browser assets use the same version.
 
 ## Unavailable model setup
+
+For the usual CLI setup, run `ollama run medgemma1.5:4b-it-q4_K_M` from the repository
+root. Ollama downloads the missing model and opens chat. Enter `/bye`, then check
+`ollama list` and select **Refresh model availability**. This tag maps to app ID
+`medgemma1.5-q4`. Use the exact tag in the selected model YAML. For download only,
+use `ollama pull medgemma1.5:4b-it-q4_K_M`. Start the installed Ollama service or
+`ollama serve` separately if needed. Review the publisher's terms first.
+See [the CLI setup and recovery](../README.md#set-up-an-unavailable-model).
+
+The browser offers an optional alternative:
 
 1. Open **Model availability & setup**.
 2. Inspect the model's terms, adapter and provider information.

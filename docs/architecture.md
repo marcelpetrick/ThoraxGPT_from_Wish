@@ -162,7 +162,7 @@ contract; check `src/thoraxbench/` for the exact current names.
 | `scoring` | `task_a()`…`task_g()`, `bootstrap_ci()`, `froc()` | 🔄 | patient-level bootstrap; the benchmark uses tasks A, B, E and G |
 | `calibration` | `fit_thresholds()`, `TemperatureScaler`, `IsotonicCalibrator`, `abstention_curve()` | 🔄 | library only; no calibrator is fitted in a benchmark yet; fitted only on development data |
 | `perf`, `provenance` | `measure()` context manager, `RunProvenance` | ✅ | §21, §24 |
-| `benchmark` | `load_experiment()`, `run_experiment()`, `write_outputs()` | 🔄 | development split only; writes `result.json` and `report.md` in a unique `data/results/benchmark/<id>/<run-id>/` folder; `compare_runs()` planned |
+| `benchmark` | `load_experiment()`, `run_experiment()`, `write_outputs()` | 🔄 | development split only; writes immutable terminal artifacts and atomic checkpoints plus final JSON/Markdown in a unique invocation; strict `--resume`; `compare_runs()` planned |
 | `reports` | `render_study_report()`, `render_html_report()`, `render_comparison_report()` | 🔄 | per-study Markdown/HTML; HTML/CSV benchmark report planned |
 
 ---
@@ -257,7 +257,37 @@ Implemented today: the development branch, per-case analysis, scoring of tasks A
 with bootstrap CIs, and `result.json` plus `report.md`. Every invocation creates a unique
 `data/results/benchmark/<experiment-id>/<timestamp>-<hashprefix>-<uuid>/` folder. The hash
 prefix is the first 12 characters of the experiment file SHA-256; the timestamp is UTC.
-Existing run directories and legacy flat outputs remain intact. The CLI prints both paths.
+Existing run directories and legacy flat outputs remain intact. The CLI prints `Invocation:`
+after preflight and before inference, then final result/report paths on completion.
+
+`benchmark.checkpoint.BenchmarkStore` owns the invocation. It writes an immutable identity
+manifest, an atomic progress checkpoint, and immutable terminal artifacts per case/variant.
+Artifacts retain the structured request, resolved spec, outcome, report and serialized
+analysis when available, including raw output/provenance but excluding prepared image bytes.
+The checkpoint links artifacts by checksum. A write failure stops subsequent inference.
+
+For Ollama, `raw_meta.requests` records rendered system/user messages and actual
+model/options/format/schema/keep-alive/thinking settings. Image bytes are omitted and
+replaced by image SHA-256 values with `image_bytes_omitted: true`.
+`raw_meta.responses` retains HTTP status, latency and complete decoded JSON provider
+bodies when available, including content, thinking, stop reason and token counts.
+Malformed/non-JSON HTTP bodies retain bounded diagnostic text (up to 300 characters),
+not a promise of complete response bytes. Transport failures retain error type, reason
+and latency. Two-pass requests/responses remain available if the second pass fails.
+The shared analysis redactor processes this metadata before persistence.
+
+These are provider diagnostics, not packet capture: no network headers or base64 pixels
+are archived. Optional HTTP model services do not yet retain equivalent full provider
+request/response diagnostics. Their ordinary parsed/raw analysis fields remain available.
+
+
+Explicit `--resume` validates experiment bytes/canonical config, limit/selection, guarded
+input hashes, dataset/index/split state, model/prompt settings, source/commit/dependency-lockfile
+and runtime model digest. Resume reuses only terminal units linked by the valid checkpoint.
+Failures, abstentions and missing-index outcomes remain terminal. In-flight/orphan units
+can rerun. A validated complete invocation returns existing outputs without rewriting.
+Locks reject concurrent writers; path guards reject symlink escapes. Legacy runs have no
+checkpoint and cannot resume. These are integrity checks, not cryptographic authentication.
 
 The runner sends the experiment's `labels` to inference and uses the same label set for
 scoring. It resolves the prompt in this order: variant override, experiment setting,
@@ -352,7 +382,7 @@ flowchart LR
 
 | Concern | Decision |
 |---|---|
-| Reproducibility | Every result embeds a `provenance` record with git commit, config/prompt/preprocess hashes, model digest, hardware and driver; benchmark runs add dataset/split manifest hashes (§24). No separate `run.json` is written. |
+| Reproducibility | Every result embeds provenance with commit/version/model identity, config/prompt/preprocess/input/scoring hashes, available dataset/split/reference hashes, hardware and driver (§24). Benchmark invocations also preserve per-case artifacts/checkpoints. No separate `run.json` is written. |
 | Determinism | No random slice selection; Ollama `temperature=0`, `seed=0`. |
 | Safety | Disclaimer in CLI output, UI banner and every report; abstention is a first-class result. |
 | Privacy | No telemetry; logs redact paths/DICOM values; only de-identified research data. |
@@ -435,14 +465,17 @@ The audit is a report, not an access gate. The split guards stay the only access
 **Output redaction.** `Redactor` replaces absolute paths and given identifier values.
 `settings_redactor` maps the data directory to `[data]/<relative path>`, the repository to
 `[repo]/<relative path>` and the home directory to `[home]/<basename>`. Other absolute paths
-become `[path]/<basename>`. Identifier values passed by the caller (for example from
-`identifier_values`) become `[redacted]`. `analyze_study` passes no identifier values; it
-redacts paths only. It redacts
-the report text, raw model text and errors, model and view metadata, context and the
-performance error. The JSON result, Markdown report, HTML export and web API all receive
+become `[path]/<basename>`. Identifier values passed by the caller become `[redacted]`. `load_study_dir` collects
+configured direct identifying header values into `Study.identifiers`, including on a
+cached-volume load. `analyze_study` supplies these values to the shared redactor.
+It redacts the structured request, report/raw text and errors, model/view metadata,
+context, performance fields, QC and image captions. The JSON result, Markdown report, HTML export and web API all receive
 this redacted result. CLI errors from `analyze`, `index` and `split`, and `index` progress
 lines, are also redacted. Dataset, case, patient pseudonym, series UID and provenance hashes
-stay unchanged.
+stay unchanged. Header-value matching is selective; it is not pixel OCR or complete
+anonymization. Source caches and indexes remain controlled local data. If source headers are unavailable,
+a cache alone cannot supply direct identifier values. The in-memory identifier collection
+is never serialized. CLI output paths intentionally remain actual local paths for use.
 
 Prerequisite: run the commands from the repository root with the synced environment.
 
@@ -469,3 +502,12 @@ the profile attributes. For ad hoc studies, the DICOM `PatientID` and the folder
 through to `patient_id` and `case_id` unchanged. Redaction does not rewrite the
 `data/cache/` volume files or `data/index/*.json`. These hold the DICOM `PatientID` and
 relative paths, and they stay under ignored `data/`.
+
+## 10. Current provenance identities
+
+Analysis records available dataset/split manifest bytes, a reference-index hash, the actual
+scoring/schema source hash, and a prepared-input hash. The input identity includes canonical
+HU bytes, shape and spacing as well as image/tensor hashes and context, so heuristic inputs
+are covered too. Input hashing and provenance collection occur outside measured engine
+stages. The fingerprint includes software version/model ID and these hashes. Missing
+source identities remain unavailable; hashes do not validate reference labels.

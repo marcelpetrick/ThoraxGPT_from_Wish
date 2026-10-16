@@ -127,7 +127,8 @@ def test_full_run_scores_and_writes(tmp_path: Path, settings: Settings) -> None:
     assert (summary.development_cases, summary.selected_cases, summary.not_indexed) == (3, 3, 0)
     assert summary.split_manifest_sha256 is not None
     assert summary.dataset_manifest_sha256 is None
-    assert len(messages) == 3
+    assert len(messages) == 4
+    assert messages[0].startswith("Invocation: ")
     json_path, md_path = write_outputs(result, settings)
     assert json_path.parent.parent == settings.data_path("results", "benchmark", "T001")
     assert loaded.file_sha256[:12] in json_path.parent.name
@@ -184,7 +185,10 @@ def test_output_runs_preserve_prior_and_legacy_files(tmp_path: Path, settings: S
     (legacy / "report.md").write_text("historical report")
     first = write_outputs(result, settings)
     original = [path.read_bytes() for path in first]
-    second = write_outputs(result, settings)
+    assert write_outputs(result, settings) == first
+    second = write_outputs(
+        run_experiment(load_experiment(_experiment(tmp_path)), settings, limit=1), settings
+    )
     assert first[0].parent != second[0].parent
     assert [path.read_bytes() for path in first] == original
     assert (legacy / "result.json").read_text() == "historical result"
@@ -343,3 +347,269 @@ def test_cli_rejects_export_escape_before_inference(
     assert "ignored data/results" in response.output
     analyze.assert_not_called()
     assert list(outside.iterdir()) == []
+
+
+def _interrupted_run(loaded: Any, settings: Settings) -> Path:
+    messages: list[str] = []
+    calls = 0
+
+    def interrupt(study: Study, model_id: str, s: Settings, **kwargs: Any) -> AnalysisResult:
+        nonlocal calls
+        calls += 1
+        if calls == 2:
+            raise KeyboardInterrupt
+        result = analyze_study(study, model_id, s, **kwargs)
+        result.raw_text = "synthetic raw response retained exactly"
+        return result
+
+    with pytest.raises(KeyboardInterrupt):
+        run_experiment(loaded, settings, analyze=interrupt, progress=messages.append)
+    return Path(messages[0].removeprefix("Invocation: "))
+
+
+def test_interruption_resume_preserves_raw_artifacts_and_scoring(
+    tmp_path: Path, settings: Settings
+) -> None:
+    loaded = load_experiment(_experiment(tmp_path))
+    folder = _interrupted_run(loaded, settings)
+    checkpoint = json.loads((folder / "checkpoint.json").read_text())["payload"]
+    assert checkpoint["status"] == "running"
+    assert len(checkpoint["units"]) == 1
+    record = next(iter(checkpoint["units"].values()))
+    artifact_path = folder / record["file"]
+    original = artifact_path.read_bytes()
+    artifact = json.loads(original)
+    assert artifact["analysis"]["raw_text"] == "synthetic raw response retained exactly"
+    assert artifact["analysis"]["request"]["labels"] == loaded.config.labels
+    assert artifact["analysis"]["provenance"]["preprocess_hash"]
+    assert "prepared_images" not in artifact["analysis"]
+    assert artifact["report"]["findings"]
+    observed: list[str] = []
+
+    def analyze_remaining(
+        study: Study, model_id: str, s: Settings, **kwargs: Any
+    ) -> AnalysisResult:
+        observed.append(study.case_id)
+        return analyze_study(study, model_id, s, **kwargs)
+
+    resumed = run_experiment(loaded, settings, resume=folder, analyze=analyze_remaining)
+    assert observed == ["P2", "P3"]
+    assert artifact_path.read_bytes() == original
+    fresh = run_experiment(loaded, settings)
+    assert resumed.runs[0].metrics == fresh.runs[0].metrics
+    assert resumed.output_dir == folder
+    before = {path.name: path.read_bytes() for path in folder.iterdir() if path.is_file()}
+    completed = run_experiment(
+        loaded, settings, resume=folder, analyze=Mock(side_effect=AssertionError)
+    )
+    assert completed.runs[0].metrics == resumed.runs[0].metrics
+    assert {path.name: path.read_bytes() for path in folder.iterdir() if path.is_file()} == before
+
+
+@pytest.mark.parametrize("name", ["checkpoint.json", "manifest.json", "case"])
+def test_resume_rejects_corrupt_integrity_records(
+    tmp_path: Path, settings: Settings, name: str
+) -> None:
+    loaded = load_experiment(_experiment(tmp_path))
+    folder = _interrupted_run(loaded, settings)
+    path = next((folder / "cases").glob("*.json")) if name == "case" else folder / name
+    path.write_text("{}")
+    with pytest.raises(ValueError, match=r"integrity|checksum"):
+        run_experiment(loaded, settings, resume=folder, analyze=Mock(side_effect=AssertionError))
+
+
+def test_resume_rejects_changed_selection_experiment_source_and_input(
+    tmp_path: Path, settings: Settings, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    loaded = load_experiment(_experiment(tmp_path))
+    folder = _interrupted_run(loaded, settings)
+    with pytest.raises(ValueError, match="identity mismatch"):
+        run_experiment(loaded, settings, resume=folder, limit=1)
+    changed = load_experiment(_experiment(tmp_path, labels=["pulmonary_nodule"]))
+    with pytest.raises(ValueError, match="identity mismatch"):
+        run_experiment(changed, settings, resume=folder)
+    _experiment(tmp_path)
+    original = benchmark_runner._resume_identity
+
+    def changed_source(*args: Any, **kwargs: Any) -> dict[str, Any]:
+        return original(*args, **kwargs) | {"source_hash": "changed"}
+
+    with monkeypatch.context() as context:
+        context.setattr(benchmark_runner, "_resume_identity", changed_source)
+        with pytest.raises(ValueError, match="identity mismatch"):
+            run_experiment(loaded, settings, resume=folder)
+    extra = settings.data_path("raw", "lidc_idri", "P1", "changed.txt")
+    extra.write_text("changed source input")
+    try:
+        with pytest.raises(ValueError, match="identity mismatch"):
+            run_experiment(loaded, settings, resume=folder)
+    finally:
+        extra.unlink()
+
+
+def test_resume_keeps_failed_and_not_indexed_units_terminal(
+    tmp_path: Path, settings: Settings, stale_index: Path
+) -> None:
+    loaded = load_experiment(_experiment(tmp_path))
+
+    def failed(study: Study, model_id: str, s: Settings, **kwargs: Any) -> AnalysisResult:
+        raise RuntimeError("synthetic terminal failure")
+
+    result = run_experiment(loaded, settings, analyze=failed)
+    assert result.runs[0].status_counts["failed"] == 2
+    assert result.runs[0].status_counts["not_indexed"] == 1
+    resumed = run_experiment(
+        loaded, settings, resume=result.output_dir, analyze=Mock(side_effect=AssertionError)
+    )
+    assert resumed.runs[0].status_counts == result.runs[0].status_counts
+
+
+def test_output_failure_stops_before_next_inference_and_initializes_checkpoint(
+    tmp_path: Path, settings: Settings, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from thoraxbench.benchmark.checkpoint import BenchmarkStore
+
+    loaded = load_experiment(_experiment(tmp_path))
+    analyze = Mock(wraps=analyze_study)
+    monkeypatch.setattr(BenchmarkStore, "save_unit", Mock(side_effect=OSError("disk full")))
+    messages: list[str] = []
+    with pytest.raises(OSError, match="disk full"):
+        run_experiment(loaded, settings, analyze=analyze, progress=messages.append)
+    assert analyze.call_count == 1
+    folder = Path(messages[0].removeprefix("Invocation: "))
+    assert (folder / "checkpoint.json").is_file()
+    assert (folder / "manifest.json").is_file()
+    assert not (folder / "result.json").exists()
+
+
+def test_cli_resume_returns_same_invocation(
+    tmp_path: Path, settings: Settings, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(cli_benchmark, "get_settings", lambda: settings)
+    exp = _experiment(tmp_path)
+    first = CliRunner().invoke(app, ["benchmark", str(exp), "--limit", "1"])
+    assert first.exit_code == 0, first.output
+    invocation = next(
+        line.removeprefix("Invocation: ")
+        for line in first.output.splitlines()
+        if line.startswith("Invocation: ")
+    )
+    resumed = CliRunner().invoke(
+        app, ["benchmark", str(exp), "--limit", "1", "--resume", invocation]
+    )
+    assert resumed.exit_code == 0, resumed.output
+    assert f"Invocation: {invocation}" in resumed.output
+    refused = CliRunner().invoke(app, ["benchmark", str(exp), "--resume", invocation, "--unseal"])
+    assert refused.exit_code == 2
+
+
+def test_unverifiable_source_is_failed_without_inference_and_cannot_resume(
+    tmp_path: Path, settings: Settings, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(
+        benchmark_runner, "guard_study_input", Mock(side_effect=ValueError("unreadable input"))
+    )
+    analyze = Mock(side_effect=AssertionError)
+    loaded = load_experiment(_experiment(tmp_path))
+    result = run_experiment(loaded, settings, limit=1, analyze=analyze)
+    assert result.runs[0].status_counts["failed"] == 1
+    analyze.assert_not_called()
+    with pytest.raises(ValueError, match="verified selected input"):
+        run_experiment(loaded, settings, limit=1, resume=result.output_dir, analyze=analyze)
+
+
+def test_runtime_model_change_archives_failure_and_stops_next_case(
+    tmp_path: Path, settings: Settings, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(
+        benchmark_runner,
+        "runtime_identity",
+        lambda *args: {"adapter": "heuristic", "digest": "before"},
+    )
+
+    def changed(study: Study, model_id: str, s: Settings, **kwargs: Any) -> AnalysisResult:
+        result = analyze_study(study, model_id, s, **kwargs)
+        result.provenance.model_hash = "after"
+        return result
+
+    messages: list[str] = []
+    with pytest.raises(RuntimeError, match="digest changed"):
+        run_experiment(
+            load_experiment(_experiment(tmp_path)),
+            settings,
+            analyze=changed,
+            progress=messages.append,
+        )
+    folder = Path(messages[0].removeprefix("Invocation: "))
+    checkpoint = json.loads((folder / "checkpoint.json").read_text())["payload"]
+    assert len(checkpoint["units"]) == 1
+    artifact = json.loads(next((folder / "cases").glob("*.json")).read_text())
+    assert artifact["analysis"]["provenance"]["model_hash"] == "after"
+    assert artifact["outcome"]["status"] == "failed"
+    assert artifact["runtime_identity_error"]
+    with pytest.raises(ValueError, match="Invalid checkpointed case"):
+        run_experiment(load_experiment(_experiment(tmp_path)), settings, resume=folder)
+
+
+def test_development_guard_runs_before_reusing_completed_result(
+    tmp_path: Path, settings: Settings, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from thoraxbench.benchmark.checkpoint import BenchmarkStore
+
+    loaded = load_experiment(_experiment(tmp_path))
+    result = run_experiment(loaded, settings, limit=1)
+    monkeypatch.setattr(
+        guard_module.CaseGuard,
+        "check",
+        Mock(side_effect=SealedAccessError("no longer development")),
+    )
+    monkeypatch.setattr(
+        BenchmarkStore, "verify", Mock(side_effect=AssertionError("artifact read before guard"))
+    )
+    with pytest.raises(SealedAccessError):
+        run_experiment(loaded, settings, limit=1, resume=result.output_dir)
+
+
+def test_active_runtime_includes_loading_and_resume_excludes_downtime(
+    tmp_path: Path, settings: Settings, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    loaded = load_experiment(_experiment(tmp_path))
+    clock = [0.0]
+    monkeypatch.setattr(benchmark_runner.time, "perf_counter", lambda: clock[0])
+
+    def slow_open(entry: IndexEntry, s: Settings) -> Study:
+        clock[0] += 7.0
+        return open_study(entry, s)
+
+    def advance(study: Study, model_id: str, s: Settings, **kwargs: Any) -> AnalysisResult:
+        result = analyze_study(study, model_id, s, **kwargs)
+        clock[0] += 2.0
+        return result
+
+    result = run_experiment(loaded, settings, open_case=slow_open, analyze=advance)
+    assert result.runtime_s == 27.0
+    assert result.runs[0].runtime_s == 6.0
+    checkpoint = json.loads((result.output_dir / "checkpoint.json").read_text())["payload"]
+    assert checkpoint["active_runtime_s"] == 27.0
+
+    folder = _interrupted_run(loaded, settings)
+    saved = json.loads((folder / "checkpoint.json").read_text())["payload"]
+    clock[0] += 1000.0  # Downtime must not appear in resumed active wall time.
+    resumed = run_experiment(loaded, settings, resume=folder, open_case=slow_open, analyze=advance)
+    assert resumed.runtime_s == saved["active_runtime_s"] + 18.0
+
+
+def test_failed_case_artifact_redacts_paths_and_known_identifiers(
+    tmp_path: Path, settings: Settings
+) -> None:
+    def fail(study: Study, _model: str, s: Settings, **_kwargs: Any) -> AnalysisResult:
+        study.identifiers = frozenset({"Synthetic Secret Name"})
+        raise RuntimeError(f"Synthetic Secret Name at {s.data_dir}/private/input.dcm")
+
+    result = run_experiment(load_experiment(_experiment(tmp_path)), settings, limit=1, analyze=fail)
+    case = next((result.output_dir / "cases").glob("*.json"))
+    text = case.read_text()
+    assert "Synthetic Secret Name" not in text
+    assert str(settings.data_dir) not in text
+    assert "[redacted]" in text
+    assert "[data]/private/input.dcm" in text

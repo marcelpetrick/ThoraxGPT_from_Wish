@@ -198,3 +198,19 @@ Inspect output/schema reliability and image coverage on calibration data before 
 the full E001–E004 experiments. Four sampled images can omit study-level lesions. This
 two-study sample cannot assess generalization, compare quantization accuracy, or establish
 clinical performance. This run did not assess pretraining overlap.
+
+## Method-change note (2026-10-16)
+
+The historical E000 and E001-smoke tables above retain their original scoring definitions
+and saved values. They have not been recomputed with later code. In the current engine,
+missing confidence or uncertain presence is unavailable, not an invented probability of
+0, 0.5 or 1. Task E counts missing known-reference predictions as omissions and reports
+prediction coverage. Task G reports the number of studies eligible for false-reassurance
+scoring; unavailable predictions cannot establish reassurance. Current provenance records
+identify the scoring implementation by its source hash.
+
+Current prompt rendering uses one-based image captions consistently. P0–P3 are version
+1.0.1 and P4 is 1.0.2. Their hashes differ from the smoke setup above. Old aggregate-only
+runs do not contain enough raw provider evidence to reconstruct their failures in detail.
+Use the new durable per-case artifacts for future diagnostics. Do not describe old results
+as measurements of these revised methods or compare them as controlled before/after runs.

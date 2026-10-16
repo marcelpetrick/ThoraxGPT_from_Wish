@@ -5,7 +5,8 @@
 > and reference knowledge may produce incorrect, incomplete or misleading findings.
 > Do not use outputs for diagnosis or treatment decisions.
 
-**Status: 2026-10-15. No model accuracy benchmark has been completed.** Models are selected
+**Evidence updated: 2026-10-16; installation snapshot: 2026-10-15. No model accuracy
+benchmark has been completed.** Models are selected
 for vision input, local execution on the RTX A2000 with 8 GB VRAM, applicable license terms,
 and a useful comparison question. This is a comparison design, not a performance ranking.
 
@@ -22,8 +23,8 @@ Configuration files live in [`configs/models/`](../configs/models/).
 | Model / configuration ID | Why include it? | Installed or available locally? | Evidence so far |
 |---|---|---|---|
 | HU rules — `heuristic-hu` | Deterministic control: what can simple density measurements recover without learned weights? | Yes; built into the engine | Synthetic pipeline smoke: 0.465 s measured stages; one authorized real development study also completed. Development-split pipeline baseline E000 in [`results.md`](results.md); not model accuracy. |
-| MedGemma 1.5 Q4 — `medgemma1.5-q4` | Primary medical VLM candidate; practical local weight size (3.34 GB) | Yes; `medgemma1.5:4b-it-q4_K_M` | Live synthetic transport smoke completed in 49.5 s, but returned empty findings. No useful detection or accuracy demonstrated. |
-| MedGemma 1.5 Q8 — `medgemma1.5-q8` | Same model at higher precision: test accuracy/runtime/memory tradeoffs against Q4 | Yes; `medgemma1.5:4b-it-q8_0` (4.98 GB weights) | Earlier synthetic image-count smoke recorded in the research notes; full current analysis path and accuracy comparison pending. |
+| MedGemma 1.5 Q4 — `medgemma1.5-q4` | Primary medical VLM candidate; practical local weight size (3.34 GB) | Yes; `medgemma1.5:4b-it-q4_K_M` | Historical synthetic transport smoke completed in 49.5 s with empty findings; the later calibration smoke also abstained twice. No useful detection or accuracy demonstrated. |
+| MedGemma 1.5 Q8 — `medgemma1.5-q8` | Same model at higher precision: test accuracy/runtime/memory tradeoffs against Q4 | Yes; `medgemma1.5:4b-it-q8_0` (4.98 GB weights) | Historical image-count smoke plus a two-study calibration readiness run: one scorable response missed its reference nodule; one generation-limit abstention. No accuracy comparison. |
 | Gemma 3 4B — `gemma3-4b` | General model from the same architecture family: investigate the effect of medical specialization | **No**; configured `gemma3:4b-it-q4_K_M` tag is absent | Availability prerequisite pending; no project accuracy benchmark. |
 | Qwen3-VL 4B — `qwen3-vl-4b` | Independent general VLM family, for comparison beyond Gemma | Yes; `qwen3-vl:4b` (3.30 GB weights) | Installed; live analysis smoke and accuracy evaluation pending. |
 | CT-CLIP, M3D-LaMed, CT-CHAT, RadFM | Later volumetric comparators: investigate information lost by presenting CT as selected 2D images | Deferred optional local services | Weight access, memory and runtime integration remain prerequisites; no project benchmark. |
@@ -53,8 +54,11 @@ outputs; it computes no reference-label accuracy or consensus diagnosis.
 Start in the repository root with the locked environment installed.
 
 1. Read the model's terms and configuration in `configs/models/`.
-   For missing weights, use **Model availability & setup** in the UI. Ollama downloads
-   require a separate explicit action after terms acknowledgement. Optional HTTP services
+   For missing Ollama weights, use `ollama run <configured-tag>` (downloads and starts
+   chat), or `ollama pull <configured-tag>` (download only). Use the YAML `tag`, not the
+   app model ID. Leave chat with `/bye`, then refresh UI availability. The optional
+   **Model availability & setup** browser download requires terms acknowledgement.
+   See [the exact example](../README.md#set-up-an-unavailable-model). Optional HTTP services
    require publisher access, compatible weights/hardware and a configured loopback service.
 2. Run `uv run thoraxbench models`.
 3. Confirm that the intended configuration is available locally.
@@ -105,7 +109,8 @@ calibration measures; patient-level bootstrap confidence intervals; explicit fai
 abstentions; and runtimes. Missing reference labels remain unknown rather than being treated
 as negative. Recorded runs are in [`results.md`](results.md). E000 is a pipeline baseline of
 the HU heuristic. The MedGemma experiments E001–E004 are configured in
-`configs/experiments/` and have no recorded result yet.
+`configs/experiments/`; full sweeps have no recorded result. The separate E001-smoke readiness
+run is recorded below and does not establish comparative accuracy.
 
 **Still planned:** calibrator fitting, sealed-holdout evaluation, and memory comparisons.
 
@@ -132,3 +137,12 @@ Total experiment wall time was 290.8 seconds. This small check establishes neith
 accuracy ranking nor a quantization-speed ranking. Full E001–E004 remain pending.
 See [the measured setup and outcomes](results.md). Larger sweeps wait for useful-output
 reliability; availability alone does not establish readiness.
+
+## Preserve new experiment evidence
+
+New benchmark invocations save terminal case/variant artifacts with raw responses,
+structured requests and provenance, plus atomic checkpoints. Use strict `--resume` only
+with the original identity; retry failures in a new invocation. Historical readiness
+responses that were not retained cannot be reconstructed from score summaries. See
+[the benchmark procedure](benchmarking.md). Current missing-prediction and safety scoring
+has changed; historical metrics are not recomputed.
