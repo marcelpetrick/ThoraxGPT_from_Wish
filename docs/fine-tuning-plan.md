@@ -8,6 +8,9 @@ are calculations, not measurements. Binding rules stay in `AGENTS.md`, `DATA_POL
 and Vision §14–§16: weights stay frozen in phase 1, and fine-tuning is a separate,
 later track that starts only after a clean E001–E004 development baseline exists.
 
+> **Update 2026-10-17:** see [the approach review](approach-review-2026-10-17.md). QLoRA is on
+> hold until the image-path sanity gate and a crop-level signal exist.
+
 ## 1. What limits precision today
 
 | # | Limit | Evidence | Consequence |
