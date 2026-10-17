@@ -544,7 +544,15 @@ def test_medgemma_defaults_use_bounded_schema_without_heuristic_context(model_id
     model = load_model(model_id, _settings())
     assert isinstance(model, OllamaModel)
     assert model.prompt.id == "P5"
-    assert model.config.view_params == {"include_cues": False, "caption_style": "image_only"}
+    assert model.config.view_params == {
+        "strategy": "uniform",
+        "n": 16,
+        "size": 896,
+        "coronal": False,
+        "slab_mm": 0.0,
+        "include_cues": False,
+        "caption_style": "image_only",
+    }
     schema = model.prompt.schema(REQ.labels, n_images=2)
     findings = schema["properties"]["findings"]
     assert findings["minItems"] == findings["maxItems"] == len(REQ.labels)

@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Copyright (C) 2026 Marcel Petrick <mail@marcelpetrick.it>
+import hashlib
 import io
 from pathlib import Path
 
@@ -7,8 +8,10 @@ import numpy as np
 import pytest
 from PIL import Image
 
+from thoraxbench.adapters import OllamaModel, load_model
 from thoraxbench.adapters.heuristic import heuristic_findings
 from thoraxbench.config import get_settings
+from thoraxbench.model_manifests import load_model_manifests
 from thoraxbench.sampling import STRATEGIES, get_strategy
 from thoraxbench.schemas import AnalysisRequest
 from thoraxbench.study import Study, StudyLoadError, load_study_dir
@@ -215,3 +218,58 @@ def test_image_only_captions_name_no_source_slice(study: Study) -> None:
 def test_caption_style_is_validated() -> None:
     with pytest.raises(ValueError, match="caption_style"):
         get_view("medgemma_ct_v1", caption_style="slices")
+
+
+@pytest.mark.parametrize("model_id", ["medgemma1.5-q4", "medgemma1.5-q8"])
+@pytest.mark.parametrize("gui_count", [None, 4])
+def test_medgemma_profiles_prepare_ordered_raw_axials_only(
+    study: Study, model_id: str, gui_count: int | None
+) -> None:
+    settings = get_settings()
+    # The GUI overrides only n. Verify the actual model factory path, not registry defaults.
+    model = load_model(
+        model_id,
+        settings,
+        view_resolver=lambda view_id, params: get_view(
+            view_id, **(params if gui_count is None else params | {"n": gui_count})
+        ),
+    )
+    assert isinstance(model, OllamaModel)
+    request = AnalysisRequest(labels=["pulmonary_nodule"], prompt_id=model.prompt.id)
+    prepared = model.prepare(study, request)
+    n = 16 if gui_count is None else gui_count
+    expected_indices = sorted(
+        {round(value) for value in np.linspace(0, study.volume.shape[0] - 1, n)}
+    )
+    assert prepared.slice_indices == expected_indices
+    assert len(prepared.images) == len(prepared.image_captions) == len(expected_indices) <= n
+    assert prepared.meta["strategy"] == "uniform"
+    assert prepared.meta["slab_mm"] == 0.0
+    assert prepared.meta["include_cues"] is False
+    assert prepared.context == ""
+    for number, (index, caption, png) in enumerate(
+        zip(expected_indices, prepared.image_captions, prepared.images, strict=True), start=1
+    ):
+        assert caption.startswith(f"IMAGE {number}: axial,")
+        assert "coronal" not in caption
+        assert "MIP" not in caption
+        assert "slice " not in caption
+        assert Image.open(io.BytesIO(png)).size == (896, 896)
+        assert png == render_slice_png(study.volume.hu[index], "medgemma", size=896)
+    rendered = model.prompt.render(
+        request.labels, len(prepared.images), prepared.image_captions, ""
+    )
+    assert rendered.user.index(prepared.image_captions[0]) < rendered.user.index(
+        prepared.image_captions[-1]
+    )
+    assert "Deterministic measurements" not in rendered.user
+    snapshot = load_model_manifests(settings.repo_root)[model_id]
+    assert (
+        snapshot.source_config_sha256
+        == hashlib.sha256(
+            (settings.configs_dir / "models" / f"{model_id}.yaml").read_bytes()
+        ).hexdigest()
+    )
+    historical = get_view("medgemma_ct_v1")
+    assert prepared.meta["view_sha256"] != historical.sha256
+    model.client.close()

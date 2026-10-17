@@ -7,6 +7,11 @@ quantization: Q4_K_M
 view: medgemma_ct_v1
 prompt: P5
 view_params:
+  strategy: uniform
+  n: 16
+  size: 896
+  coronal: false
+  slab_mm: 0.0
   include_cues: false
   caption_style: image_only
 capabilities:
@@ -15,4 +20,4 @@ capabilities:
   report_generation: true
 license: "Health AI Developer Foundations terms"
 tier: "A"
-notes: "Primary baseline (Vision §4 Tier A)."
+notes: "Bounded raw-axial research profile. Sparse sampled images cannot exclude whole-study findings."
