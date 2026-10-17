@@ -177,7 +177,8 @@ accuracy. The combined export uses existing results; it starts no additional inf
 
 The interface defaults to **English and light mode**; English/German and light/dark switches
 persist locally. Actions, labels and metrics have hover/keyboard tooltips. **About** names
-Marcel Petrick and lists installed library versions and declared licenses. Design proposals
+Marcel Petrick, lists installed library versions and declared licenses, and links to the
+GitHub repository for forks, issues and contributions. Design proposals
 and acceptance criteria are in [the UI design document](docs/ui.md).
 
 ![About page with research purpose, author and installed dependency licenses](docs/assets/ui-about.png)

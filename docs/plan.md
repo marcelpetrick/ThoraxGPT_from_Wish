@@ -111,6 +111,12 @@ Status: ✅ done · 🔄 in progress · ⏳ open · ✖ dropped
 
 ## Current activity
 
+- **About contribution link (user request, 2026-10-17):** add the canonical GitHub
+  repository link with translated EN/DE text and keyboard/hover help. Open it in a new tab
+  with `noopener noreferrer`. Replace the stale benchmark-pending description with the
+  implemented study/candidate/recorded-benchmark workflow. Refresh the synthetic About
+  screenshot and synchronized operator manual; run the normal commit gate.
+
 - **Verified engine checkpoint (2026-10-17):** v0.4.9 `981e1ec` is pushed. Full gate:
   829 tests / 97.84% coverage; GitHub Actions `39043586041` passed. W1/P6, W2/W3/W6,
   the S1 source-grouping regression and recovered calibration work are integrated.

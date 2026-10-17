@@ -124,7 +124,8 @@ Keep `manual.html` and `manual.pdf` synchronized with user-facing configuration 
 UI defaults are **English and light mode**, independent of browser preferences. Offer
 persistent English/German and light/dark switches. Every action, field label and result
 metric needs concise translated help via accessible hover/focus tooltips. The About page
-names Marcel Petrick as author, explains the research purpose, and lists used libraries,
+names Marcel Petrick as author, explains the research purpose, links to the canonical GitHub
+repository for forks/issues/contributions with translated help, and lists used libraries,
 installed versions and license information. UI text is translated; generated research
 reports remain English until separately specified.
 

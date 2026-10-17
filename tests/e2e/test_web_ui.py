@@ -854,6 +854,24 @@ def test_slice_failure_has_specific_recovery_and_clears_after_success(ui_page: P
     expect(page.locator("#notice")).to_be_hidden()
 
 
+def test_about_github_link_is_translated_and_explained(ui_page: Page) -> None:
+    page = ui_page
+    page.locator("#nav-about").click()
+    link = page.locator("#about-github")
+    expect(link).to_have_attribute("href", "https://github.com/marcelpetrick/ThoraxGPT_from_Wish")
+    expect(link).to_have_attribute("target", "_blank")
+    expect(link).to_have_attribute("rel", "noopener noreferrer")
+    expect(link).to_have_text("GitHub: fork and contribute")
+    link.focus()
+    page.clock.fast_forward(600)
+    expect(page.get_by_role("tooltip")).to_contain_text("contribute")
+    page.locator("#language-toggle").click()
+    expect(link).to_contain_text("mitwirken")
+    link.focus()
+    page.clock.fast_forward(600)
+    expect(page.get_by_role("tooltip")).to_contain_text("GitHub")
+
+
 def test_direct_about_and_nearby_model_setup_are_reachable(ui_page: Page) -> None:
     page = ui_page
     page.goto(f"{page.url.rstrip('/')}/about")
