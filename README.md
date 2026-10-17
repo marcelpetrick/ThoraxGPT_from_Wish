@@ -3,7 +3,7 @@
 [![Local Pipeline](https://github.com/marcelpetrick/ThoraxGPT_from_Wish/actions/workflows/local-pipeline.yml/badge.svg?branch=main)](https://github.com/marcelpetrick/ThoraxGPT_from_Wish/actions/workflows/local-pipeline.yml)
 [![License: GPL v3 or later](https://img.shields.io/badge/license-GPLv3%20or%20later-blue.svg)](LICENSE)
 [![Python 3.14+](https://img.shields.io/badge/Python-3.14%2B-3776ab.svg)](https://www.python.org/)
-[![FastAPI 0.143.2](https://img.shields.io/badge/FastAPI-0.143.2-009688.svg)](pyproject.toml)
+[![FastAPI 0.143.3](https://img.shields.io/badge/FastAPI-0.143.3-009688.svg)](pyproject.toml)
 [![Coverage 97.84%](https://img.shields.io/badge/coverage-97.84%25-brightgreen.svg)](docs/mvp-test.md)
 [![mypy strict](https://img.shields.io/badge/mypy-strict-blue.svg)](pyproject.toml)
 [![Local inference](https://img.shields.io/badge/inference-local%20only-087f8c.svg)](docs/architecture.md)
@@ -18,7 +18,8 @@ for the C4 architecture and [`docs/plan.md`](docs/plan.md) for the
 implementation plan. Read the [HTML operator manual](manual.html) or [printable PDF](manual.pdf)
 for setup, configuration, a first run and troubleshooting. The build backend is pinned to
 Hatchling 1.32.4; CI uses uv 0.13.1. Runtime, development and locked transitive dependencies
-were checked against current stable releases on 2026-10-15.
+were checked against stable PyPI releases on 2026-10-17. The lockfile preserves
+provider-required CUDA versions; see [the dependency review](docs/dependency-review-2026-10-17.md).
 
 | Document | Content |
 |---|---|

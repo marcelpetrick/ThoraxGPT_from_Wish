@@ -18,12 +18,12 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Medical Science Apps.",
 ]
 dependencies = [
-    "fastapi==0.143.2",
+    "fastapi==0.143.3",
     "httpcore==1.0.9",
     "httpx==0.28.1",
     "jinja2==3.1.6",
     "numpy==2.5.4",
-    "pillow==12.3.0",
+    "pillow==13.0.0",
     "pydantic==2.14.1",
     "pydicom==3.0.2",
     "python-multipart==0.0.32",
