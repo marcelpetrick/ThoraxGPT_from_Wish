@@ -4,7 +4,7 @@ The user authorized updating the public About metadata and keeping the lung emoj
 The previous description emphasized MedGemma/Ollama and offline HTML;16 topics included
 near-duplicates (`research-tool`/`research-tools`, `chest-ct`/`thoracic-ct`).
 
-Applied description (under350 characters):
+Applied description (under 350 characters):
 
 > 🫁 Local chest-CT research workbench: inspect DICOM studies, review MONAI detector candidates and experimental MedGemma outputs, and export image-linked HTML reports. Patient holdout stays sealed. Research use only; not for diagnosis.
 

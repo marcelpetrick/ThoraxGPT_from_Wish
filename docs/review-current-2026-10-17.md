@@ -35,3 +35,11 @@ No additional confirmed Code or Architecture findings remain in the reviewed sco
 Final release requires the complete combined gate and recorded live checks. A clean
 review and passing software tests do not establish medical prediction accuracy, official
 Hugging Face/BF16 runtime parity or whole-study exclusion from sampled images.
+
+## Verified repair checkpoint
+
+Integration `a12b867` passed 846 tests at 97.87% coverage and all full-gate stages. Both
+new regression cases were also run against their original clean branches: cancellation
+failed because the UI showed detector wording during Ollama inference; diagnostic indexing
+failed because an empty first call was dropped. The same repaired cases pass. The complete
+dependency integration will run the full gate again; no unresolved review finding remains.

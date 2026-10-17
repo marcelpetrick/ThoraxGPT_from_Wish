@@ -300,9 +300,13 @@ captions are one-based. Historical aggregate results retain their original defin
 ## Planned public demo recording
 
 Follow `docs/linkedin-video-plan.md` for the two LinkedIn pilot scripts and delivery settings.
-Recording and recorder implementation wait for the user's explicit trigger and a successful
-readiness rehearsal. Use synthetic data only, preserve a full original take, label edited
-waits, and retain genuine failures/abstentions. Verify actual prepared-image counts; anatomy
+The user explicitly triggered two 30-second local draft cuts on 2026-10-17 and requests
+MONAI on the already-reviewed public calibration example, with no heuristic. For these
+local drafts this replaces the earlier synthetic-only recording preference. Verify TCIA
+reuse/attribution, label selected-case and LIDC training overlap, and keep all real frames
+under ignored `data/results/linkedin/`. No upload is authorized. The readiness rehearsal
+still must pass; do not use sealed/internal-test data or commit patient pixels. Preserve
+a full original take, label edited waits, and retain genuine failures/abstentions. Verify actual prepared-image counts; anatomy
 sampling can exceed `n`. Never imply clinical usefulness or model accuracy.
 
 ## Visual evidence reliability

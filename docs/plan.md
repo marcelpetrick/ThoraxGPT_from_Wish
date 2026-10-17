@@ -111,19 +111,30 @@ Status: ✅ done · 🔄 in progress · ⏳ open · ✖ dropped
 
 ## Current activity
 
+- **User-triggered video (2026-10-17):** produce two 30-second LinkedIn draft cuts and
+  retain the complete original Chrome/Chromium tour. The user explicitly requests the
+  real previously reviewed MONAI calibration example and excludes the heuristic; this
+  overrides the earlier synthetic-only recording preference for these local drafts.
+  Verify current TCIA/CC-BY attribution first, preserve training-overlap/selected-case
+  limits, keep every real frame under ignored `data/results/linkedin/`, and do not upload.
+  No sealed or internal-test access. Recorder/editor work is delegated; root owns the
+  real rehearsal, recording, frame review and final verification.
+
 - **Recovery integration (2026-10-17):** integrate atomic runtime commits `924a147` /
   `941c536` and UI/About commits `6b919ee` / `5aec0e3`. Independent cross-review found
   two concrete regressions: detector-roster cancellation wording and empty-first-pass
   generation diagnostic indexing. Both are repaired with synthetic regressions. See
   [the current review](review-current-2026-10-17.md). The fixed Q4 calibration pair
-  terminates without length stops but still abstains; Q8 is running sequentially from
-  the clean runtime commit. Recognition readiness remains failed/pending, not inferred
+  and Q8 calibration pairs terminate without length stops (179–227 tokens), but three
+  reports abstain and the remaining result is a positive on the annotation-negative
+  control. All four ran from clean `941c536`; recognition readiness still fails. Recognition readiness remains failed/pending, not inferred
   from completion. Preserve the old port8000 session and its registered reports.
 - **Requested housekeeping:** GitHub About updated with 🫁 and ten grounded topics
-  ([metadata record](github-about-2026-10-17.md)). All27 direct pins and106 registry
+  ([metadata record](github-about-2026-10-17.md)). All27 direct pins and 106 registry
   packages checked; an isolated dependency gate passed with two direct and three
   compatible transitive updates. Integrate that separate commit after this UI merge,
-  then run the combined gate and publish the measured model results.
+  then run the combined gate and publish the measured model results. UI/runtime
+  integration `a12b867` is pushed: full gate 846 tests /97.87% coverage.
 
 - **Recorded report review (2026-10-17):** add direct new-tab HTML opening beside
   offline downloads in results, comparison rows/combined export and partial/abstained Jobs

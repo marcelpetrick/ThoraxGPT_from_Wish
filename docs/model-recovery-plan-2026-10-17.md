@@ -82,12 +82,44 @@ or that prompt changes alone can make this model accurate.
 - User's Q4 failure inspected without new inference: repeated-label loop confirmed.
 - Two isolated workers assigned; main comparison remains running and untouched.
 - R1 implementation complete: `924a147` (bounded P5/CLI labels/diagnostics), `941c536`
-  (uniform raw axial896 protocol). Full worker gate: 839 tests, 97.85% coverage.
+  (uniform raw axial 896 protocol). Full worker gate: 839 tests, 97.85% coverage.
 - U1 `6b919ee` and U2 `5aec0e3` complete. Worker gates: 830/833 tests,
   97.84% coverage; direct new-tab synthetic image/style checks passed.
 - Independent cross-review identified and fixed comparison cancellation provider wording
   and empty-first-pass diagnostic indexing; see [the review](review-current-2026-10-17.md).
-- R2 is running from clean `941c536`: first sorted annotated-positive calibration case
+- R2 completed from clean `941c536`: first sorted annotated-positive calibration case
   and the user's annotation-negative calibration case; Q4/Q8, P5, one canonical nodule
-  label,16 uniform raw axial896 images each. No retries or changed thresholds.
-- Dependency refresh and the final combined R3 gate are in progress.
+  label, 16 uniform raw axial 896 images each. No retries or changed thresholds.
+- R3 UI/runtime integration `a12b867` passed the full gate: 846 tests, 97.87% coverage;
+  all packaging/audit stages passed and the commit was pushed. The new cancellation and
+  diagnostic regressions were independently run against their original branches and
+  failed for the reported defects; repaired tests pass.
+- Dependency refresh `5ad81d4` passed its isolated full gate (839 tests, 97.85%). Final
+  combined dependency integration is in progress. Independent review found no additional
+  dependency issues; eight synthetic resizes/PNG encodes match byte-for-byte across Pillow 12/13.
+
+## Measured bounded calibration result
+
+One predeclared positive/control pair, one canonical nodule label, 16 uniform raw axial
+896-pixel images per request, clean source `941c536`, no retries or threshold changes.
+The control is annotation-negative, not an adjudicated disease-free patient. Internal-test
+and sealed cases were not used. The four requests took595.13 seconds wall time combined.
+
+| Model | Case role | Engine seconds | Generated tokens | Usable reading |
+|---|---|---:|---:|---|
+| Q4 | Annotated positive |139.93|208|No: false verdict with confidence 0 and no evidence becomes unavailable |
+| Q4 | Annotation-negative control |127.75|179|No: model explicitly abstains |
+| Q8 | Annotated positive |159.93|208|No: same unsupported prediction |
+| Q8 | Annotation-negative control |157.28|227|Scorable positive, confidence 0.95, references 1–4; not verified correct |
+
+All four provider calls stopped normally; none hit the generation cap. Each raw answer
+contains one requested label. Three final reports abstain. This is completion improvement,
+not demonstrated recognition improvement. Sixteen sparse slices geometrically intersect
+only one of seven indexed nodule extents in the positive study; that is not visibility
+adjudication. Do not claim whole-study exclusion, unbiased accuracy or a successful visual gate.
+The clean request/result/raw output/HTML and approximate coverage records remain in ignored
+`data/results/model-recovery/20261017T212249Z-7d260454/`.
+
+Next scientific step remains approved official-runtime parity or a validated supervised
+pipeline, not a larger output cap or repeated prompt tuning. The MONAI detector's earlier
+reviewable matches remain overlap-affected evidence; see the model-usage review.
