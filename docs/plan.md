@@ -16,7 +16,17 @@ here are binding until changed by a later commit to this file.
 
 ## Priority (user decision, 2026-10-15)
 
-**Current priority (user update, 2026-10-16):** complete engine reliability and the newly
+**Current priority (user decision, 2026-10-17):** the approach review
+([`approach-review-2026-10-17.md`](approach-review-2026-10-17.md)) found the benchmark sound
+but the zero-shot study-level small-VLM hypothesis very likely wrong. The user approved the
+review's plan ("finish that plan, get it done") and asked for a finally usable workflow.
+New order: (1) image-path sanity gate, (2) official MedGemma protocol, (3) supervised
+detector reference baseline (overlap-flagged), (4) VLM crop verification of detector
+candidates at lesion level, (5) usable end-to-end detect → verify → review workflow in the
+UI and CLI, (6) honest RQ1 report. Study-level E002–E004 sweeps and QLoRA are on hold until
+the gate passes. See *Next steps*.
+
+**Earlier priority (user update, 2026-10-16):** complete engine reliability and the newly
 requested UI/UX usability improvements. The user explicitly authorized a full UX review,
 recommendations, plan, implementation, fresh screenshots and end-to-end verification.
 This permits targeted study-library, navigation, feedback, help and results improvements;
@@ -429,30 +439,36 @@ Ideas not yet scheduled (need a separate decision):
 
 ## Next steps (in order)
 
-1. Check the corrected uniform two-image configuration on calibration only with
-   `--limit 1` when resuming output-reliability work. Inspect actual prepared-image counts,
-   copied heuristic text, invalid evidence indices and requested-label coverage. The
-   completed anatomy diagnostic used nine images per case. Do not tune on internal-test
-   or sealed data.
-2. Resolve empty/truncated structured output on calibration data. Use a separate hashed
-   configuration for each change. Useful-output readiness is still unproven.
-3. Only after readiness passes, run full E001–E004 development experiments. The completed
-   two-study smoke is not an accuracy benchmark.
-4. Preserve the historical NSCLC index uncertainty. The metadata audit found zero
-   outside-development entries in three preserved results, but cannot establish whether
-   the five former entries were ever inspected. Seek historical logs without reading sealed data.
-5. Keep LAN implementation and 40 GB runner verification deferred until resumed explicitly.
-6. Close remaining ranked gaps: calibration fitting, training-overlap column, E005–E008
-   configurations, model manifests, CLI `compare` and remaining cohort report tasks.
-7. Complete the eight authorized UX fixes in `docs/ux-review-2026-10-16.md`, then the
-   read-only Evaluation section (see *Current activity*), refresh synthetic
-   screenshots/snippets/manual and verify the end-to-end browser workflow. Advanced
-   reference overlays on images remain deferred.
-7a. Follow `docs/fine-tuning-plan.md`: output reliability and input coverage before any
-   training; adaptation experiments start at E009 on the calibration split only.
-8. After the user triggers recording and readiness passes, implement the recorder and
-   capture the synthetic workflow using [both pilot scripts](linkedin-video-plan.md).
-   Do not record or publish before that trigger.
+Decision record 2026-10-17 (user-approved approach-review plan). All real-data runs use the
+calibration phase only; each change is a separately hashed configuration.
+
+1. 🔄 **Image-path sanity gate** (T0–T5 of the approach review, plus S1–S4): prompt layout
+   audit, position binding (single message vs one message per image), real vs blank/noise/
+   shuffled images, synthetic spheres 30/15/8 mm, free-text description, paired
+   lesion/control 5 mm slabs with one yes/no question each (slice-level AUROC, yes-rate on
+   controls). Optional HF bf16 parity if weights are available without new terms. Gate:
+   if blank-vs-real or the 30 mm sphere fails in every format → model capability limit.
+2. ⏳ **Official protocol prompt (P6):** interleaved image + `SLICE k`, one label per query,
+   short reasoning then constrained yes/no, P(yes) scoring from logprobs on short answers.
+   Add a non-constant-output readiness criterion. Only then rerun E001-schema-style checks.
+3. 🔄 **Detector reference baseline:** MONAI `lung_nodule_ct_detection` (RetinaNet,
+   Apache-2.0), inference only, weights in ignored `data/`. `possible_training_overlap: yes`
+   on LIDC (LUNA16 ⊂ LIDC), out of distribution on NSCLC. Lesion-level Task C (sensitivity
+   at 1/2/4/8 FP per scan) plus study-level max score.
+4. ⏳ **VLM crop verification:** ≈64 mm lung-window crops (axial, optional coronal) around
+   detector/heuristic candidates; "nodule vs vessel/none" per crop; score FP/scan at fixed
+   sensitivity against the detector alone. Run only if step 1 shows crop-level signal.
+5. ⏳ **Usable workflow (user request):** one guided path in UI and CLI — choose study →
+   run detector → review candidate list with crops and positions in the viewer → optional
+   VLM verification per candidate → findings with clear source (detector / VLM / heuristic),
+   limitations and overlap flags → offline HTML/Markdown report download. Evaluation section
+   shows detector and verification runs. Synthetic e2e tests, refreshed screenshots/manual.
+6. ⏳ **RQ1 report:** honest result table (VLM study level, VLM slab/crop level, detector,
+   heuristic) with overlap column; negative results stay visible.
+7. ⏳ Close remaining ranked gaps: calibration fitting, overlap column in all reports,
+   E005–E008 configurations. Preserve the historical NSCLC index uncertainty.
+8. On hold: E002–E004 study-level sweeps and QLoRA (`fine-tuning-plan.md`) until steps 1–4
+   show a visual signal. Deferred: LAN/40 GB runner. Recording waits for the user's trigger.
 
 ## Self-review gates
 

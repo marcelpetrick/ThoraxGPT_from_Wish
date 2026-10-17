@@ -18,6 +18,15 @@ do not leave essential information only in chat or temporary files.
 
 ## 0.1 Current priority
 
+**Direction (user decision, 2026-10-17):** follow `docs/approach-review-2026-10-17.md` and
+`docs/plan.md` → *Next steps*: image-path sanity gate → official MedGemma protocol →
+supervised detector reference baseline (inference only, overlap-flagged) → VLM crop
+verification at lesion level → a usable detect → verify → review workflow in UI and CLI →
+honest RQ1 report. Study-level E002–E004 sweeps and QLoRA are on hold until a visual signal
+exists. Never present a detector score on LIDC as unbiased: LUNA16-trained weights overlap
+LIDC. Label every finding with its source (detector, VLM, heuristic). Detector weights stay
+in ignored `data/`, downloaded only by an explicit command. Status: `docs/status-2026-10-17.md`.
+
 The CLI engine and frozen pilot holdout are available. The **local UI MVP** is implemented
 (2026-10-15): maintain its tested research workflow around the existing engine and keep
 model-quality limitations visible. **User update (2026-10-16):** targeted UX improvements are now authorized after a full
