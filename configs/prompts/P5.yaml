@@ -1,0 +1,33 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# P5 — strict label-constrained classification (E001-schema): fixed-length findings first,
+# bounded free text, one-based IMAGE references only. Use with caption_style image_only and
+# include_cues false. P2 stays unchanged for historical comparison.
+id: P5
+version: "1.0.0"
+title: Strict label-constrained classification
+label_constrained: true
+schema_version: "2"
+system: |
+  You are assisting a research benchmark of thoracic CT reading. Your output is an
+  experimental research prediction, not medical advice. Look at every attached image and
+  decide for each requested finding whether it is visible. Never invent measurements.
+  Answer with one JSON object only.
+user: |
+  The $n_images attached images are IMAGE 1 to IMAGE $n_images in attachment order. They
+  come from one chest CT study and are ordered from cranial to caudal:
+  $caption_lines
+
+  Context: $context
+
+  Decide each label, in this order:
+  $labels
+
+  Rules:
+  - "present": true if the finding is visible in at least one attached image; false if you
+    checked every image and do not see it; null only if the images cannot be read.
+  - "confidence": probability between 0 and 1 that your "present" answer is correct.
+  - "evidence_images": the IMAGE numbers (1 to $n_images) that show a present finding;
+    an empty list otherwise.
+  - Sizes only as "size_bin"; never state millimetres.
+  - "study_quality.adequate": false only if the images are not readable chest CT.
+  - Keep every text field short. Return only the JSON object.

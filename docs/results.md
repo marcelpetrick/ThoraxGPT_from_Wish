@@ -282,3 +282,234 @@ The isolated checkout used the shared ignored data directory through `THORAXBENC
 and this checkout's locked Python environment. It did not read internal-test or sealed
 cases. Complete requests/responses/provenance remain under ignored E001-diagnostic outputs.
 The next bounded check holds images fixed and changes only heuristic prompt context.
+
+## E001-cue-ablation — heuristic-context ablation (2026-10-16)
+
+This is a two-case, two-variant readiness diagnostic, not an accuracy benchmark. An
+isolated clean checkout of v0.3.16 (`5c16ba1`, not dirty) ran it with `--limit 1`. It used
+one calibration case per dataset. No internal-test or sealed case was read.
+
+```bash
+uv run thoraxbench benchmark configs/experiments/E001_cue_ablation.yaml --limit 1
+```
+
+| Item | Observed result |
+|---|---|
+| Config SHA-256 | `9d8f5a8e24533c056750c70a867e261e65761ffff5977b7075b34441571868a2` |
+| Setup | Q4 (`433252621ab1…`), P2 1.0.2 (`f5741b3999c9…`), anatomy target `n: 9`, 256 px, no coronal |
+| Actual inputs | Nine axial images per case in both variants |
+| Variants | `with_cues` (HU summary in context) and `without_cues` (empty context) |
+| Case outcomes | 4/4 abstained; 0 scored, 0 failed |
+| Provider requests | 39.0 s and 72.1 s with cues; 49.7 s and 74.3 s without cues |
+| Total experiment wall time | 241.3 s |
+| Stop reason | `done_reason: stop` for all four; 129–149 generated tokens; no truncation |
+| Prompt tokens | 3936–3942 with cues; 3757 without cues |
+
+All four responses were schema-valid JSON. Every requested label had `"present": null`
+with `"confidence": 0.0` and no evidence images. Three of four responses set
+`study_quality.adequate: false` ("The study is inadequate." or "Incomplete coverage of the
+apex"). The descriptions often said "No evidence of … in the images" while the verdict
+stayed `null`. Both reference cases are nodule-positive, so the model returned no
+usable decision on a known-positive label in either variant.
+
+Removing heuristic context removed copied candidate text, but it did not produce a
+visual decision. The P2 rule "use null when visibility is insufficient" plus 256-pixel
+images is a likely cause. This run cannot separate those effects. A later geometric check
+(E001-coverage below) shows that the anatomy setting places reference lesions on an
+attached image for only about a quarter of calibration LIDC lesions. In the LIDC case of
+this run, four of seven reference lesions intersected an attached slice under the
+spherical approximation, yet the model still returned `null`.
+
+The case artifacts, requests and responses stay under ignored
+`data/results/benchmark/E001-cue-ablation/`.
+
+## E001-coverage — reference-lesion coverage of sampled inputs (2026-10-16)
+
+This measurement uses no model and reads no DICOM pixels. It uses the development index
+geometry (slice count, spacing, cached HU cues and LIDC reader-XML consensus lesions
+≥3 mm) of the **38 LIDC calibration patients** only. `CaseGuard` selects the calibration
+phase; other index entries are skipped before validation. It runs the same strategy code
+and slab arithmetic as the image view. The anatomy indices it computes reproduced the
+nine slices of the E001-cue-ablation run.
+
+```bash
+uv run thoraxbench coverage lidc_idri --output data/results/coverage/E001-coverage-lidc-calibration.json
+```
+
+Definitions:
+
+* **Lesion covered:** the lesion's z-extent (centre ± diameter/2) intersects at least one
+  prepared slice or MIP slab. **Centre covered:** a prepared image contains the centre slice.
+* **Max rendered slab:** thickest slab actually rendered, after rounding to whole slices.
+  A nominal 10 mm slab renders as 15 mm on 3 mm volumes.
+* **Prompt tokens:** estimate = 1000 + 325 × images, from measured P2 prompt counts
+  (1522 tokens with 2 images, 3779 with 9). **Fits:** estimate + 1024 generation tokens
+  ≤ `num_ctx` 16384.
+* 51 reference lesions (43 ≥6 mm) in 24 nodule-positive calibration studies.
+
+Selected rows (the full 70-row table is in the ignored JSON):
+
+| Setting | Images (mean/max) | Max rendered slab | Est. tokens | Lesions covered | Centre covered | Positive studies covered |
+|---|---:|---:|---:|---:|---:|---:|
+| `uniform`, n 2 (E001-diagnostic) | 2/2 | 3 mm | 1650 | 0/51 (0.0%) | 0/51 | 0/24 |
+| `anatomy`, n 9 (E001-cue-ablation) | 9/9 | 3 mm | 3925 | 13/51 (25.5%) | 5/51 | 9/24 |
+| `uniform`, n 9, 10 mm slab | 9/9 | 15 mm | 3925 | 30/51 (58.8%) | 19/51 | 17/24 |
+| `mip_slabs`, n 9 (auto-widened slabs) | 9/9 | 42.5 mm | 3925 | 51/51 (100%) | 50/51 | 24/24 |
+| `lung_extent`, n 16, 5 mm slab | 16/16 | 9 mm | 6200 | 41/51 (80.4%) | 25/51 | 21/24 |
+| `lung_extent`, n 16, 10 mm slab | 16/16 | 15 mm | 6200 | 50/51 (98.0%) | 39/51 | 23/24 |
+| `lung_extent`, n 24, no slab | 24/24 | 3 mm | 8800 | 41/51 (80.4%) | 11/51 | 20/24 |
+| **`lung_extent`, n 24, 5 mm slab** | 24/24 | 9 mm | 8800 | **49/51 (96.1%)** | 36/51 | 23/24 |
+| `anatomy`, n 24, 5 mm slab | 24/24 | 9 mm | 8800 | 46/51 (90.2%) | 37/51 | 21/24 |
+| `lung_extent`, n 24, 10 mm slab | 24/24 | 15 mm | 8800 | 51/51 (100%) | 49/51 | 24/24 |
+| `mip_slabs`, n 32, 10 mm | 28.6/32 | 15 mm | 11400 | 51/51 (100%) | 51/51 | 24/24 |
+| `uniform`, n 48, no slab | 48/48 | 3 mm | 16600 (does not fit) | 48/51 (94.1%) | 22/51 | 24/24 |
+
+**Pick:** the smallest setting with ≥90 % lesion coverage that fits the context and keeps
+rendered slabs ≤12.5 mm is `lung_extent`, n 24, 5 mm view slab (96.1 %). If 15 mm
+rendered slabs are acceptable, `lung_extent`, n 16, 10 mm slab reaches 98.0 % with
+fewer images.
+
+Interpretation:
+
+* All earlier MedGemma diagnostics showed the model few or no reference lesions.
+  `uniform` with n 2 selects the first and last slice of the volume and covered **no**
+  calibration lesion. Their abstentions and misses say nothing about visual detection.
+* Wide auto-widened MIP slabs reach 100 % geometrically, but a 25–40 mm MIP can hide a
+  small nodule among vessels. Coverage is necessary, not sufficient, for visibility.
+* The z-extent is a spherical approximation of reader contours. NSCLC tumour masks are
+  not included. These are aggregate geometric counts, not model results.
+
+## E001-schema preparation — grammar probe and Q4 output diagnosis (2026-10-16)
+
+### Structured-output grammar probe (synthetic, no study data)
+
+Text-only requests to the installed Ollama 0.40.4 with Q4 (`temperature 0`, `seed 0`) asked
+for values that violate a JSON schema. Results:
+
+| Schema keyword | Enforced by the grammar? | Observation |
+|---|---|---|
+| `minItems` / `maxItems` on arrays | yes | Asked for 21 integers, got exactly 5; asked for 5 findings, got 2 |
+| integer `minimum` / `maximum` | yes | Asked for 10–30, got values 1–3; 250 became 25 |
+| string `maxLength` | yes | A long sentence was cut to 8 characters |
+| `const` and `enum` (including `null`) | yes | Forced labels and `true`/`false`/`null` |
+| `prefixItems` with `const` labels | yes, **only without an `items` schema** | With an extra `items` schema, label order was not enforced; `items: false` is rejected |
+| number `maximum` | **no** | 42.5 was accepted for `maximum: 1`; P5 therefore uses a literal enum of 0.05 steps |
+| `additionalProperties: false` | no extra keys observed | Not separately provable; requested extra keys were absent |
+| property order | follows schema order | `findings` is emitted first when listed first |
+
+The post-parse confidence clamp and the image-evidence guard stay in place regardless.
+Duplicate evidence numbers are not prevented by the grammar; the guard removes them.
+
+### Q4 "empty" output diagnosis
+
+* MedGemma 1.5 Q4 and Q8 report only `completion` and `vision` capabilities. No preserved
+  response contains a `thinking` field, and the adapter sends no `think` setting.
+* All eight preserved Q4 responses from E001-diagnostic and E001-cue-ablation ended with
+  `done_reason: stop` after 129–149 tokens (cue ablation). None hit the generation limit.
+* The E001-cue-ablation "abstentions" were not empty content. They were schema-valid JSON
+  with `"present": null` for every label. The E001-smoke responses (`no label predictions
+  returned`) were recorded before raw responses were preserved, so their exact cause
+  cannot be reconstructed.
+* Likely causes, not proven: the P2 rule "use null when visibility is insufficient",
+  256-pixel inputs, and samples that missed most lesions (see E001-coverage).
+
+`qwen3-vl:4b` as a general control is not trivial: in a synthetic strict-schema probe it
+emitted about 5 400 characters of `thinking` and stopped at the 1500-token limit with
+empty content, with and without `"think": false`. A control needs a reviewed new model
+configuration with a larger generation budget. It was not run.
+
+## E001-schema — strict schema, image-only captions, coverage-selected input (2026-10-16/17)
+
+Readiness diagnostics on calibration cases only, not accuracy benchmarks. No internal-test
+or sealed case was read. Setup for both runs: P5 1.0.0 (prompt hash
+`6b7d77c63316…`), strict schema version 2, `lung_extent`, 24 axial images, 5 mm view MIP
+slabs (9 mm rendered on 3 mm volumes), 896 px, `caption_style: image_only`,
+`include_cues: false`, no coronal. Preprocess hash `ebae6d228af6…`. Q4 digest
+`433252621ab1…`, Q8 digest `d6ae3cddb663…`. Each case sent 24 images and 7644 prompt
+tokens (within `num_ctx` 16384).
+
+### Run 1: E001-schema `--limit 1` (one case per dataset, Q4 and Q8)
+
+```bash
+uv run thoraxbench benchmark configs/experiments/E001_schema.yaml --limit 1
+```
+
+Config SHA-256 `426075f2fd3c565d3e9f5c39eaff94642680e1673a94c0f9ce95d7dab0df4c23`, code
+`24e71c3` (v0.3.22). Provenance says `dirty: True`: `docs/results.md` was edited while the
+run was in progress; code and configuration matched the commit.
+
+| Variant | Scored | Abstained | Usable label predictions | Out-of-range evidence | Stop reason | Mean case time |
+|---|---:|---:|---:|---:|---|---:|
+| Q4 | 2/2 | 0 | 4/4 | 0/14 references | `stop` ×2 | 194 s |
+| Q8 | 2/2 | 0 | 4/4 | 0/16 references | `stop` ×2 | 222 s |
+
+Total wall time 838.2 s; peak GPU memory snapshot 5.7 GB. Every one of the eight label
+predictions was `present: true` at confidence 0.95, including the known-negative LIDC mass
+label (one false positive per variant). Both nodule-positive references were "detected".
+Three of four responses cited images 1–4 (the first four attached images) for every
+label; one cited images 21–23. All responses copied the context sentence "No
+deterministic measurements are available" into `study_quality.limitations`.
+
+### Run 2: E001-schema-lidc `--limit 10` (LIDC, 7 nodule-positive + 3 negative)
+
+```bash
+uv run thoraxbench benchmark configs/experiments/E001_schema_lidc.yaml --limit 10
+```
+
+Config SHA-256 `6a0b399ee43639f295732fa0971535c07be790ffe7c82fe19b36498d4d15208c`, code
+`b048dc4` (v0.3.23, not dirty). The first ten LIDC calibration cases in split order are
+seven nodule-positive and three negative studies. This sample was chosen after run 1
+showed constant positive answers; it uses calibration data only. Total wall time 4170.8 s.
+
+| Item | Q4 | Q8 |
+|---|---|---|
+| Scored / abstained / failed | 9 / 1 / 0 | 10 / 0 / 0 |
+| Schema-valid JSON | 10/10 | 10/10 |
+| Usable case × label predictions | 18/20 (90 %) | 20/20 (100 %) |
+| Out-of-range evidence references | 0/16 | 0/80 |
+| Generation-limit stops | 0 (`stop` ×10) | 0 (`stop` ×10) |
+| Copied heuristic text | none sent; none copied | none sent; none copied |
+| Raw `present` value | `true` in 9/10 cases for both labels | `true` in 10/10 cases for both labels |
+| Distinct answers | confidence 0.0 (6 cases) or 0.95 (3 cases) | always 0.95, evidence `[1, 2, 3, 4]` |
+| Nodule TP/FP/TN/FN at 0.5 | 2/0/2/5 | 7/3/0/0 |
+| Nodule AUROC (n, positives) | 0.643 (9, 7) | 0.500 (10, 7) |
+| Mass (all reference-negative) | 2 FP / 7 TN | 10 FP / 0 TN |
+| Cited nodule images on a lesion slab | 0/8 in 3 positive cases | 1/28 in 7 positive cases |
+| Mean case time | 192 s | 223 s |
+
+Notes:
+
+* Q8 returned the same answer for every study: both labels present at 0.95 with images
+  1–4. Its 7/7 nodule "sensitivity" and 0/3 specificity carry no visual information.
+* Q4 set `present: true` almost always and varied only the confidence. The parser turns
+  "true at confidence 0.0" into a positive probability of 0.0. Q4 gave nodule and mass the
+  same answer in every case.
+* Q4's one abstention was `present: false` at confidence 0.0, which implies a positive
+  probability of 1.0 without evidence. The evidence guard made both labels unavailable.
+* On average about 15 % (Q4 cases) and 9 % (Q8 cases) of the attached slabs intersected a
+  reference lesion. Cited images hit a lesion slab less often than chance would give.
+* Every response copied the empty-context sentence into `study_quality.limitations`.
+* The installed GPU snapshot peaked at 5.7 GB. One case needed about 140 s of prefill for
+  7644 prompt tokens.
+
+### Acceptance check and answer
+
+Pre-registered E001-schema criteria: ≥95 % usable predictions, 0 out-of-range evidence,
+0 generation-limit stops, 0 copied heuristic text.
+
+* **Output reliability: mostly fixed.** Q8 met all four formal criteria. Q4 missed the
+  usable-output criterion (90 %). The strict schema removed truncation, invalid image
+  numbers, label omissions and copied heuristic candidates.
+* **Recognition: no.** With 96 % of reference lesions on an attached 896-pixel slab, neither
+  quantization separated nodule-positive from negative LIDC studies. Q8 answers a fixed
+  template. Q4's confidence pattern is not distinguishable from noise at n = 9. Neither
+  model distinguished a nodule from a mass. Cited evidence did not point at lesions.
+  These are small calibration samples; they do not measure accuracy, but they give no
+  sign of visual recognition with this prompt and input.
+
+E001-schema therefore does not pass as a readiness gate for E002–E004. The formal criteria
+do not detect constant answers; add a "non-constant output" check (both answer classes
+must occur on mixed references) before using them as the gate again.
+
+Case artifacts stay under ignored `data/results/benchmark/E001-schema/` and
+`data/results/benchmark/E001-schema-lidc/`. Only aggregate values are reported here.

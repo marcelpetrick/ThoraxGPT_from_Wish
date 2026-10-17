@@ -125,7 +125,7 @@ uv run thoraxbench analyze data/demo/manual \
   --html data/results/manual/vision.html</code></pre>
 <p>The model must already exist in local Ollama. Larger image requests may take minutes. Empty predictions, truncated output, invalid responses and unsuitable inputs can cause abstention.</p>
 <h3>Available overrides</h3>
-<p><code>--model</code> selects an ID from <code>configs/models/</code>. <code>--prompt</code> selects P0–P4. <code>--strategy</code> overrides the sampling strategy. <code>--n</code> requests a positive number of sampled slices; the browser limits it to 1–16. Use <code>uv run thoraxbench analyze --help</code> for the current options.</p>
+<p><code>--model</code> selects an ID from <code>configs/models/</code>. <code>--prompt</code> selects P0–P5 (P5: strict schema, <code>IMAGE k</code> captions, no heuristic context). <code>thoraxbench coverage</code> reports how many calibration reference nodules land on attached images. <code>--strategy</code> overrides the sampling strategy. <code>--n</code> requests a positive number of sampled slices; the browser limits it to 1–16. Use <code>uv run thoraxbench analyze --help</code> for the current options.</p>
 <p class="small">HTML output must be inside the configured data directory's <code>results/</code> folder. Destinations or symlinks that escape that folder are rejected before inference. JSON and Markdown examples also stay inside ignored results storage.</p>
 <footer><span>Research use only · Synthetic demonstrations do not measure accuracy</span><span>05 / 13</span></footer>
 </section>
@@ -294,6 +294,7 @@ uv run thoraxbench models</code></pre></li>
 <p>New constrained Ollama runs with P2–P4 remove invalid or duplicate image references. A default-positive prediction (implied presence probability at least 0.5) without valid attached-image evidence becomes unavailable before scoring. If no requested predictions remain available, the run abstains. The raw response remains inspectable. An in-range number still does not prove visible support.</p>
 <h3>Separate visual output from heuristic context</h3>
 <p>The versioned multi-slice view parameter <code>include_cues</code> defaults to <code>true</code>. Set it to <code>false</code> in model YAML <code>view_params</code> or experiment <code>view_overrides</code> to omit heuristic prompt text. The images and sampling remain unchanged. Use YAML booleans only; null, numbers and strings are refused. View hashes and recorded context distinguish this ablation. Preprocessing still computes cues for sampling; this is not a speed comparison.</p>
+
 <p>Prerequisites: locked environment, approved split/index, installed Q4 tag and local Ollama. Use calibration cases only. Run from the repository root:</p>
 <pre><code>uv run thoraxbench benchmark \
   configs/experiments/E001_cue_ablation.yaml --limit 1</code></pre>

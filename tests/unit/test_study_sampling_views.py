@@ -157,3 +157,61 @@ def test_cue_ablation_rejects_non_boolean_configuration(invalid: object) -> None
 
     with pytest.raises(ValueError, match="include_cues must be a boolean"):
         get_view("medgemma_ct_v1", include_cues=invalid)
+
+
+def test_default_caption_style_keeps_historical_view_hash() -> None:
+    # view_sha256 recorded by the E001-cue-ablation run (with_cues, v0.3.16).
+    view = get_view(
+        "medgemma_ct_v1", strategy="anatomy", n=9, size=256, coronal=False, include_cues=True
+    )
+    assert view.sha256 == "14c227e7abb070208acc0344f6118781d75c33f2457da139805b49f8dbea09b5"
+    strict = get_view(
+        "medgemma_ct_v1",
+        strategy="anatomy",
+        n=9,
+        size=256,
+        coronal=False,
+        include_cues=True,
+        caption_style="image_only",
+    )
+    assert strict.sha256 != view.sha256
+
+
+def test_image_only_captions_name_no_source_slice(study: Study) -> None:
+    view = get_view(
+        "medgemma_ct_v1",
+        strategy="lung_extent",
+        n=6,
+        slab_mm=5.0,
+        size=64,
+        coronal=False,
+        include_cues=False,
+        caption_style="image_only",
+    )
+    prepared = view.build(study, AnalysisRequest())
+    n = len(prepared.images)
+    assert n == len(prepared.image_captions) >= 3
+    assert prepared.context == ""
+    assert prepared.meta["caption_style"] == "image_only"
+    for k, caption in enumerate(prepared.image_captions, start=1):
+        assert caption.startswith(f"IMAGE {k}: axial, MedGemma RGB")
+        assert "slice " not in caption.replace("single", "")
+        assert "z=" not in caption
+        assert "/" not in caption.split("level:")[0].replace("wide/soft-tissue/narrow", "")
+        assert "mm MIP slab" in caption
+    assert "upper third" in prepared.image_captions[0]
+    assert "lower third" in prepared.image_captions[-1]
+    single = get_view(
+        "medgemma_ct_v1",
+        strategy="uniform",
+        n=2,
+        size=64,
+        coronal=False,
+        caption_style="image_only",
+    ).build(study, AnalysisRequest())
+    assert all("single" in c and "third" not in c for c in single.image_captions)
+
+
+def test_caption_style_is_validated() -> None:
+    with pytest.raises(ValueError, match="caption_style"):
+        get_view("medgemma_ct_v1", caption_style="slices")

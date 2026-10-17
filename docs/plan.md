@@ -117,15 +117,22 @@ Status: ✅ done · 🔄 in progress · ⏳ open · ✖ dropped
      reopened on pointer jitter; leaving the tooltip skipped the hover grace. Added a
      translated running-request notice on other pages. Tooltip: 650 ms show delay, 180 ms
      hover grace, per-trigger stable descriptions — kept (typical 500–800 ms range).
-  3. 🔄 Real-data recognition check, calibration phase only, from an isolated clean checkout.
-     Observed so far: the v0.3.16 cue ablation (`E001-cue-ablation`, 2 calibration cases ×
-     with/without cues, 9 anatomy images) produced **4/4 abstentions**: MedGemma Q4 returned
-     `present: null`, confidence 0 for both labels, twice calling the study inadequate,
-     although both cases carry reference nodules. The model currently does not recognize
-     the reference findings. Next bounded diagnostics vary one factor each: prompt P1 vs P2
-     (evidence constraint), Q8 vs Q4, general VLM control `qwen3-vl:4b`.
-  4. ⏳ Fine-tuning/adaptation strategy in `docs/fine-tuning-plan.md` (research only; no
-     training before output reliability passes; calibration split only).
+  3. ✅/🔄 **Real-data recognition check (2026-10-17, v0.3.21–0.3.24 worktree, merged):**
+     `thoraxbench coverage` shows the earlier diagnostics put 0–26 % of calibration LIDC
+     nodules on attached images; the chosen lung_extent / 24 images / 5 mm slabs covers
+     96.1 % within context. Strict prompt P5 (fixed-length findings, bounded text, fixed
+     confidence steps, `IMAGE k` captions, no heuristic context, 896 px) removed truncation,
+     invalid image numbers, omissions and copied cue text: Q8 20/20 and Q4 18/20 usable on 10
+     LIDC calibration cases. **But the model still does not recognize the findings:** Q8 was
+     constant (both labels present at 0.95, images 1–4); Q4 nodule AUROC 0.64 (n=9); cited
+     images missed the nodules (Q8 1/28, Q4 0/8). Recognition, not formatting, is now the
+     blocker. Next: non-constant-output readiness check; one question per label and
+     per-image captions; reviewed no-think `qwen3-vl:4b` control config (it currently
+     thinks and exhausts the budget); E002–E004 stay blocked until a calibration-only check
+     shows two-class discrimination. See `docs/results.md`.
+  4. ✅ Fine-tuning/adaptation strategy recorded in `docs/fine-tuning-plan.md` (research
+     only; no training before recognition passes; calibration split only). Its cheapest
+     items (coverage, strict schema, captions, no cues, 896 px) are implemented in step 3.
   5. ✅ **Evaluation section (decided 2026-10-16, user delegated; implemented v0.4.0, gate: 641 tests, 99 % coverage):**
      read-only `/evaluation` page and `GET /api/evaluation/*` (`api/evaluation.py`) over
      `data/results/benchmark/<experiment>/<run>/`. Runs list (experiment, config hash, start

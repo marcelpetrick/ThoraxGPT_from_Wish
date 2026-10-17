@@ -31,6 +31,7 @@ import numpy.typing as npt
 from PIL import Image
 from scipy import ndimage
 
+from thoraxbench.dicom import Volume
 from thoraxbench.preprocess import (
     MEDGEMMA_RGB_WINDOWS,
     WINDOWS,
@@ -38,6 +39,7 @@ from thoraxbench.preprocess import (
     mip_slab,
     rgb_encode,
 )
+from thoraxbench.preprocess.reformat import slab_bounds
 from thoraxbench.preprocess.windows import apply_range
 from thoraxbench.sampling import Selection, get_strategy
 from thoraxbench.schemas import AnalysisRequest, PreparedInput
@@ -59,6 +61,29 @@ def render_slice_png(hu2d: npt.NDArray[np.int16], window: str, size: int = 512) 
         return _png(rgb_encode(hu2d, MEDGEMMA_RGB_WINDOWS), size)
     win = WINDOWS[window]
     return _png(apply_range(hu2d, win.low, win.high), size)
+
+
+#: ``source`` = historical captions with source-slice numbers and z positions;
+#: ``image_only`` = one-based ``IMAGE k`` captions without any source-slice number.
+CAPTION_STYLES = ("source", "image_only")
+
+
+def _rendered_slab(volume: Volume, idx: int, slab_mm: float) -> str:
+    """Actual rendered thickness (whole slices) without naming a source slice."""
+    dz = float(volume.spacing_mm[0])
+    if slab_mm <= 0:
+        return f"single {dz:.1f} mm slice"
+    lo, hi = slab_bounds(volume.shape[0], idx, slab_mm, dz)
+    return f"{(hi - lo) * dz:.0f} mm MIP slab"
+
+
+def _zone(idx: int, indices: list[int]) -> str:
+    """Upper/middle/lower third of the sampled positions (cranial first), or empty."""
+    if len(indices) < 3:
+        return ""
+    rank = sorted(indices).index(idx) / (len(indices) - 1)
+    third = "upper" if rank < 1 / 3 else "middle" if rank <= 2 / 3 else "lower"
+    return f"{third} third of the sampled range, "
 
 
 def _montage(tiles: list[npt.NDArray[np.uint8]], tile: int) -> npt.NDArray[np.uint8]:
@@ -86,32 +111,40 @@ class MultiSliceView:
     include_cues: bool = True
     strategy_params: dict[str, Any] = field(default_factory=dict)
     version: str = "2"
+    caption_style: str = "source"
 
     def __post_init__(self) -> None:
         if type(self.include_cues) is not bool:
             raise ValueError("include_cues must be a boolean")
+        if self.caption_style not in CAPTION_STYLES:
+            msg = f"caption_style must be one of {', '.join(CAPTION_STYLES)}"
+            raise ValueError(msg)
 
     @property
     def sha256(self) -> str:
-        """Hash of every parameter that changes the rendered input."""
-        blob = json.dumps(
-            {
-                k: getattr(self, k)
-                for k in (
-                    "view_id",
-                    "mode",
-                    "strategy",
-                    "n",
-                    "size",
-                    "slab_mm",
-                    "coronal",
-                    "include_cues",
-                    "strategy_params",
-                    "version",
-                )
-            },
-            sort_keys=True,
-        )
+        """Hash of every parameter that changes the rendered input.
+
+        ``caption_style`` enters the hash only when it is not the historical default, so
+        earlier view hashes stay unchanged.
+        """
+        params = {
+            k: getattr(self, k)
+            for k in (
+                "view_id",
+                "mode",
+                "strategy",
+                "n",
+                "size",
+                "slab_mm",
+                "coronal",
+                "include_cues",
+                "strategy_params",
+                "version",
+            )
+        }
+        if self.caption_style != "source":
+            params["caption_style"] = self.caption_style
+        blob = json.dumps(params, sort_keys=True)
         return hashlib.sha256(blob.encode()).hexdigest()
 
     def _image(self, hu2d: npt.NDArray[np.int16], window: str) -> npt.NDArray[np.uint8]:
@@ -161,6 +194,12 @@ class MultiSliceView:
                     tiles.append(arr)
                     continue
                 images.append(_png(arr, self.size))
+                if self.caption_style == "image_only":
+                    captions.append(
+                        f"axial, {window_names[window]}, {_rendered_slab(vol, idx, slab)}, "
+                        f"{_zone(idx, sel.indices)}level: {tag}"
+                    )
+                    continue
                 captions.append(
                     f"axial, {window_names[window]}, {slab_txt}, slice {idx + 1}/{nz}, "
                     f"z={z:.0f} mm, level: {tag}"
@@ -178,7 +217,10 @@ class MultiSliceView:
             view_id=self.view_id,
             view_version=self.version,
             images=images,
-            image_captions=[f"Image {k + 1}: {c}" for k, c in enumerate(captions)],
+            image_captions=[
+                f"{'IMAGE' if self.caption_style == 'image_only' else 'Image'} {k + 1}: {c}"
+                for k, c in enumerate(captions)
+            ],
             slice_indices=list(sel.indices),
             context=context,
             meta={
@@ -188,6 +230,7 @@ class MultiSliceView:
                 "slab_mm": slab,
                 "n_images": len(images),
                 "include_cues": self.include_cues,
+                "caption_style": self.caption_style,
                 "tags": sel.tags,
             },
         )
