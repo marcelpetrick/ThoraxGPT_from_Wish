@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Copyright (C) 2026 Marcel Petrick <mail@marcelpetrick.it>
 # S1 image dependence on LIDC calibration studies only (2 nodule-positive, 1 negative by split order).
+# 6 images and num_ctx 12288: fits qwen3-vl (~1030 tokens per image) and the ~2 h GPU budget.
 id: E001-sanity-s1-lidc
 test: image_dependence
 title: Image dependence on LIDC calibration studies (real / grey / noise / shuffled / none)
@@ -24,10 +25,10 @@ windows: [medgemma]
 layouts: [single, interleaved]
 conditions: [real, gray, noise, shuffled, none]
 image_mode: multi
-n_images: 8
+n_images: 6
 size: 896
 slab_mm: 5.0
-num_ctx: 8192
+num_ctx: 12288
 top_logprobs: 10
 seed: 0
 lidc:

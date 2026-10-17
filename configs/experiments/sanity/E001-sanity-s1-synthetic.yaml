@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Copyright (C) 2026 Marcel Petrick <mail@marcelpetrick.it>
 # S1 image dependence on synthetic phantoms (no patient data). Diagnostic, not accuracy.
+# num_ctx 12288: qwen3-vl encodes an 896 px image as ~1030 tokens, so 8 images exceed 8192.
 id: E001-sanity-s1-synthetic
 test: image_dependence
 title: Image dependence on synthetic phantoms (real / grey / noise / shuffled / none)
@@ -30,7 +31,7 @@ image_mode: multi
 n_images: 8
 size: 896
 slab_mm: 5.0
-num_ctx: 8192
+num_ctx: 12288
 top_logprobs: 10
 seed: 0
 synthetic:
