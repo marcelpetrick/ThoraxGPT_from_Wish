@@ -101,6 +101,15 @@ Status: ✅ done · 🔄 in progress · ⏳ open · ✖ dropped
 
 ## Current activity
 
+- W1 handover review (2026-10-17): sanity CLI/configs already committed in this worktree.
+  Recovered completed S2 `--limit 1` synthetic smoke and S4 calibration paired-slab evidence;
+  aggregate results and caveats are in `docs/results.md`. S1, full S2/T2, S3 review and
+  runtime parity remain open. Parser robustness, rendered control-edge distance and
+  single-image lesion metadata were corrected; historical evidence remains unchanged.
+  Operator instructions: `docs/sanity.md`. No sealed/internal-test data or GPU job was
+  needed for this handover review. Next: coordinate one GPU owner and run the missing
+  bounded gates before resuming study-level sweeps.
+
 - 🔄 **Completion plan (user request, 2026-10-16 evening):** the user asked for a full
   resume, UX completion, refreshed screenshots, end-to-end tests, a real-data recognition
   check, a fine-tuning strategy and a rethink of the UI for the evaluation workflow, and

@@ -59,7 +59,7 @@ from thoraxbench.scoring.classification import auroc_auprc, bootstrap_ci
 from thoraxbench.splits import Phase
 from thoraxbench.splits.guard import config_sha256
 
-SANITY_VERSION = "1"
+SANITY_VERSION = "2"
 SAFE_ID = r"^[A-Za-z0-9][A-Za-z0-9_.-]*$"
 FRAMING = (
     "Readiness diagnostic on synthetic phantoms and calibration-phase cases only. It tests "
@@ -273,6 +273,7 @@ def _source_items(
             if cfg.image_mode == "single":
                 png, caption = si.phantom_single(phantom, window, cfg.size, cfg.slab_mm)
                 images, captions = [png], [caption]
+                meta["nodule_level_sampled"] = ref.diameter_mm > 0
             else:
                 images, captions, indices = si.view_images(
                     phantom.study, window, cfg.n_images, cfg.size, cfg.slab_mm
@@ -668,6 +669,8 @@ def parse_answer(question: Question, body: dict[str, Any] | None, n_images: int)
             "answer": content,
             "parse": "free text" if content.strip() else "empty output",
         }
+    if body.get("done_reason") == "length":
+        return out | {"answer": None, "parse": "generation token limit reached"}
     value, repairs = extract_json(content)
     out["parse"] = "; ".join(repairs) or "ok"
     if not isinstance(value, dict):
@@ -687,7 +690,7 @@ def parse_answer(question: Question, body: dict[str, Any] | None, n_images: int)
         else None
     )
     conf = None if conf is None or not 0.0 <= conf <= 1.0 else conf
-    valid_answer = answer if answer in {"yes", "no"} else None
+    valid_answer = answer if isinstance(answer, str) and answer in {"yes", "no"} else None
     stated = None
     if valid_answer is not None and conf is not None:
         stated = conf if valid_answer == "yes" else 1.0 - conf

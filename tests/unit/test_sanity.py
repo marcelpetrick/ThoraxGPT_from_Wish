@@ -5,6 +5,7 @@
 import base64
 import hashlib
 import io
+import json
 import math
 from pathlib import Path
 from typing import Any
@@ -403,3 +404,26 @@ def test_item_describe_has_digests_not_pixels() -> None:
     described = item.describe()
     assert described["image_sha256"] == [hashlib.sha256(i).hexdigest() for i in item.images]
     assert base64.b64encode(item.images[0]).decode() not in str(described)
+
+
+def test_malformed_and_truncated_answers_remain_unavailable() -> None:
+    question = sn.Question(kind="yes_no", text="q")
+    for answer in ([], {}, True):
+        body = {"message": {"content": json.dumps({"nodule": answer, "confidence": 0.9})}}
+        assert sn.parse_answer(question, body, 1)["answer"] is None
+    body = {"message": {"content": '{"nodule":"yes","confidence":0.9}'}, "done_reason": "length"}
+    parsed = sn.parse_answer(question, body, 1)
+    assert parsed["answer"] is None
+    assert parsed["parse"] == "generation token limit reached"
+
+
+def test_control_margin_uses_rendered_voxel_edges() -> None:
+    entry = _entry("P1", [(100.0, 10.0, "pulmonary_nodule")])
+    chosen = si.control_index(entry, 20, min_distance_mm=30.0, slab_mm=5.0)
+    assert chosen is not None
+    idx, recorded_gap = chosen
+    dz = entry.spacing_mm[0]
+    lo, hi = si.slab_bounds(entry.n_slices, idx, 5.0, dz)
+    gap = max((lo - 0.5) * dz - 100.0, 100.0 - (hi - 0.5) * dz) - 5.0
+    assert recorded_gap == gap
+    assert gap >= 30.0

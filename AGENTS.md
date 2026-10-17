@@ -226,3 +226,11 @@ ablation with heuristic summaries in serialized analysis.
 Evidence eligibility uses the shared implied presence probability at the default 0.5
 cutoff, including low-confidence absent verdicts that imply a positive probability.
 `include_cues` accepts only YAML booleans; null, numbers and strings are refused.
+
+## Sanity diagnostic handover (2026-10-17)
+
+`thoraxbench sanity` is implemented; use `docs/sanity.md`. Preserve completed diagnostic
+artifacts and historical definitions. The S2 smoke is one group, not a passed full gate.
+S4 selected-slab calibration results are not detection accuracy. Full S1/T2 and official
+runtime parity remain open. The sanity command checkpoints each request but has no resume
+option. Keep GPU runs sequential and calibration/sealed boundaries intact.

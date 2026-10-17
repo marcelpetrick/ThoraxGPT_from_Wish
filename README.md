@@ -434,3 +434,6 @@ This configuration is calibration-only and does not establish detection accuracy
 Evidence eligibility uses the shared implied presence probability at the default 0.5
 cutoff, including low-confidence absent verdicts that imply a positive probability.
 `include_cues` accepts only YAML booleans; null, numbers and strings are refused.
+
+Image-path readiness checks: see [the sanity diagnostic guide](docs/sanity.md). These
+synthetic/calibration checks establish input-path behavior, not clinical accuracy.

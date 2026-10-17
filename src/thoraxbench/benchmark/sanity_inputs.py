@@ -251,15 +251,17 @@ def control_index(
     """
     dz = entry.spacing_mm[0]
     lo, hi = _lung_range(entry)
-    half = slab_mm / 2
     best: tuple[int, float] | None = None
-    for idx in range(lo, hi + 1):
+    for idx in range(max(0, lo), min(entry.n_slices - 1, hi) + 1):
         if idx in used:
             continue
-        z = idx * dz
+        slab_lo, slab_hi = slab_bounds(entry.n_slices, idx, slab_mm, dz)
+        lower_edge = (slab_lo - 0.5) * dz
+        upper_edge = (slab_hi - 0.5) * dz
         gap = min(
             (
-                abs(z - les.center_zyx[0]) - les.diameter_mm / 2 - half
+                max(lower_edge - les.center_zyx[0], les.center_zyx[0] - upper_edge)
+                - les.diameter_mm / 2
                 for les in entry.reference.lesions
             ),
             default=math.inf,

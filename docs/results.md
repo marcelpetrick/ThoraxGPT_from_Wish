@@ -513,3 +513,47 @@ must occur on mixed references) before using them as the gate again.
 
 Case artifacts stay under ignored `data/results/benchmark/E001-schema/` and
 `data/results/benchmark/E001-schema-lidc/`. Only aggregate values are reported here.
+
+
+## Image-path diagnostics recovered at handover (2026-10-17)
+
+Research use only. These are readiness diagnostics from calibration or synthetic inputs,
+not clinical accuracy or held-out evaluation. Local artifacts remain ignored; no patient
+identifiers or images are reproduced here.
+
+**S2 single-image smoke:** config SHA `3ce609ed1f4c3cca37cdd21717c896c00fcb0fa5957d3621028ca0a5662cd385`,
+8 inputs, 32 requests, 196.5 s, `--limit 1`. One seed/right-side group contains 30/15/8 mm
+spheres and a matched no-sphere phantom, each in lung and MedGemma RGB windows. Both
+MedGemma quantizations answered no throughout. Qwen answered yes for all three sphere sizes
+in both windows, but also yes for the RGB negative. MiniCPM answered no throughout in lung
+window and yes throughout in RGB. This is one group, so the pre-registered ten-example
+obvious-target gate has **not** been evaluated. Historical `nodule_level_sampled=0` entries
+for single images reflect absent metadata, not absent spheres; the rendering is centred on
+the phantom nodule level. Future runs record the metadata correctly.
+
+**S4 paired calibration slabs:** config SHA `c6d3c9b2be210fb48528e1e9292e5b6219dd4a320f4e56e3e2242e5228c4a4b9`,
+40 reference/control pairs from 24 LIDC calibration patients, 80 images, 320 requests,
+3235.0 s (53 min 55 s). Lung window, one 896 px image per request, nominal 5 mm MIP.
+
+| Model | Slice AUROC from top-logprob score (95% patient bootstrap CI) | Yes on lesion slabs | No on controls |
+|---|---|---|---|
+| MedGemma Q4 | 0.784 (0.702–0.866) | 19/40 | 37/40 |
+| MedGemma Q8 | 0.793 (0.706–0.873) | 20/40 | 36/40 |
+| MiniCPM-V | 0.649 (0.511–0.780) | 4/40 | 37/40 |
+| Qwen3-VL no-think | 0.613 (0.530–0.692) | 13/40 | 35/40 |
+
+All 320 responses parsed. All four models answered no on all seven 3–6 mm lesion slabs.
+Stated-confidence AUROC differs from the top-logprob score (Q4 0.312, Q8 0.664); neither
+is calibrated. This is evidence of a visual signal on selected known-location slices,
+not a passing image-path gate, detection result or a quantization winner. The control
+selector used nominal half-thickness; actual rounded MIP slabs can be wider, so its stated
+30 mm edge-distance guarantee was not fully enforced. Future runs use rendered voxel
+edges; preserve these historical results as recorded.
+
+**T0 partial audit:** a retained local provider journal shows four image chunks at token
+indices 10/280/550/820 for a single-message request and 10/346/682/1018 for separate
+image-bearing messages. Both had 334 text tokens and 1024 image tokens (1358 total).
+This supports a layout difference for the tested local Q4 runtime. The excerpt does not
+reveal decoded text placement or establish binding correctness. Full T2 permutations,
+S1 ablations, S2 ten-example gates, S3 anatomical review and official-runtime parity remain
+open. Do not launch study-level sweeps or claim readiness from these partial checks.
