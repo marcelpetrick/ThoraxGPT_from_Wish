@@ -296,3 +296,74 @@ def test_html_export_is_confined_to_results_before_loading(
     assert rejected.exit_code == 1
     assert "results" in rejected.output
     assert not outside.exists()
+
+
+def test_focused_labels_keep_configured_prompt_and_deduplicate(
+    phantom: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    observed = Mock(wraps=analysis.analyze_study)
+    monkeypatch.setattr(analysis, "analyze_study", observed)
+    output = tmp_path / "focused.json"
+    invocation = runner.invoke(
+        cli.app,
+        [
+            "analyze",
+            str(phantom),
+            "--label",
+            "pulmonary_nodule",
+            "--label",
+            "emphysema",
+            "--label",
+            "pulmonary_nodule",
+            "--prompt",
+            "P5",
+            "--output",
+            str(output),
+        ],
+    )
+    assert invocation.exit_code == 0, invocation.output
+    request = observed.call_args.kwargs["request"]
+    assert request.labels == ["pulmonary_nodule", "emphysema"]
+    assert request.prompt_id == "P5"
+    payload = json.loads(output.read_text())
+    assert {finding["label"] for finding in payload["report"]["findings"]} <= set(request.labels)
+    # Without --prompt the model's configured prompt is retained, not the request default.
+    invocation = runner.invoke(cli.app, ["analyze", str(phantom), "--label", "emphysema"])
+    assert invocation.exit_code == 0, invocation.output
+    assert observed.call_args.kwargs["request"].prompt_id == "P3"
+
+
+def test_invalid_label_fails_before_study_read_or_inference(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import thoraxbench.study
+
+    monkeypatch.setattr(
+        thoraxbench.study, "load_study_dir", Mock(side_effect=AssertionError("read"))
+    )
+    monkeypatch.setattr(analysis, "analyze_study", Mock(side_effect=AssertionError("inference")))
+    result = runner.invoke(cli.app, ["analyze", str(tmp_path), "--label", "not_a_label"])
+    assert result.exit_code == 1
+    assert "Unknown canonical label(s): not_a_label" in result.output
+
+
+def test_focused_medgemma_retains_bounded_default(
+    phantom: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    result = analysis.analyze_study(load_study_dir(phantom), "heuristic-hu", Settings())
+    observed = Mock(return_value=result)
+    monkeypatch.setattr(analysis, "analyze_study", observed)
+    invocation = runner.invoke(
+        cli.app,
+        [
+            "analyze",
+            str(phantom),
+            "--model",
+            "medgemma1.5-q4",
+            "--label",
+            "pulmonary_nodule",
+        ],
+    )
+    assert invocation.exit_code == 0, invocation.output
+    assert observed.call_args.kwargs["request"].prompt_id == "P5"
+    assert observed.call_args.kwargs["request"].labels == ["pulmonary_nodule"]

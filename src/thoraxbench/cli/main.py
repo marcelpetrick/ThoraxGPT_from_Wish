@@ -74,6 +74,12 @@ def analyze(
     *,
     model: Annotated[str, typer.Option(help="Model id from configs/models.")] = "heuristic-hu",
     prompt: Annotated[str | None, typer.Option(help="Prompt id (P0-P6).")] = None,
+    labels: Annotated[
+        list[str] | None,
+        typer.Option(
+            "--label", help="Canonical finding id. Repeat for several; default: all core labels."
+        ),
+    ] = None,
     strategy: Annotated[str | None, typer.Option(help="Sampling strategy id.")] = None,
     n_images: Annotated[int | None, typer.Option("--n", min=1, help="Number of slices.")] = None,
     output: Annotated[Path | None, typer.Option(help="Write the result JSON here.")] = None,
@@ -83,16 +89,29 @@ def analyze(
     ] = None,
 ) -> None:
     """Analyse one local DICOM study with one local model; print the clinical report."""
+    from thoraxbench.adapters import load_model_config  # noqa: PLC0415
     from thoraxbench.analysis import analyze_study  # noqa: PLC0415 - keep CLI start fast
+    from thoraxbench.ontology import load_ontology  # noqa: PLC0415
     from thoraxbench.reports import render_study_report  # noqa: PLC0415
     from thoraxbench.reports.html_report import (  # noqa: PLC0415 - report only
         render_html_report,
         require_results_path,
     )
+    from thoraxbench.schemas import AnalysisRequest  # noqa: PLC0415
     from thoraxbench.study import load_study_dir  # noqa: PLC0415
 
     try:
         settings = get_settings()
+        requested_labels = list(dict.fromkeys(labels or []))
+        unknown = set(requested_labels) - set(load_ontology().ids())
+        if unknown:
+            raise ValueError(f"Unknown canonical label(s): {', '.join(sorted(unknown))}")
+        request = None
+        if requested_labels:
+            config = load_model_config(model, settings.configs_dir / "models")
+            request = AnalysisRequest(
+                labels=requested_labels, prompt_id=prompt or config.prompt or "P3"
+            )
         if html:
             require_results_path(html, settings)
         dataset, case_id = guard_study_input(study_dir, settings)
@@ -102,7 +121,14 @@ def analyze(
             overrides["strategy"] = strategy
         if n_images is not None:
             overrides["n"] = n_images
-        result = analyze_study(study, model, settings, prompt_id=prompt, view_overrides=overrides)
+        result = analyze_study(
+            study,
+            model,
+            settings,
+            request=request,
+            prompt_id=prompt,
+            view_overrides=overrides,
+        )
         markdown = render_study_report(result)
         if output:
             output.parent.mkdir(parents=True, exist_ok=True)

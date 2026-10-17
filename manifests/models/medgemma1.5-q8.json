@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
-  "snapshot_version": 1,
-  "snapshot_date": "2026-10-16",
+  "snapshot_version": 2,
+  "snapshot_date": "2026-10-17",
   "model_id": "medgemma1.5-q8",
   "source_config": "configs/models/medgemma1.5-q8.yaml",
-  "source_config_sha256": "33554b2d4a123c15828afd3642117eea5dacafac58b9bcec0a269a18df9879d2",
+  "source_config_sha256": "6011b9c21b6cdf874a9e56ce4ef96f31650b9c81b7e034969cd5d5f6af160f9f",
   "adapter": "ollama",
   "family": "medgemma",
   "tag": "medgemma1.5:4b-it-q8_0",

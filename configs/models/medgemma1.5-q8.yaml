@@ -5,7 +5,10 @@ family: medgemma
 tag: medgemma1.5:4b-it-q8_0
 quantization: Q8_0
 view: medgemma_ct_v1
-prompt: P3
+prompt: P5
+view_params:
+  include_cues: false
+  caption_style: image_only
 capabilities:
   multi_image: true
   classification: true

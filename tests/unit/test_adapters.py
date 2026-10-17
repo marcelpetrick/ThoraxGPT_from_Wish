@@ -106,7 +106,7 @@ def test_ollama_infer_and_runtime() -> None:
     assert model.vram() == {"size": 5, "size_vram": 4}
     raw = model.infer(model.prepare(object(), REQ), REQ)
     assert raw.tokens_generated == 10
-    assert raw.meta["prompt_id"] == "P3"
+    assert raw.meta["prompt_id"] == "P5"
     payload = json.loads(chat.calls.last.request.content)
     assert payload["options"]["temperature"] == 0
     assert payload["options"]["num_predict"] == 4096
@@ -159,6 +159,7 @@ def test_ollama_token_limit_abstains_and_preserves_output(prompt: str, truncated
     assert raw.text == text
     assert raw.error == "generation token limit reached"
     assert raw.meta["done_reason"] == "length"
+    assert raw.meta["generation_limits"][0]["call_index"] == truncated_pass
     assert raw.tokens_generated == 4096 + (10 if truncated_pass == 2 else 0)
     assert chat.call_count == truncated_pass
     assert model.parse(raw).abstain
@@ -536,3 +537,52 @@ def test_ollama_malformed_vram_counters_are_unavailable(value: Any) -> None:
     respx.get(f"{OLLAMA}/api/ps").mock(return_value=httpx.Response(200, text=json.dumps(payload)))
     model = load_model("medgemma1.5-q4", _settings())
     assert model.vram() is None
+
+
+@pytest.mark.parametrize("model_id", ["medgemma1.5-q4", "medgemma1.5-q8"])
+def test_medgemma_defaults_use_bounded_schema_without_heuristic_context(model_id: str) -> None:
+    model = load_model(model_id, _settings())
+    assert isinstance(model, OllamaModel)
+    assert model.prompt.id == "P5"
+    assert model.config.view_params == {"include_cues": False, "caption_style": "image_only"}
+    schema = model.prompt.schema(REQ.labels, n_images=2)
+    findings = schema["properties"]["findings"]
+    assert findings["minItems"] == findings["maxItems"] == len(REQ.labels)
+    assert [
+        entry["properties"]["label"]["const"] for entry in findings["prefixItems"]
+    ] == REQ.labels
+    assert findings["prefixItems"][0]["properties"]["description"]["maxLength"] == 160
+    assert schema["properties"]["study_quality"]["properties"]["limitations"]["maxItems"] == 2
+    assert schema["additionalProperties"] is False
+    assert load_model(model_id, _settings(), prompt_id="P3").prompt.schema_version == "1"
+
+
+@respx.mock
+def test_repeating_truncated_roster_is_diagnostic_only() -> None:
+    # A realistic failure: complete label objects repeat inside an unfinished array.
+    text = '{"findings":[' + ",".join(json.dumps(GOOD["findings"][0]) for _ in range(8))
+    response = _chat(text) | {
+        "done_reason": "length",
+        "eval_count": 4096,
+        "prompt_eval_count": 4544,
+    }
+    respx.post(f"{OLLAMA}/api/chat").mock(return_value=httpx.Response(200, json=response))
+    model = load_model("medgemma1.5-q4", _settings())
+    raw = model.infer(PreparedInput(view_id="v", view_version="1"), REQ)
+    assert raw.meta["generation_limits"] == [
+        {
+            "call_index": 1,
+            "tokens_generated": 4096,
+            "prompt_tokens": 4544,
+            "generation_budget": 4096,
+            "context_budget": 16384,
+            "output_characters": len(text),
+            "requested_label_text_occurrences": {"emphysema": 8, "pulmonary_nodule": 0},
+            "repeated_requested_labels": ["emphysema"],
+        }
+    ]
+    assert raw.text == text
+    assert raw.meta["responses"][0]["body"] == response
+    assert raw.error == "generation token limit reached"
+    assert model.parse(raw).abstain
+    assert model.parse(raw).findings == []

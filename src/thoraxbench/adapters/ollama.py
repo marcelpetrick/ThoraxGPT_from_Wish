@@ -6,7 +6,9 @@ from __future__ import annotations
 
 import base64
 import hashlib
+import json
 import math
+import re
 import time
 from typing import Any
 
@@ -64,6 +66,41 @@ def _total(calls: list[dict[str, Any]], field: str) -> int | float | None:
             return None
         total += value
     return total
+
+
+def _generation_limits(
+    calls: list[dict[str, Any]], requests: list[dict[str, Any]], labels: list[str]
+) -> list[dict[str, Any]]:
+    """Describe truncated calls without parsing or accepting their incomplete findings.
+
+    Label counts are lexical JSON-key occurrences, not recovered predictions. Retain
+    provider counts per call so two-pass totals cannot be mistaken for one limit.
+    """
+    limits: list[dict[str, Any]] = []
+    for index, call in enumerate(calls):
+        if call.get("done_reason") != "length":
+            continue
+        content = call.get("message", {}).get("content", "")
+        counts = {
+            label: len(re.findall(r'"label"\s*:\s*' + re.escape(json.dumps(label)), content))
+            for label in labels
+        }
+        options = requests[index]["options"]
+        limits.append(
+            {
+                "call_index": index + 1,
+                "tokens_generated": call.get("eval_count"),
+                "prompt_tokens": call.get("prompt_eval_count"),
+                "generation_budget": options.get("num_predict"),
+                "context_budget": options.get("num_ctx"),
+                "output_characters": len(content),
+                "requested_label_text_occurrences": counts,
+                "repeated_requested_labels": [
+                    label for label, count in counts.items() if count > 1
+                ],
+            }
+        )
+    return limits
 
 
 class OllamaModel(ViewBackedModel):
@@ -319,6 +356,7 @@ class OllamaModel(ViewBackedModel):
             value = _total(calls, field)
             meta[f"{field}_s"] = value / NS_PER_S if value is not None else None
         meta["done_reason"] = data.get("done_reason") if data is not None else None
+        meta["generation_limits"] = _generation_limits(calls, requests, labels)
         generated = _total(calls, "eval_count")
         prompt_tokens = _total(calls, "prompt_eval_count")
         if error is not None or data is None:
