@@ -113,8 +113,16 @@ request durations for the same model and image count. They are not measured benc
 inference progress or deadlines. Hardware, input size and cold loading can exceed them.
 Only numeric duration history is stored locally; no study identifiers are used.
 
-The live **Browser request elapsed** timer measures waiting time. **Current model elapsed**
-times the active model in a comparison. **Engine stages** records processing time separately.
+![Synthetic processing queue with scripted elapsed time](docs/assets/ui-jobs.png)
+
+The **Jobs** page lists the server-side queue, status, stage, elapsed time and results.
+Analysis, comparisons and model downloads run sequentially. Navigation and browser reloads
+retain jobs while the server stays running. Cancel queued work or stop running work; the
+provider may continue in the background after its connection closes. Jobs are kept in memory
+for this server session only (8 waiting, 32 completed). Saved reports remain on disk.
+
+The live **Job elapsed (server clock)** timer measures time since the worker started.
+**Current model elapsed** times the active model in a comparison. **Engine stages** records processing time separately.
 **Batch progress** shows model position, not inference percent.
 
 To compare model outputs:

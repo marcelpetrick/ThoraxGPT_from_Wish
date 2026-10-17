@@ -33,6 +33,7 @@ from collections.abc import Callable, Iterator
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlsplit
 
 import httpx
 import uvicorn
@@ -286,29 +287,39 @@ def _close(page: Page) -> None:
     page.context.close()
 
 
-def _run_heuristic(page: Page, wait_ms: int) -> None:
-    """Run the real heuristic analysis with fixed browser wait and engine timings."""
-    pending: list[Route] = []
-    # Playwright cannot wrap a bound builtin such as list.append as a route handler.
-    page.route("**/api/analyze", lambda route: pending.append(route))  # noqa: PLW0108
-    _freeze_clock(page)
-    page.locator("#run-analysis").click()
-    _wait_until(page, lambda: bool(pending), "the analysis request was not sent")
-    page.clock.fast_forward(wait_ms)
-    _fulfill_real(pending.pop())
-    expect(page.locator("#download-json")).to_have_attribute(
-        "aria-disabled", "false", timeout=TIMEOUT_MS
+def _job_fixture(page: Page, respond: Any, models: list[str] | None = None) -> Any:
+    """Use the same labelled job fixture as browser acceptance tests."""
+    sys.path.insert(0, str(REPO_ROOT))
+    from tests.e2e.mock_jobs import MockJobs  # noqa: PLC0415 - source-tree dev fixture
+
+    return MockJobs(page, respond, models=models)
+
+
+def _heuristic_output(page: Page) -> dict[str, Any]:
+    """Call the real synthetic engine, then disclose a fixed illustrative stage time."""
+    response = page.request.post(
+        f"{urlsplit(page.url).scheme}://{urlsplit(page.url).netloc}/api/analyze",
+        data={"dataset": "demo", "case_id": "phantom", "model_id": "heuristic-hu"},
+        timeout=120_000,
     )
-    expect(page.locator("#metric-time")).to_have_text(f"{FIXED_ENGINE_S:.3f} s")
-    page.unroute("**/api/analyze")
-
-
-def _fulfill_real(route: Route) -> None:
-    """Forward to the real local server, then pin the measured engine time."""
-    response = route.fetch(timeout=120_000)
+    _require(response.ok, "synthetic heuristic analysis failed")
     body: dict[str, Any] = response.json()
     body["result"]["perf"]["total_s"] = FIXED_ENGINE_S
-    route.fulfill(response=response, json=body)
+    return body
+
+
+def _run_heuristic(page: Page, wait_ms: int) -> None:
+    """Run real synthetic analysis through a scripted job timing fixture."""
+    output = _heuristic_output(page)
+    jobs = _job_fixture(page, lambda _model: "hold")
+    _freeze_clock(page)
+    page.locator("#run-analysis").click()
+    expect(page.locator("#job-bar")).to_be_visible()
+    jobs.elapsed = wait_ms / 1000
+    jobs.finish(output)
+    page.clock.fast_forward(1100)
+    expect(page.locator("#download-json")).to_have_attribute("aria-disabled", "false")
+    expect(page.locator("#metric-time")).to_have_text(f"{FIXED_ENGINE_S:.3f} s")
 
 
 def _wait_until(page: Page, condition: Callable[[], bool], message: str) -> None:
@@ -372,49 +383,31 @@ def _comparison_inventory(route: Route) -> None:
     route.fulfill(response=response, json=body)
 
 
-def _answer_comparison(route: Route) -> None:
-    payload: Any = route.request.post_data_json
-    model_id = str(payload["model_id"])
-    outcome = COMPARISON_PLAN[model_id][0]
-    if outcome == "real":
-        _fulfill_real(route)
-    elif outcome == "error":
-        route.fulfill(status=503, json={"detail": "Mocked service offline (documentation)"})
-    else:
-        route.fulfill(json=_mock_output(model_id, outcome))
-
-
 def shot_comparison(browser: Browser, address: str, path: Path) -> None:
-    """Sequential recommended-model comparison with mocked abstention, error and skip."""
+    """Sequential comparison with labelled scripted abstention, error and skip."""
     page = _open(browser, address)
     page.route("**/api/models", _comparison_inventory)
     page.reload()
     _create_demo(page)
-    page.route(
-        "**/api/compare",
-        lambda route: route.fulfill(json={"downloads": {"html": "/mock/comparison.html"}}),
-    )
-    pending: list[Route] = []
-    # Playwright cannot wrap a bound builtin such as list.append as a route handler.
-    page.route("**/api/analyze", lambda route: pending.append(route))  # noqa: PLW0108
+    real = _heuristic_output(page)
+    jobs = _job_fixture(page, lambda _model: "hold", [*COMPARISON_PLAN, COMPARISON_SKIPPED])
+    jobs.skip(COMPARISON_SKIPPED)
     _freeze_clock(page)
     page.locator("#compare-models").check()
     page.locator("#run-analysis").click()
-    download = page.locator("#comparison-download")
-    answered = 0
-    while not download.is_visible():
-        _wait_until(
-            page,
-            lambda: bool(pending) or download.is_visible(),
-            f"comparison stalled after {answered} model requests",
+    expect(page.locator("#job-bar")).to_be_visible()
+    for index, (model, (outcome, wait_ms)) in enumerate(COMPARISON_PLAN.items()):
+        jobs.elapsed += wait_ms / 1000
+        reply = (
+            real
+            if outcome == "real"
+            else ("error", "Mocked service offline (documentation)")
+            if outcome == "error"
+            else _mock_output(model, outcome)
         )
-        if pending:
-            route = pending.pop(0)
-            payload: Any = route.request.post_data_json
-            page.clock.fast_forward(COMPARISON_PLAN[str(payload["model_id"])][1])
-            _answer_comparison(route)
-            answered += 1
-    _require(answered == len(COMPARISON_PLAN), f"expected 4 model requests, saw {answered}")
+        jobs.finish_step(jobs.jobs[0], index, reply)
+        page.clock.fast_forward(1100)
+    expect(page.locator("#comparison-download")).to_be_visible()
     panel = page.locator("#comparison-panel")
     expect(panel).to_contain_text("not directly comparable across model families")
     expect(page.locator(f"#comparison-body tr[data-model='{COMPARISON_SKIPPED}']")).to_contain_text(
@@ -425,6 +418,23 @@ def shot_comparison(browser: Browser, address: str, path: Path) -> None:
     )
     _settle(page)
     _save(panel, path)
+    _close(page)
+
+
+def shot_jobs(browser: Browser, address: str, path: Path) -> None:
+    """Labelled scripted running/queued jobs over the synthetic phantom."""
+    page = _open(browser, address)
+    _create_demo(page)
+    jobs = _job_fixture(page, lambda _model: "hold")
+    _freeze_clock(page)
+    page.locator("#run-analysis").click()
+    expect(page.locator("#job-bar")).to_be_visible()
+    jobs.elapsed = 75.0
+    page.locator("#nav-jobs").click()
+    page.clock.fast_forward(1100)
+    expect(page.locator("#jobs-body")).to_contain_text("Running")
+    _settle(page)
+    _save(page, path)
     _close(page)
 
 
@@ -553,6 +563,7 @@ def shot_evaluation_mobile(browser: Browser, address: str, path: Path) -> None:
 
 
 SHOTS = (
+    Shot("ui-jobs", "scripted synthetic job queue and server elapsed", shot_jobs),
     Shot("ui-study-viewer", "synthetic study in the viewer", shot_study_viewer),
     Shot("ui-results", "heuristic-hu findings with disclaimer", shot_results),
     Shot("ui-comparison", "mocked sequential model comparison", shot_comparison),

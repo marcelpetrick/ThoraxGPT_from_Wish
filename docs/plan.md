@@ -111,6 +111,35 @@ Status: ✅ done · 🔄 in progress · ⏳ open · ✖ dropped
 
 ## Current activity
 
+- 🔄 **W3 completed implementation, final gate (2026-10-17):** analysis, comparisons and
+  explicit Ollama pulls share a bounded server FIFO. Running jobs survive browser navigation
+  and reload, expose stage/server elapsed and support cooperative stop with socket closure.
+  Queued work cancels before provider access. Synthetic real-queue browser tests cover
+  EN/light and DE/dark mobile flows; all 9 job API tests pass. Updated docs, 11 screenshots
+  and the HTML/PDF operator manual. Model downloads now use the same cancellation controls.
+  Self-review removed browser elapsed extrapolation after the first full gate exposed a
+  timing race: displays now show measured server snapshots only, including after reconnect.
+
+- 🔄 **Codex resumption (2026-10-17):** `main` at `ef2c73a` matches origin. Preserve
+  the unfinished W3 job queue in the main checkout. W1 already has two unmerged commits
+  (`62b32bd`, `8ce734d`), so audit existing calibration evidence before any new GPU run.
+  W2 detector changes remain uncommitted in its own worktree. Two agents finish W1/W2;
+  the lead owns W3, reviews integrations and runs the full gate before pushing. No agent
+  from the preceding session is still active. Keep the older stash and all real data.
+
+- 🔄 **Work plan (2026-10-17, user-approved; budget rule: finish running agents before
+  starting new ones, keep parallel agents minimal):**
+
+  | # | Work item | Where | State | Merge / done criterion |
+  |---|---|---|---|---|
+  | W1 | Image-path sanity gate (T0 layout audit, T2 position binding, S1 blank/noise/shuffle, S2 synthetic spheres, S3 description, S4 paired lesion/control slabs, optional bf16 parity) | agent, own worktree | 🔄 running | Results in `results.md`; gate verdict recorded; full gate green; merged by the lead |
+  | W2 | Detector reference baseline (MONAI RetinaNet, inference only, overlap-flagged), lesion-level Task C, crop-export view | agent, own worktree | 🔄 running | Explicit weight download, tests with stub network, calibration results, merged |
+  | W3 | Job layer: server-side sequential queue, cancel/stop, persistent status bar on all pages and in the tab title, Jobs panel, fixed elapsed display | lead, main checkout | 🔄 final gate | Playwright: navigate/reload keeps the running job visible; cancel works; docs/manual/screenshots refreshed |
+  | W4 | Official-protocol prompt P6 (interleaved `SLICE k`, one label per query, P(yes)), non-constant-output readiness check | lead or one agent after W1 | ⏳ | Starts only after W1 is merged; mode chosen from the T2 binding result |
+  | W5 | VLM crop verification of detector candidates | after W2 + W4 | ⏳ | Only if W1 shows crop/slab-level signal |
+  | W6 | Usable workflow: study → detector → candidates in viewer → optional VLM check → sourced findings → report, all through the W3 job layer; Evaluation shows these runs | lead (≤1 agent) after W2 + W3 | ⏳ | Synthetic e2e in EN/DE, light/dark, mobile; screenshots and manual |
+  | W7 | RQ1 report with overlap column; status/plan/AGENTS sync; self-review; worktree and stash cleanup proposal | lead | ⏳ | Final full gate, pushed |
+
 - 🔄 **Program status and approach check (2026-10-17):** full-program state, real-data
   verdict and the decision plan are in [the status report](status-2026-10-17.md). Running:
   image-path sanity tests, a paired lesion/control slab test (calibration only) and a web

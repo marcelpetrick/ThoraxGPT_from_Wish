@@ -533,3 +533,15 @@ preprocessing, so the ablation does not measure preprocessing cost.
 Evidence eligibility uses the shared implied presence probability at the default 0.5
 cutoff, including low-confidence absent verdicts that imply a positive probability.
 `include_cues` accepts only YAML booleans; null, numbers and strings are refused.
+
+## UI processing queue
+
+`api/jobs.py` owns an in-memory FIFO queue and one worker per local server process.
+Analysis, sequential comparisons and acknowledged Ollama pulls share that worker.
+Submissions and execution both pass the study/output guards. The API exposes bounded
+summaries; detailed results remain available by job UUID. Browsers poll the same state
+across navigation and reload without resubmitting work. Cancellation removes queued work
+immediately; running jobs check stage boundaries and close tracked provider sockets.
+Closing a request does not prove provider-side computation stopped. This queue is scoped
+to one server process; do not start multiple workers against the same GPU. Server restart
+loses in-memory jobs and registered download links, while result files remain on disk.

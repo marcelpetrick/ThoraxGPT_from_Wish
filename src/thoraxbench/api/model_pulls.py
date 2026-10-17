@@ -3,6 +3,8 @@
 """Bounded, local Ollama download jobs; never send study data or account credentials."""
 
 import json
+import time
+from datetime import UTC, datetime
 from threading import RLock, Thread
 from typing import Any
 from uuid import UUID, uuid4
@@ -11,6 +13,8 @@ import httpx
 
 from thoraxbench.adapters.factory import require_local_endpoint
 from thoraxbench.analysis import DISCLAIMER
+from thoraxbench.api.abortable_http import abortable_client
+from thoraxbench.api.jobs import JobContext, JobManager, JobOutcome
 
 
 class PullBusyError(RuntimeError):
@@ -20,26 +24,67 @@ class PullBusyError(RuntimeError):
 class ModelPullJobs:
     """Serialize downloads and retain at most 32 progress snapshots in memory."""
 
-    def __init__(self, base_url: str) -> None:
+    def __init__(self, base_url: str, queue: JobManager | None = None) -> None:
+        self._queue = queue
+        self._queue_ids: dict[UUID, UUID] = {}
         self._base_url = base_url
         self._lock = RLock()
         self._jobs: dict[UUID, dict[str, Any]] = {}
+        self._times: dict[UUID, tuple[float, float | None]] = {}
 
     def get(self, identifier: UUID) -> dict[str, Any] | None:
         """Return an isolated progress snapshot without local filesystem details."""
         with self._lock:
             job = self._jobs.get(identifier)
-            return dict(job) if job is not None else None
+            if job is None:
+                return None
+            snapshot = dict(job)
+            queued = self._queue_ids.get(identifier)
+            if self._queue is not None and queued is not None:
+                state = self._queue.get(queued)
+                if state is not None:
+                    snapshot.update(
+                        status={"succeeded": "completed", "failed": "error"}.get(
+                            state["status"], state["status"]
+                        ),
+                        elapsed_s=state["elapsed_s"],
+                        started_at=state["started_at"],
+                        job_id=state["id"],
+                    )
+                    if state["finished"]:
+                        self._jobs[identifier].update(snapshot)
+                elif job["status"] in {"queued", "running", "cancelling"}:
+                    snapshot.update(status="cancelled", detail="Job metadata no longer retained")
+                    self._jobs[identifier].update(snapshot)
+            return snapshot
+
+    def snapshots(self) -> list[dict[str, Any]]:
+        """All retained downloads with server-measured elapsed seconds, oldest first."""
+        now = time.monotonic()
+        snapshots: list[dict[str, Any]] = []
+        with self._lock:
+            for identifier, job in self._jobs.items():
+                start, end = self._times.get(identifier, (now, now))
+                elapsed = max(0.0, (end if end is not None else now) - start)
+                snapshots.append({"elapsed_s": elapsed} | (self.get(identifier) or dict(job)))
+        return snapshots
 
     def start(self, model_id: str, tag: str) -> dict[str, Any]:
         """Start an acknowledged configured tag at an already validated loopback endpoint."""
         require_local_endpoint(self._base_url)
         with self._lock:
-            if any(job["status"] in {"queued", "running"} for job in self._jobs.values()):
+            if any(
+                (self.get(key) or job)["status"] in {"queued", "running", "cancelling"}
+                for key, job in self._jobs.items()
+            ):
                 raise PullBusyError("A model download is already active")
             if len(self._jobs) >= 32:
-                del self._jobs[next(iter(self._jobs))]
+                oldest = next(iter(self._jobs))
+                del self._jobs[oldest]
+                self._times.pop(oldest, None)
+                self._queue_ids.pop(oldest, None)
             identifier = uuid4()
+            self._times[identifier] = (time.monotonic(), None)
             self._jobs[identifier] = {
                 "id": str(identifier),
                 "model_id": model_id,
@@ -47,20 +92,50 @@ class ModelPullJobs:
                 "detail": "Waiting for local Ollama",
                 "completed": None,
                 "total": None,
+                "started_at": datetime.now(UTC).isoformat(),
                 "disclaimer": DISCLAIMER,
             }
-            Thread(target=self._run, args=(identifier, tag), daemon=True).start()
-            return dict(self._jobs[identifier])
+            if self._queue is None:
+                Thread(target=self._run, args=(identifier, tag), daemon=True).start()
+            else:
+
+                def work(context: JobContext) -> JobOutcome:
+                    self._run(identifier, tag, context)
+                    context.check()
+                    state = self.get(identifier)
+                    failed = state is not None and state["detail"] != "Download completed"
+                    return JobOutcome("failed" if failed else "succeeded")
+
+                try:
+                    queued, _ = self._queue.submit(
+                        "download", f"download|{model_id}", {"models": [model_id]}, work
+                    )
+                except RuntimeError:
+                    del self._jobs[identifier]
+                    self._times.pop(identifier, None)
+                    raise
+                self._queue_ids[identifier] = UUID(queued["id"])
+            return self.get(identifier) or dict(self._jobs[identifier])
 
     def _update(self, identifier: UUID, **fields: Any) -> None:
         with self._lock:
             self._jobs[identifier].update(fields)
+            if fields.get("status") in {"completed", "error"} and identifier in self._times:
+                self._times[identifier] = (self._times[identifier][0], time.monotonic())
 
-    def _run(self, identifier: UUID, tag: str) -> None:
+    def _run(self, identifier: UUID, tag: str, context: JobContext | None = None) -> None:
         self._update(identifier, status="running", detail="Connecting to local Ollama")
+        client = httpx.Client(timeout=120.0, trust_env=False, follow_redirects=False)
+        unregister = None
+        if context is not None:
+            client.close()
+            client, transport = abortable_client(120.0)
+            unregister = context.on_abort(transport.abort)
         try:
+            if context is not None:
+                context.stage("download")
             with (
-                httpx.Client(timeout=120.0, trust_env=False, follow_redirects=False) as client,
+                client,
                 client.stream(
                     "POST",
                     f"{self._base_url.rstrip('/')}/api/pull",
@@ -70,6 +145,8 @@ class ModelPullJobs:
                 response.raise_for_status()
                 success = False
                 for line in response.iter_lines():
+                    if context is not None:
+                        context.check()
                     if not line:
                         continue
                     payload = json.loads(line)
@@ -101,3 +178,8 @@ class ModelPullJobs:
             self._update(
                 identifier, status="error", detail=str(exc)[:500], completed=None, total=None
             )
+
+        finally:
+            if unregister is not None:
+                unregister()
+            client.close()

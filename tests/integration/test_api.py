@@ -381,9 +381,9 @@ def test_comparison_rejects_invalid_missing_and_escaped_results(
 def test_pull_requires_known_configured_ollama_model_and_explicit_terms(
     client: TestClient, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    from thoraxbench.api import model_pulls
+    from thoraxbench.api import jobs
 
-    monkeypatch.setattr(model_pulls, "Thread", Mock())
+    monkeypatch.setattr(jobs, "Thread", Mock())
     for body in (
         {},
         {"terms_acknowledged": False},

@@ -16,6 +16,34 @@ and this file must be fixed.
 editing. Preserve existing work. Record decisions and handover details in the repository;
 do not leave essential information only in chat or temporary files.
 
+## 0.2 Handover for another agent framework (2026-10-17)
+
+Any framework can continue from the repository alone. Read this section, then
+`docs/plan.md` → *Current activity* (work plan W1–W7) and `docs/status-2026-10-17.md`.
+
+**Parallel worktrees** (all under `.claude/worktrees/`, git branch `worktree-agent-<id>`).
+"locked" means a Claude Code agent was still running there at handover; a lock is only a
+git marker (`git worktree unlock <path>`). Inspect each with `git -C <path> log --oneline
+main..HEAD` and `git -C <path> status` before merging. Merge with
+`git merge --no-ff <branch>`, keep `main`'s version in `src/thoraxbench/__init__.py` on
+conflict, then `scripts/commit.sh "<message>"` (bumps, full gate, pushes).
+
+| Worktree id | Work item | State at handover | Next action |
+|---|---|---|---|
+| `agent-a2713de6be2350cab` | W1 image-path sanity gate (`thoraxbench sanity`, `configs/experiments/sanity/`) | in progress, uncommitted | Finish S1–S4/T0/T2 runs (calibration only), record in `results.md`, commit, merge |
+| `agent-a97e30bcce02518f3` | W2 MONAI detector baseline + crop view | in progress, uncommitted | Finish, commit, merge; weights only under ignored `data/` |
+| main checkout | W3 job layer (`src/thoraxbench/api/jobs.py`, `abortable_http.py`) | in progress, uncommitted | Finish tests/UI/docs, commit through the gate |
+| `agent-aebf84a0219298401` | Older session: calibration fitting on the calibration phase, training-overlap tagging, E005–E008 configs (commit `a0b01d7`) | **committed but not merged**, base `9e27cef` (old) | Rebase or cherry-pick onto `main`; expect conflicts in `benchmark/runner.py` and `report.py`; closes ranked gaps (calibration, overlap column) |
+| `agent-a8afbe19832769108` | Older session: docs edits (DATA_POLICY, README, SECURITY, architecture, reproducibility) | uncommitted, base `9e27cef` | Probably superseded by later commits; diff against `main` before discarding |
+| `agent-a9841ef98b05e6b4f` | E001-coverage / P5 | merged (`bcea332`) | Remove the worktree |
+| `.pipeline/calibration-clean`, `.pipeline/evidence-clean` | detached clean checkouts for isolated runs | kept; port 8000 preview runs from `calibration-clean` | Keep until replaced deliberately |
+
+**Other state:** an old `commit.sh` stash (base `9453bbe`, 2026-10-16 16:16) appears
+superseded; the user decides before it is dropped. Ignored real data lives in `data/`
+(LIDC-IDRI 60, NSCLC-Radiogenomics 27 patients); runs in other checkouts use
+`THORAXBENCH_DATA_DIR=<repo>/data`. Ollama at `localhost:11434` holds MedGemma 1.5 Q4/Q8 and
+general VLM controls; 8 GB VRAM, one GPU job at a time.
+
 ## 0.1 Current priority
 
 **Direction (user decision, 2026-10-17):** follow `docs/approach-review-2026-10-17.md` and
@@ -26,6 +54,18 @@ honest RQ1 report. Study-level E002–E004 sweeps and QLoRA are on hold until a 
 exists. Never present a detector score on LIDC as unbiased: LUNA16-trained weights overlap
 LIDC. Label every finding with its source (detector, VLM, heuristic). Detector weights stay
 in ignored `data/`, downloaded only by an explicit command. Status: `docs/status-2026-10-17.md`.
+
+**Working rules (2026-10-17):** the work plan W1–W7 lives in `docs/plan.md` → *Current
+activity*. Keep subagents to a minimum for budget reasons: finish and merge running agents
+before starting new ones. Engine/GPU agents work in their own git worktree with
+`THORAXBENCH_DATA_DIR` pointing at the main `data/` and commit with
+`scripts/commit.sh --no-push`; the lead merges, runs the full gate and pushes. Only one GPU
+job at a time. Never run `scripts/commit.sh` in a checkout where another agent is editing:
+it stashes their unstaged work. W3 now queues analysis, comparison and acknowledged model pulls through one worker.
+All long-running UI processing (analysis, comparison,
+pulls, detector, verification) goes through the server-side job layer, stays visible on
+every page and can be cancelled while queued; a running stop must state honestly whether
+the provider may continue in the background.
 
 The CLI engine and frozen pilot holdout are available. The **local UI MVP** is implemented
 (2026-10-15): maintain its tested research workflow around the existing engine and keep
