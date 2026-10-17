@@ -260,3 +260,21 @@ def test_educational_context_keeps_size_specific_guidance_for_each_occurrence(
     assert "Reported finding 2 · size 12.0 mm" in html
     assert "No routine follow-up." in html
     assert "Consider CT at 3 months, PET/CT, or tissue sampling." in html
+
+
+def test_abstention_keeps_input_qc_separate_and_escapes_diagnostics(
+    result: AnalysisResult, study: Study
+) -> None:
+    result.qc = {"adequate": True}
+    result.report.abstain = True
+    result.raw_error = "generation token limit reached"
+    result.raw_meta["generation_limits"] = [
+        {"tokens_generated": 2048, "note": "<script>bad</script>"}
+    ]
+    html = render_html_report(result, study)
+    assert "<dt>Input QC</dt><dd>Adequate" in html
+    assert "<dt>Model image assessment</dt><dd>Unavailable" in html
+    assert "generation token limit reached" in html
+    assert "Generation limit diagnostics" in html
+    assert "&lt;script&gt;bad&lt;/script&gt;" in html
+    assert "<script>bad</script>" not in html

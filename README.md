@@ -175,9 +175,19 @@ skipped. Failures and abstentions remain visible beside completed runs. Scores a
 uncalibrated and are not directly comparable across models. Agreement does not establish
 accuracy. The combined export uses existing results; it starts no additional inference.
 
+Use **Open HTML in new tab** to inspect a recorded report with embedded images and findings.
+The same action is available for partial and abstained comparison steps on **Jobs**.
+**Download HTML** keeps an offline copy. Neither action starts inference. Reports distinguish
+deterministic input QC, model image assessment and abstention; sampled-image negatives do
+not exclude findings elsewhere in a study. Generation-limit diagnostics show recorded
+per-call budgets and counts when available. Configured research comparisons start with the
+detector and heuristic baselines, followed by experimental local VLM controls; unavailable
+models are skipped and availability does not establish useful model quality.
+
 The interface defaults to **English and light mode**; English/German and light/dark switches
 persist locally. Actions, labels and metrics have hover/keyboard tooltips. **About** names
-Marcel Petrick and lists installed library versions and declared licenses. Design proposals
+Marcel Petrick, lists installed library versions and declared licenses, and links to the
+GitHub repository for forks, issues and contributions. Design proposals
 and acceptance criteria are in [the UI design document](docs/ui.md).
 
 ![About page with research purpose, author and installed dependency licenses](docs/assets/ui-about.png)
@@ -249,9 +259,15 @@ uv run thoraxbench models
 If `medgemma1.5-q4` is available, run:
 
 ```bash
-uv run thoraxbench analyze data/demo/mvp --model medgemma1.5-q4 --n 4 \
+uv run thoraxbench analyze data/demo/mvp --model medgemma1.5-q4 --n 16 --label pulmonary_nodule \
   --output data/results/medgemma.json --report data/results/medgemma.md --html data/results/medgemma.html
 ```
+
+Q4/Q8 use the bounded P5 schema-v2 profile: 16 uniform raw axial images at 896 pixels,
+without coronal/MIP views or heuristic cues. The UI overrides the requested image count;
+its four-image default remains sparse. Repeat `--label` for selected research labels.
+These changes address request scope and output completion; recognition readiness remains
+unproven, and a negative on sampled images cannot exclude a whole-study finding.
 
 **Recovery:** if the model is unavailable, inspect the configured Ollama tag and local
 service. Use the heuristic demo while resolving model setup. Do not switch to cloud

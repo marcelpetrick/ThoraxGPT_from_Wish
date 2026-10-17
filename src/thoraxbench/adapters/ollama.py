@@ -322,7 +322,7 @@ class OllamaModel(ViewBackedModel):
             request_log=requests,
             response_log=responses,
         )
-        calls = [data] if data else []
+        calls = [data] if data is not None else []
         if (
             data is not None
             and error is None
@@ -342,7 +342,7 @@ class OllamaModel(ViewBackedModel):
                 response_log=responses,
             )
             latency += latency2
-            if data:
+            if data is not None:
                 calls.append(data)
         meta: dict[str, Any] = {
             "model": self.tag,

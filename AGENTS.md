@@ -71,6 +71,10 @@ Never silently repair invalid detector boxes/scores or render nonfinite crop cen
 
 ## 0.1 Current priority
 
+Current recovery/review handover: `docs/model-recovery-plan-2026-10-17.md` and
+`docs/review-current-2026-10-17.md`. Preserve the original port8000 session reports.
+Bounded completion does not establish recognition; keep failed visual gates visible.
+
 Useful detector output is available for research review. Three calibration checks at the
 existing 0.5 cutoff produced eleven proposals, eight reference matches and three unmatched;
 LIDC training overlap remains **yes**. P6 and T2 failed readiness. Do not enable VLM filtering
@@ -124,7 +128,8 @@ Keep `manual.html` and `manual.pdf` synchronized with user-facing configuration 
 UI defaults are **English and light mode**, independent of browser preferences. Offer
 persistent English/German and light/dark switches. Every action, field label and result
 metric needs concise translated help via accessible hover/focus tooltips. The About page
-names Marcel Petrick as author, explains the research purpose, and lists used libraries,
+names Marcel Petrick as author, explains the research purpose, links to the canonical GitHub
+repository for forks/issues/contributions with translated help, and lists used libraries,
 installed versions and license information. UI text is translated; generated research
 reports remain English until separately specified.
 
@@ -142,6 +147,13 @@ as measured inference progress, benchmark latency or guaranteed deadlines. Persi
 numeric durations keyed by model/image count. Model downloads are explicit configured-tag
 Ollama pulls after terms acknowledgement. Show current-layer bytes accurately. Keep HTTP
 services and gated weights on a manual provider-approved setup path; never bypass access.
+Offer direct new-tab HTML review beside downloads for completed and abstained/partial
+outputs. Reuse registered, guarded result URLs; inline disposition applies only to HTML.
+Keep application CSP strict and allow embedded image/style content only under the report's
+script/network-blocking policy. Distinguish deterministic Input QC, model image assessment
+and usable-reading status; preserve per-call truncation diagnostics without recovering
+incomplete findings. Configured comparisons start with detector/heuristic baselines and
+use the explicit Qwen no-think control; availability is not a quality recommendation.
 Offer self-contained HTML exports with embedded previews and experimental findings. Use
 actual prepared model images; label heuristic source-slice previews as illustrations. Model
 image numbers follow one-based captions; heuristic source slice indices are zero-based.

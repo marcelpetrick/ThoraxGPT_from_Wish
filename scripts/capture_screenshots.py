@@ -70,9 +70,9 @@ COMPARISON_PLAN: dict[str, tuple[str, int]] = {
     "heuristic-hu": ("real", 1_400),
     "medgemma1.5-q4": ("abstain", 48_200),
     "medgemma1.5-q8": ("findings", 63_500),
-    "qwen3-vl-4b": ("error", 3_100),
+    "qwen3-vl-4b-nothink": ("error", 3_100),
 }
-# A recommended model kept unavailable so the comparison shows an explicit skip.
+# A configured research model kept unavailable so the comparison shows an explicit skip.
 COMPARISON_SKIPPED = "gemma3-4b"
 DOWNLOAD_MODEL = "gemma3-4b"
 
@@ -413,7 +413,7 @@ def shot_comparison(browser: Browser, address: str, path: Path) -> None:
     expect(page.locator(f"#comparison-body tr[data-model='{COMPARISON_SKIPPED}']")).to_contain_text(
         "Skipped"
     )
-    expect(page.locator("#comparison-body tr[data-model='qwen3-vl-4b']")).to_contain_text(
+    expect(page.locator("#comparison-body tr[data-model='qwen3-vl-4b-nothink']")).to_contain_text(
         "Mocked service offline"
     )
     _settle(page)

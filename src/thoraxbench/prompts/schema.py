@@ -132,8 +132,8 @@ def strict_findings_json_schema(labels: list[str], *, n_images: int) -> dict[str
       (``prefixItems`` with a ``const`` label, ``minItems == maxItems``; an additional
       ``items`` schema made Ollama 0.40.4 ignore ``prefixItems``, so none is given);
     * every object sets ``additionalProperties: false``;
-    * free text has ``maxLength`` and lists have ``maxItems``, so generation cannot run to
-      the token limit;
+    * free text has ``maxLength`` and lists have ``maxItems`` to bound output growth;
+      a fixed generation budget can still be exhausted;
     * evidence references are one-based integers ``1..n_images`` (at most four).
 
     Ollama 0.40.4 enforced ``prefixItems``/``const``, ``minItems``/``maxItems``,

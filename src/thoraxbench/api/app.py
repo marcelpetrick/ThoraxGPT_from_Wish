@@ -50,13 +50,14 @@ from thoraxbench.synthetic import PhantomSpec, make_phantom, write_dicom_series
 from thoraxbench.views import render_slice_png
 
 ASSETS = Path(__file__).parent
-RECOMMENDED_MODELS = {
+RECOMMENDED_MODELS = (
+    "monai-lung-nodule",
     "heuristic-hu",
     "medgemma1.5-q4",
     "medgemma1.5-q8",
     "gemma3-4b",
-    "qwen3-vl-4b",
-}
+    "qwen3-vl-4b-nothink",
+)
 
 
 def _service_available(model: ModelConfig, config: Settings) -> bool:
@@ -196,9 +197,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:  # noqa: PLR0915 - 
         response.headers["X-Research-Only"] = "Experimental research output; not medical advice"
         response.headers["Cache-Control"] = "no-store"
         response.headers["X-Content-Type-Options"] = "nosniff"
-        response.headers["Content-Security-Policy"] = (
-            "default-src 'self'; img-src 'self' data:; style-src 'self'; "
-            "script-src 'self'; connect-src 'self'; frame-ancestors 'none'"
+        response.headers.setdefault(
+            "Content-Security-Policy",
+            (
+                "default-src 'self'; img-src 'self' data:; style-src 'self'; "
+                "script-src 'self'; connect-src 'self'; frame-ancestors 'none'"
+            ),
         )
         return response
 
@@ -646,8 +650,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:  # noqa: PLR0915 - 
             steps: list[dict[str, Any]] = []
         else:
             tags = _ollama_tags(config)
-            candidates = [configured[m] for m in sorted(RECOMMENDED_MODELS) if m in configured]
-            candidates.sort(key=lambda item: item.id != "heuristic-hu")
+            candidates = [configured[m] for m in RECOMMENDED_MODELS if m in configured]
             steps = [
                 {"model_id": item.id, "status": "waiting", "detail": ""}
                 if _model_available(item, tags, config)
@@ -715,7 +718,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:  # noqa: PLR0915 - 
         return export_comparison(body.result_ids, body.omissions)
 
     @app.get("/api/results/{identifier}/{kind}")
-    def download(identifier: UUID, kind: str) -> FileResponse:
+    def download(identifier: UUID, kind: str, inline: bool = False) -> FileResponse:
         if identifier not in downloads or kind not in downloads[identifier]:
             raise HTTPException(404, "Unknown result")
         path = downloads[identifier][kind]
@@ -733,6 +736,15 @@ def create_app(settings: Settings | None = None) -> FastAPI:  # noqa: PLR0915 - 
                 "html": "text/html",
             }[kind],
             filename=path.name,
+            content_disposition_type="inline" if inline and kind == "html" else "attachment",
+            headers={
+                "Content-Security-Policy": (
+                    "default-src 'none'; img-src data:; style-src 'unsafe-inline'; "
+                    "base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
+                )
+            }
+            if kind == "html"
+            else None,
         )
 
     def evaluated(call: Callable[[], dict[str, Any]]) -> dict[str, Any]:

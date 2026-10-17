@@ -111,6 +111,39 @@ Status: ✅ done · 🔄 in progress · ⏳ open · ✖ dropped
 
 ## Current activity
 
+- **Recovery integration (2026-10-17):** integrate atomic runtime commits `924a147` /
+  `941c536` and UI/About commits `6b919ee` / `5aec0e3`. Independent cross-review found
+  two concrete regressions: detector-roster cancellation wording and empty-first-pass
+  generation diagnostic indexing. Both are repaired with synthetic regressions. See
+  [the current review](review-current-2026-10-17.md). The fixed Q4 calibration pair
+  terminates without length stops but still abstains; Q8 is running sequentially from
+  the clean runtime commit. Recognition readiness remains failed/pending, not inferred
+  from completion. Preserve the old port8000 session and its registered reports.
+- **Requested housekeeping:** GitHub About updated with 🫁 and ten grounded topics
+  ([metadata record](github-about-2026-10-17.md)). All27 direct pins and106 registry
+  packages checked; an isolated dependency gate passed with two direct and three
+  compatible transitive updates. Integrate that separate commit after this UI merge,
+  then run the combined gate and publish the measured model results.
+
+- **Recorded report review (2026-10-17):** add direct new-tab HTML opening beside
+  offline downloads in results, comparison rows/combined export and partial/abstained Jobs
+  steps. Reuse registered output IDs and recheck guarded paths. Report-only CSP permits
+  embedded images/styles and blocks scripts/network; the application policy stays strict.
+  Separate deterministic Input QC, model image assessment and usable-reading status;
+  expose truncation reasons and recorded generation diagnostics. Configured comparison
+  starts with detector/heuristic baselines and uses the explicit Qwen no-think control.
+  Validate synthetic EN/DE desktop/mobile flows, inline downloads and path protections.
+  Runtime integration uses Q4/Q8 P5 schema-v2, uniform raw axial 896-pixel inputs,
+  no cues/coronal/MIP views and repeatable focused CLI labels; UI counts remain overrides.
+  These are completion/input fixes, not established recognition readiness.
+  Model recovery and live checks are tracked in [the recovery plan](model-recovery-plan-2026-10-17.md).
+
+- **About contribution link (complete, 2026-10-17, `6b919ee`):** added the canonical GitHub
+  repository link with translated EN/DE text and keyboard/hover help. Open it in a new tab
+  with `noopener noreferrer`. Replace the stale benchmark-pending description with the
+  implemented study/candidate/recorded-benchmark workflow. Refresh the synthetic About
+  screenshot and synchronized operator manual; run the normal commit gate.
+
 - **Verified engine checkpoint (2026-10-17):** v0.4.9 `981e1ec` is pushed. Full gate:
   829 tests / 97.84% coverage; GitHub Actions `39043586041` passed. W1/P6, W2/W3/W6,
   the S1 source-grouping regression and recovered calibration work are integrated.

@@ -3,6 +3,7 @@
 """Self-contained, escaped image/evidence research reports; no external resources."""
 
 import base64
+import json
 from html import escape
 from pathlib import Path
 
@@ -308,6 +309,32 @@ def render_html_report(result: AnalysisResult, study: Study) -> str:
     gallery, anchors = _gallery(result, study)
     markdown = render_study_report(result)
     title = f"ThoraxBench research report — {result.case_id}"
+    unavailable = result.report.abstain or bool(result.raw_error)
+    input_qc = (
+        "Adequate"
+        if result.qc.get("adequate") is True
+        else "Limited"
+        if result.qc.get("adequate") is False
+        else "Unavailable"
+    )
+    assessment = (
+        "Unavailable"
+        if unavailable
+        else "Adequate"
+        if result.report.study_quality.adequate
+        else "Limited"
+    )
+    limits = result.raw_meta.get("generation_limits", [])
+    diagnostics = (
+        (
+            "<details><summary>Generation limit diagnostics</summary>"
+            "<p>Per-call budgets and counts; repeated labels describe text, "
+            "not recovered findings.</p>"
+            f"<pre>{escape(json.dumps(limits, indent=2))}</pre></details>"
+        )
+        if limits
+        else ""
+    )
     return (
         '<!doctype html><html lang="en"><head><meta charset="utf-8">'
         '<meta name="viewport" content="width=device-width,initial-scale=1">'
@@ -324,10 +351,15 @@ def render_html_report(result: AnalysisResult, study: Study) -> str:
         '<dl class="metadata">'
         f"<div><dt>Dataset</dt><dd>{escape(result.dataset)}</dd></div>"
         f"<div><dt>Model</dt><dd>{escape(result.model_id)}<small>Local inference</small></dd></div>"
-        f"<div><dt>Study quality</dt><dd>"
-        f"{'Adequate' if result.report.study_quality.adequate else 'Limited'}</dd></div>"
+        f"<div><dt>Input QC</dt><dd>{input_qc}"
+        "<small>Deterministic checks, not model success</small></dd></div>"
+        f"<div><dt>Model image assessment</dt><dd>{assessment}</dd></div>"
+        f"<div><dt>Reading status</dt><dd>{'Abstained' if unavailable else 'Completed'}</dd></div>"
         f"<div><dt>Analysis stages</dt><dd>{result.perf.total_s:.3f} s"
         "<small>Excludes DICOM loading and reporting</small></dd></div></dl>"
+        '<p class="notice">A negative on sampled model images cannot exclude findings '
+        "elsewhere in the study. Source labels distinguish detector, model "
+        "and heuristic output.</p>"
         '<section class="panel" id="findings">'
         + _findings(result, anchors)
         + '</section><section class="panel" id="images">'
@@ -335,6 +367,7 @@ def render_html_report(result: AnalysisResult, study: Study) -> str:
         + "</section>"
         + _candidate_gallery(result, study)
         + _educational_context(result)
+        + diagnostics
         + '<details id="report"><summary>Complete research report and educational context</summary>'
         f"<pre>{escape(markdown)}</pre></details>"
         "<details><summary>Original model response (escaped)</summary>"

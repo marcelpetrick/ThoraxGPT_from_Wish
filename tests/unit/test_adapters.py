@@ -594,3 +594,18 @@ def test_repeating_truncated_roster_is_diagnostic_only() -> None:
     assert raw.error == "generation token limit reached"
     assert model.parse(raw).abstain
     assert model.parse(raw).findings == []
+
+
+@respx.mock
+def test_empty_first_call_preserves_second_call_generation_diagnostics() -> None:
+    truncated = _chat(json.dumps(GOOD)) | {"done_reason": "length", "eval_count": 4096}
+    respx.post(f"{OLLAMA}/api/chat").mock(
+        side_effect=[httpx.Response(200, json={}), httpx.Response(200, json=truncated)]
+    )
+    model = load_model("medgemma1.5-q4", _settings(), prompt_id="P4")
+    raw = model.infer(PreparedInput(view_id="v", view_version="1"), REQ)
+    assert raw.meta["calls"] == 2
+    assert raw.meta["generation_limits"][0]["call_index"] == 2
+    assert raw.meta["responses"][0]["body"] == {}
+    assert raw.error == "generation token limit reached"
+    assert model.parse(raw).abstain
