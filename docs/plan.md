@@ -101,6 +101,10 @@ Status: ✅ done · 🔄 in progress · ⏳ open · ✖ dropped
 
 ## Current activity
 
+- W1 bounded follow-up (2026-10-17): Q4 single/lung 30 mm synthetic gate completed: 0/10
+  positive answers, 10/10 negative answers, 71.1 s. Categorical positive criterion fails
+  despite probability-score separation. Full Q4 T2 binding and bounded S1 are running
+  sequentially. Narrowed configurations have separate IDs; no held-out inputs are used.
 - W1 handover review (2026-10-17): sanity CLI/configs already committed in this worktree.
   Recovered completed S2 `--limit 1` synthetic smoke and S4 calibration paired-slab evidence;
   aggregate results and caveats are in `docs/results.md`. S1, full S2/T2, S3 review and

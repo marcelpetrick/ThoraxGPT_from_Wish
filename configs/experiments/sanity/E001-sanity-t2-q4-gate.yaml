@@ -1,0 +1,37 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 Marcel Petrick <mail@marcelpetrick.it>
+id: E001-sanity-t2-q4-gate
+test: position_binding
+title: Image-number binding with one bright-disk image among four
+description: Bounded Q4-only readiness diagnostic; derived from E001-sanity-t2-binding.
+  This is not held-out accuracy.
+vision_ref: "Vision \xA710, \xA711, \xA724: evidence-binding readiness diagnostic"
+phases:
+- calibration
+models:
+- medgemma1.5-q4
+question:
+  kind: choice
+  text: 'Exactly one of the $n_images images shows a large bright white disk on a
+    black background. Which IMAGE number shows the disk? Answer with JSON {"image":
+    number}.'
+  num_predict: 16
+windows:
+- lung
+layouts:
+- single
+- interleaved
+image_mode: multi
+n_images: 4
+size: 896
+slab_mm: 5.0
+num_ctx: 8192
+top_logprobs: 10
+neutral_captions: true
+seed: 0
+synthetic:
+  phantoms:
+  - seed: 0
+    side: right
+    diameter_mm: 0
+  permutations: 20

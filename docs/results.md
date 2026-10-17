@@ -557,3 +557,18 @@ This supports a layout difference for the tested local Q4 runtime. The excerpt d
 reveal decoded text placement or establish binding correctness. Full T2 permutations,
 S1 ablations, S2 ten-example gates, S3 anatomical review and official-runtime parity remain
 open. Do not launch study-level sweeps or claim readiness from these partial checks.
+
+
+### Bounded Q4 obvious-target gate (2026-10-17)
+
+The explicitly narrowed `E001-sanity-s2-q4-gate` configuration uses Q4, lung window,
+one image, 30 mm spheres only, all five seeds and both sides. Its SHA-256 is
+`386fe17b864bfd71d23f5ce0d51342f89bedea84cdd35fb8dd3d1bb7322b9d69`.
+The 20 requests completed in 71.1 s. The model answered **no on all 10 sphere images**
+and **no on all 10 matched negatives**. The pre-registered positive gate (at least 9/10
+positive answers) fails; the negative gate (at least 8/10 negative answers) passes.
+The top-logprob score still separates these synthetic groups (mean 0.073 vs 0.006;
+every matched sphere score exceeds its control), so categorical failure alone does not
+establish that pixels are ignored. This single-model, single-window result does not
+establish failure in every runtime or the full multi-model battery. Configured synthetic
+sources share seeds and repeated controls; do not treat them as independent clinical cases.

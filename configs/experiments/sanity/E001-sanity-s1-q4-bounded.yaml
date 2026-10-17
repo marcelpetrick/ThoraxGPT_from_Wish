@@ -1,0 +1,45 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 Marcel Petrick <mail@marcelpetrick.it>
+id: E001-sanity-s1-q4-bounded
+test: image_dependence
+title: Image dependence on synthetic phantoms (real / grey / noise / shuffled / none)
+description: Bounded Q4-only readiness diagnostic; derived from E001-sanity-s1-synthetic.
+  This is not held-out accuracy.
+vision_ref: "Vision \xA710, \xA711, \xA724: input-path readiness diagnostic"
+phases:
+- calibration
+models:
+- medgemma1.5-q4
+question:
+  kind: yes_no
+  system: You are assisting a research benchmark of thoracic CT reading. Your output
+    is an experimental research prediction, not medical advice.
+  text: 'Is there a pulmonary nodule in any of the $n_images images? Answer with JSON
+    {"nodule": "yes" or "no", "confidence": probability between 0 and 1 that your
+    answer is correct}.'
+  num_predict: 32
+windows:
+- lung
+layouts:
+- single
+- interleaved
+conditions:
+- real
+- gray
+- noise
+- none
+image_mode: multi
+n_images: 4
+size: 896
+slab_mm: 5.0
+num_ctx: 8192
+top_logprobs: 10
+seed: 0
+synthetic:
+  phantoms:
+  - seed: 0
+    side: right
+    diameter_mm: 30
+  - seed: 0
+    side: right
+    diameter_mm: 0
