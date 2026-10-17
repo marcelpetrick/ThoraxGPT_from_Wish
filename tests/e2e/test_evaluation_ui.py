@@ -8,9 +8,10 @@ import re
 from collections.abc import Iterator
 
 import pytest
-from playwright.sync_api import Page, Request, Route, expect
+from playwright.sync_api import Page, Request, expect
 
 from tests.e2e.conftest import browser_page, serve
+from tests.e2e.mock_jobs import MockJobs
 from thoraxbench.synthetic_runs import SEALED, build_synthetic_benchmarks
 
 pytestmark = pytest.mark.e2e
@@ -159,26 +160,26 @@ def test_evaluation_navigation_preserves_single_study_session(eval_page: Page) -
     page = eval_page
     page.locator("#create-demo").click()
     expect(page.locator("#run-analysis")).to_be_enabled()
-    pending: list[Route] = []
-    page.route("**/api/analyze", lambda route: pending.append(route))  # noqa: PLW0108
+    jobs = MockJobs(page, lambda _model: "hold")
     page.locator("#run-analysis").click()
     _open_vision_run(page)
-    expect(page.locator("#session-status")).to_be_visible()
+    expect(page.locator("#job-bar")).to_contain_text("Running: Analysis · demo / phantom")
     page.locator("#eval-cases-body tr[data-case='q8-p2/lidc_idri/SYNTH-P4'] button").click()
     expect(page.locator("#eval-case-warnings")).to_contain_text("scripted synthetic runtime")
     page.locator("#nav-analysis").click()
-    expect(page.locator("#run-analysis")).to_be_disabled()
-    pending[0].fulfill(json=_mock())
+    expect(page.locator("#request-timer")).to_be_visible()
+    jobs.finish(_mock())
+    page.clock.fast_forward(1000)
     expect(page.locator("#result-context")).to_contain_text("demo / phantom")
     href = page.locator("#download-html").get_attribute("href")
     page.locator("#nav-evaluation").click()
-    expect(page.locator("#session-status")).to_be_hidden()
+    expect(page.locator("#job-bar")).to_be_hidden()
     expect(page.locator("#eval-case")).to_be_visible()
     expect(page.locator("#eval-case-context")).to_contain_text("SYNTH-P4")
     page.go_back()
     expect(page.locator("#analysis-page")).to_be_visible()
     expect(page.locator("#download-html")).to_have_attribute("href", href or "")
-    assert len(pending) == 1
+    assert len(jobs.requests) == 1
 
 
 def test_direct_evaluation_url_loads_runs(eval_page: Page, evaluation_server: str) -> None:

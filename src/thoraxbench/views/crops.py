@@ -107,6 +107,10 @@ class CandidateCropView:
             raise ValueError(f"unknown plane {plane!r}")
         dz, dy, dx = (float(s) for s in volume.spacing_mm)
         cz, cy, cx = (float(c) for c in centre_zyx_mm)
+        if not all(math.isfinite(c) for c in (cz, cy, cx)):
+            raise ValueError("crop centre must contain finite coordinates")
+        if not all(math.isfinite(s) and s > 0 for s in (dz, dy, dx)):
+            raise ValueError("crop spacing must contain positive finite numbers")
         offsets = self._offsets()
         rows, cols = np.meshgrid(offsets, offsets, indexing="ij")
         x_idx = (cx + cols) / dx

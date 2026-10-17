@@ -19,3 +19,44 @@
 /* Evaluation: read-only stored benchmark views. */
 #evaluation-page .results-panel{margin-top:22px}#evaluation-page h3{font-size:14px;margin:22px 0 8px}.eval-framing{margin:0 0 4px}.eval-lines{display:flex;flex-direction:column;gap:3px}.eval-filters{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin:8px 0}.eval-filters label{display:block;font-size:11px;font-weight:650;margin:0 0 7px}.eval-captions{font-size:12px;margin:8px 0 0;padding-left:22px}#eval-runs-table td,#eval-cases-table td,#eval-pairs-table td{overflow-wrap:break-word}#eval-runs-table td:nth-child(3),#eval-run-context,#eval-case-context{overflow-wrap:anywhere}#eval-runs-table td:nth-child(3){min-width:180px}#eval-cases-table td:nth-child(-n+5),#eval-runs-table td:nth-child(-n+2){white-space:nowrap}#eval-cases-table td:nth-child(6),#eval-cases-table td:nth-child(7),#eval-cases-table td:nth-child(8){min-width:150px}#eval-runs-table .button,#eval-cases-table .button{white-space:nowrap;font-size:11px;padding:6px 9px;min-height:32px}#eval-case:focus{outline:none}
 @media(max-width:640px){.eval-filters{grid-template-columns:1fr}}
+/* Server-side job status: visible on every page (sticky), mobile-friendly, no motion when reduced. */
+.visually-hidden{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+.job-region{position:sticky;top:0;z-index:20}
+.job-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:9px 36px;background:var(--warning-bg);color:var(--warning);border-bottom:1px solid var(--border);font-size:12px;font-weight:650}
+.job-bar[hidden]{display:none}
+.job-indicator{margin:0;display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-width:0;overflow-wrap:anywhere}
+.job-clock,.job-time{font-variant-numeric:tabular-nums;white-space:nowrap}
+.job-clock{font-size:14px;font-weight:750}
+.job-pulse{width:9px;height:9px;border-radius:50%;background:currentColor;flex:none;animation:job-pulse 1.6s ease-in-out infinite}
+@keyframes job-pulse{50%{opacity:.25}}
+.job-queue{min-height:32px;padding:5px 10px;white-space:nowrap}
+.job-notice{margin:0;border-radius:0;border-left:0;border-right:0;display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding:9px 36px}
+.job-notice[hidden]{display:none}
+.job-notice .button{min-height:30px;padding:4px 10px}
+.nav-count{margin-left:auto;background:var(--warning-bg);color:var(--warning);border-radius:999px;padding:1px 8px;font-size:11px;font-variant-numeric:tabular-nums}
+.nav-count[hidden]{display:none}
+#request-timer>p{margin:0 0 8px}
+#request-timer .button{margin-bottom:8px}
+#jobs-table td,#downloads-table td{vertical-align:top}
+#jobs-table .button{white-space:nowrap;font-size:11px;padding:6px 9px;min-height:32px}
+.job-step td{font-size:11px;color:var(--muted);border-top-style:dashed}
+.job-detail{display:block;color:var(--muted);font-size:11px;font-weight:400;max-width:36ch;overflow-wrap:anywhere}
+@media(max-width:1150px){.job-bar,.job-notice{padding-left:24px;padding-right:24px}}
+@media(max-width:640px){.job-bar,.job-notice{padding:8px 16px}.job-bar{font-size:11px}.nav-count{margin-left:4px}}
+.button[hidden],.request-timer[hidden]{display:none}
+#jobs-table{min-width:820px}
+@media(max-width:640px){
+.sidebar{flex-wrap:wrap;row-gap:10px}
+.sidebar nav{width:100%;flex-wrap:wrap}
+.job-bar{flex-wrap:nowrap;gap:8px}
+.job-indicator{flex-wrap:nowrap;min-width:0;flex:1}
+#job-indicator-text{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.job-clock{font-size:13px}
+}
+@media(max-width:640px){
+.job-notice{position:fixed;bottom:0;left:0;right:0;z-index:21;font-size:11px;gap:6px;box-shadow:0 -3px 16px #0002}
+.job-notice>span{flex:1 1 100%;overflow-wrap:anywhere}
+body:has(.job-notice:not([hidden])) main{padding-bottom:135px}
+}
+
+.candidate-previews{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:14px;margin:16px 0}.candidate-previews figure{margin:0;border:1px solid var(--line);border-radius:10px;overflow:hidden}.candidate-previews img{display:block;width:100%;height:auto;background:#05090c}.candidate-previews figcaption{padding:8px 10px;font-size:12px}

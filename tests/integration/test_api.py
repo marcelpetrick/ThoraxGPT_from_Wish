@@ -288,7 +288,7 @@ def test_demo_rejects_symlink_and_invalid_dicom(settings: Settings, tmp_path: Pa
 
 def test_runtime_library_metadata_traversal(monkeypatch: pytest.MonkeyPatch) -> None:
     def package(name: str) -> Message:
-        if name == "missing":
+        if name in {"missing", "torch", "torchvision", "monai"}:
             raise metadata.PackageNotFoundError(name)
         info = Message()
         info["Name"], info["Version"] = name, "1.0"
@@ -381,9 +381,9 @@ def test_comparison_rejects_invalid_missing_and_escaped_results(
 def test_pull_requires_known_configured_ollama_model_and_explicit_terms(
     client: TestClient, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    from thoraxbench.api import model_pulls
+    from thoraxbench.api import jobs
 
-    monkeypatch.setattr(model_pulls, "Thread", Mock())
+    monkeypatch.setattr(jobs, "Thread", Mock())
     for body in (
         {},
         {"terms_acknowledged": False},

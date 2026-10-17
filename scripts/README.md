@@ -123,3 +123,6 @@ filesystem state before retrying; do not delete either copy without verification
 Research use only. ThoraxBench Local is a self-made experimental tool, not professional
 medical advice. Its findings may be incorrect, incomplete or misleading. Do not use them
 for diagnosis or treatment decisions. Never commit medical data or model weights.
+
+The `ui-jobs` capture uses scripted server job state and elapsed time over the synthetic phantom.
+It does not run a vision model or measure inference latency.

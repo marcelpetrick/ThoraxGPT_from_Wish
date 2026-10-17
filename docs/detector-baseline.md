@@ -108,9 +108,28 @@ PNGs and one-based captions from millimetre centres. It supports axial/coronal p
 optional MIP slabs. Captions omit detector scores so a later verifier is not told the
 expected answer. Crop parameters and pixel hashes belong in verifier provenance.
 
-This is a shared core component. A detect → verify UI/CLI workflow is a separate integration
-step. Do not present crop generation alone as completed VLM verification. The detector
-returns no prepared PNGs; its report must never invent image evidence associations.
+The live GUI now lists each candidate's source, uncalibrated score, canonical centre and
+approximate box size. Select **Show source slice** to navigate to the nearest axial slice
+in the result's study. The action runs no inference and adds no verified overlay. The
+source-slice control is disabled when the slice is unavailable.
+
+The first 12 candidates receive axial and coronal 64 mm illustrative crops at 256 pixels;
+all candidates remain in the table and JSON. The HTML export embeds those illustrations
+and the Markdown export lists the candidates. These are post-inference review images,
+not detector inputs, model-image evidence or completed VLM verification. The standalone
+report remains usable offline. No stored benchmark case images are re-rendered.
+
+The model appears in **Model availability & setup**. Installation and weight acquisition
+remain manual commands, with explicit terms acknowledgement. The About inventory includes
+installed optional MONAI/PyTorch packages and their declared licenses. Both interface
+languages/themes and accessible tooltips apply to candidate review. The detector reads
+the HU volume; the source-slice count control does not affect it.
+
+Detector boxes with nonfinite coordinates/scores, invalid extents, out-of-volume positions
+or scores outside [0, 1] fail explicitly and abstain. Do not silently drop candidates,
+clamp scores, or interpret the failure as a negative study. Nonfinite crop centres are
+refused. Optional VLM verification remains gated on the image-path sanity/protocol work;
+this review flow starts no verifier inference.
 
 ## Upstream identity and deviations
 
@@ -140,3 +159,18 @@ state-dict synthetic CPU API smoke ran with PyTorch 2.14.1, torchvision 0.29.1 a
 boxes, and recorded 0.260 seconds of network time and approximately 1.02 GB process RSS.
 These are reduced synthetic API checks, not the default-ROI latency, a calibration result,
 a GPU measurement or evidence of detection accuracy. No new weight download was needed.
+
+## Review workflow
+
+```mermaid
+flowchart LR
+    D["Guarded development or synthetic DICOM"] --> N["Local RetinaNet inference"]
+    N --> C["Sourced candidates and uncalibrated scores"]
+    C --> V["Source slice and illustrative crops"]
+    C --> R["JSON, Markdown and offline HTML"]
+    C -. "Gated; not enabled here" .-> P["Optional P6 verification"]
+```
+
+The review images help inspect which proposal belongs to which location. They do not
+establish lesion presence. Stored benchmark case detail continues to show saved captions
+and image counts without re-rendering unavailable prepared pixels.

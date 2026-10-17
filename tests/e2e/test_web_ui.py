@@ -11,6 +11,8 @@ from pathlib import Path
 import pytest
 from playwright.sync_api import Page, Route, expect
 
+from tests.e2e.mock_jobs import MockJobs
+
 pytestmark = pytest.mark.e2e
 
 
@@ -192,7 +194,7 @@ def test_abstention_failure_and_missing_confidence_are_explicit(ui_page: Page) -
         "markdown": "Research only. Synthetic model failure; no useful prediction.",
         "downloads": {},
     }
-    page.route("**/api/analyze", lambda route: route.fulfill(json=response))
+    jobs = MockJobs(page, lambda _model: response)
     page.locator("#run-analysis").click()
     expect(page.locator("#metric-status")).to_have_text("Abstained")
     expect(page.locator("#metric-images")).to_have_text("—")
@@ -204,11 +206,7 @@ def test_abstention_failure_and_missing_confidence_are_explicit(ui_page: Page) -
     page.locator("#language-toggle").click()
     expect(page.locator("#metric-status")).to_have_text("Enthaltung")
     expect(page.locator("#slice-slider")).to_have_attribute("aria-valuetext", re.compile("Schicht"))
-    page.unroute("**/api/analyze")
-    page.route(
-        "**/api/analyze",
-        lambda route: route.fulfill(status=503, json={"detail": "Synthetic service offline"}),
-    )
+    jobs.respond = lambda _model: ("error", "Synthetic service offline")
     page.locator("#run-analysis").click()
     expect(page.locator("#notice")).to_contain_text("Anfrage fehlgeschlagen")
     expect(page.locator("#notice")).to_contain_text("Synthetic service offline")
@@ -256,41 +254,59 @@ def _check_about(page: Page, language: str) -> None:
 
 
 @pytest.mark.parametrize("outcome", ["completed", "error"])
-def test_request_elapsed_advances_while_pending_and_freezes(ui_page: Page, outcome: str) -> None:
+def test_job_elapsed_uses_server_clock_everywhere_and_freezes(ui_page: Page, outcome: str) -> None:
     page = ui_page
     page.locator("#create-demo").click()
     expect(page.locator("#run-analysis")).to_be_enabled()
     expect(page.locator("#request-forecast")).to_contain_text("Initial workstation guess")
-    pending: list[Route] = []
-
-    def hold_request(route: Route) -> None:
-        pending.append(route)
-
-    page.route("**/api/analyze", hold_request)
+    jobs = MockJobs(page, lambda _model: "hold")
     page.locator("#run-analysis").click()
     expect(page.locator("#request-timer")).to_be_visible()
-    assert len(pending) == 1
-    expect(page.locator("#request-elapsed")).to_have_text("0.0 s")
-    page.clock.fast_forward(1300)
-    expect(page.locator("#request-elapsed")).to_have_text("1.3 s")
-    page.clock.fast_forward(60_000)
+    expect(page.locator("#request-elapsed")).to_have_text("00:00")
+    # The server reports 75 s. Advancing browser time never invents server elapsed.
+    jobs.elapsed = 75
+    page.clock.fast_forward(1000)
+    expect(page.locator("#request-elapsed")).to_have_text("01:15")
+    page.clock.fast_forward(2000)
+    expect(page.locator("#request-elapsed")).to_have_text("01:15")
+    expect(page.locator("#job-bar")).to_contain_text("Running: Analysis · demo / phantom")
+    expect(page.locator("#job-indicator-elapsed")).to_have_text("01:15")
+    assert page.title().startswith("⏳ 01:15 · ThoraxBench Local")
     expect(page.locator("#request-forecast")).to_have_text(
         "Taking longer than estimated; still running"
     )
     expect(page.locator("#request-elapsed")).to_have_attribute("aria-live", "off")
-    expect(page.locator("#run-analysis")).to_be_disabled()
+    expect(page.locator("#job-indicator-elapsed")).to_have_attribute("aria-live", "off")
+    # Queueing stays possible while a job runs.
+    expect(page.locator("#run-analysis")).to_be_enabled()
+    page.locator("#nav-about").click()
+    expect(page.locator("#job-bar")).to_be_visible()
+    jobs.elapsed = 77
+    page.clock.fast_forward(1000)
+    expect(page.locator("#job-indicator-elapsed")).to_have_text("01:17")
+    page.locator("#nav-analysis").click()
     page.locator("#language-toggle").click()
-    expect(page.locator("#request-timer")).to_contain_text("Verstrichene Anfragezeit im Browser")
+    expect(page.locator("#request-timer")).to_contain_text("Laufzeit des Auftrags (Serveruhr)")
+    expect(page.locator("#job-bar")).to_contain_text("Läuft: Analyse")
+    _finish_and_check_frozen(page, jobs, outcome)
+
+
+def _finish_and_check_frozen(page: Page, jobs: MockJobs, outcome: str) -> None:
+    jobs.elapsed = 80
     if outcome == "completed":
-        pending[0].fulfill(json=_mock_model_output("heuristic-hu"))
+        jobs.finish(_mock_model_output("heuristic-hu"))
+        page.clock.fast_forward(1000)
         expect(page.locator("#metric-time")).to_have_text("0.100 s")
     else:
-        pending[0].fulfill(status=503, json={"detail": "Synthetic service offline"})
+        jobs.finish(("error", "Synthetic service offline"))
+        page.clock.fast_forward(1000)
         expect(page.locator("#notice")).to_contain_text("Anfrage fehlgeschlagen")
-    expect(page.locator("#run-analysis")).to_be_enabled()
-    stopped = page.locator("#request-elapsed").inner_text()
+    expect(page.locator("#request-elapsed")).to_have_text("01:20")
+    expect(page.locator("#job-bar")).to_be_hidden()
+    expect(page.locator("#job-notice")).to_be_visible()
     page.clock.fast_forward(5000)
-    expect(page.locator("#request-elapsed")).to_have_text(stopped)
+    expect(page.locator("#request-elapsed")).to_have_text("01:20")
+    assert not page.title().startswith("⏳")
     page.locator("#study-select").dispatch_event("change")
     expect(page.locator("#request-timer")).to_be_hidden()
     if outcome == "completed":
@@ -298,8 +314,7 @@ def test_request_elapsed_advances_while_pending_and_freezes(ui_page: Page, outco
             "Aus lokalem Anfrageverlauf geschätzt"
         )
         history = page.evaluate("JSON.parse(localStorage.getItem('thoraxbench.duration-history'))")
-        assert set(history) == {"heuristic-hu:4"}
-        assert all(isinstance(value, (int, float)) for value in history["heuristic-hu:4"])
+        assert history == {"heuristic-hu:4": [80]}
     else:
         assert page.evaluate("localStorage.getItem('thoraxbench.duration-history')") is None
 
@@ -344,46 +359,38 @@ def test_recommended_comparison_is_sequential_and_keeps_partial_results(ui_page:
     expect(page.locator("#image-count")).to_be_enabled()
     expect(page.locator("#model-select")).to_be_disabled()
     expect(page.locator("#comparison-body")).to_contain_text("Skipped: unavailable")
-    pending: list[Route] = []
     requested: list[str] = []
 
-    def respond(route: Route) -> None:
-        model = route.request.post_data_json["model_id"]
+    def respond(model: str) -> dict[str, object] | tuple[str, str] | str:
         requested.append(model)
         if model == "heuristic-hu":
-            pending.append(route)
-        elif model == "qwen3-vl-4b":
-            route.fulfill(status=503, json={"detail": "Synthetic service offline"})
-        else:
-            response = _mock_model_output(model, abstain=model == "medgemma1.5-q4")
-            if model == "medgemma1.5-q8":
-                response["result"]["report"]["findings"].insert(
-                    0, {"label": "pulmonary_nodule", "present": False, "confidence": 0.9}
-                )
-            route.fulfill(json=response)
+            return "hold"
+        if model == "qwen3-vl-4b":
+            return ("error", "Synthetic service offline")
+        response = _mock_model_output(model, abstain=model == "medgemma1.5-q4")
+        if model == "medgemma1.5-q8":
+            response["result"]["report"]["findings"].insert(  # type: ignore[index]
+                0, {"label": "pulmonary_nodule", "present": False, "confidence": 0.9}
+            )
+        return response
 
-    export_requests: list[dict[str, object]] = []
-
-    def export(route: Route) -> None:
-        export_requests.append(route.request.post_data_json)
-        route.fulfill(json={"downloads": {"html": "/mock/comparison.html"}})
-
-    page.route("**/api/analyze", respond)
-    page.route("**/api/compare", export)
+    recommended = [entry["id"] for entry in inventory if entry["recommended"]]
+    jobs = MockJobs(page, respond, models=[str(model) for model in recommended])
+    jobs.skip("gemma3-4b")
     page.locator("#run-analysis").click()
     expect(page.locator("#batch-status")).to_contain_text("heuristic-hu")
     assert requested == ["heuristic-hu"]
-    expect(page.locator("#compare-models")).to_be_disabled()
-    page.clock.fast_forward(2100)
-    expect(page.locator("#model-elapsed")).to_have_text("2.1 s")
-    pending[0].fulfill(json=_mock_model_output("heuristic-hu"))
+    assert jobs.requests[0]["kind"] == "comparison"
+    jobs.elapsed = 2.1
+    page.clock.fast_forward(1000)
+    expect(page.locator("#model-elapsed")).to_have_text("00:02")
+    jobs.finish_step(jobs.jobs[0], 0, _mock_model_output("heuristic-hu"))
+    page.clock.fast_forward(1000)
     expect(page.locator("#comparison-download")).to_be_visible()
-    _check_comparison_results(page, requested, export_requests)
+    _check_comparison_results(page, requested)
 
 
-def _check_comparison_results(
-    page: Page, requested: list[str], export_requests: list[dict[str, object]]
-) -> None:
+def _check_comparison_results(page: Page, requested: list[str]) -> None:
     assert requested == ["heuristic-hu", "medgemma1.5-q4", "medgemma1.5-q8", "qwen3-vl-4b"]
     expect(page.locator("#comparison-body tr[data-model='heuristic-hu']")).to_contain_text(
         "Completed"
@@ -402,9 +409,9 @@ def _check_comparison_results(
     expect(page.locator("#comparison-panel")).to_contain_text(
         "not directly comparable across model families"
     )
-    assert len(export_requests) == 1
-    assert len(export_requests[0]["result_ids"]) == 3
-    assert {entry["status"] for entry in export_requests[0]["omissions"]} == {"skipped", "error"}
+    expect(page.locator("#comparison-body tr[data-model='gemma3-4b']")).to_contain_text(
+        "Skipped: unavailable"
+    )
     expect(page.locator("#comparison-body tr[data-model='medgemma1.5-q8'] td").nth(2)).to_have_text(
         "9"
     )
@@ -440,7 +447,7 @@ def test_missing_confidence_is_uncertain_and_model_text_is_escaped(ui_page: Page
         {"label": "positive_low_confidence", "present": True, "confidence": 0.2},
         {"label": "negative_low_confidence", "present": False, "confidence": 0.2},
     ]
-    page.route("**/api/analyze", lambda route: route.fulfill(json=response))
+    MockJobs(page, lambda _model: response)
     page.locator("#run-analysis").click()
     row = page.locator("#findings-body tr").filter(has_text="<img src=x onerror=alert(1)>")
     expect(row.locator("td").nth(1)).to_have_text("Uncertain")
@@ -594,13 +601,10 @@ def test_slice_target_help_and_actual_prepared_image_count_are_distinct(ui_page:
         "coronal and multi-window views can add images"
     )
 
-    def respond(route: Route) -> None:
-        assert route.request.post_data_json["n_images"] == 2
-        route.fulfill(json=_mock_model_output("medgemma1.5-q4"))
-
-    page.route("**/api/analyze", respond)
+    jobs = MockJobs(page, lambda _model: _mock_model_output("medgemma1.5-q4"))
     page.locator("#run-analysis").click()
     expect(page.locator("#metric-images")).to_have_text("9")
+    assert jobs.requests[0]["n_images"] == 2
     expect(page.locator("#image-count")).to_have_value("2")
     summary = page.locator("#prepared-image-summary")
     expect(summary).to_contain_text("Actual prepared model images")
@@ -735,24 +739,20 @@ def test_about_history_preserves_pending_analysis_and_result_context(ui_page: Pa
     page = ui_page
     page.locator("#create-demo").click()
     expect(page.locator("#run-analysis")).to_be_enabled()
-    pending: list[Route] = []
-
-    def hold(route: Route) -> None:
-        pending.append(route)
-
-    page.route("**/api/analyze", hold)
+    jobs = MockJobs(page, lambda _model: "hold")
     page.locator("#run-analysis").click()
-    expect(page.locator("#run-analysis")).to_be_disabled()
+    expect(page.locator("#job-bar")).to_be_visible()
     page.locator("#nav-about").click()
     expect(page.locator("#about-page")).to_be_visible()
+    expect(page.locator("#job-bar")).to_contain_text("Running: Analysis")
     expect(page.locator("#libraries-table")).to_contain_text("fastapi")
     page.clock.fast_forward(2000)
     page.go_back()
     expect(page.locator("#analysis-page")).to_be_visible()
-    expect(page.locator("#run-analysis")).to_be_disabled()
-    assert len(pending) == 1
-    pending[0].fulfill(json=_mock_model_output("heuristic-hu"))
-    expect(page.locator("#run-analysis")).to_be_enabled()
+    expect(page.locator("#request-timer")).to_be_visible()
+    assert len(jobs.requests) == 1
+    jobs.finish(_mock_model_output("heuristic-hu"))
+    page.clock.fast_forward(1000)
     expect(page.locator("#result-context")).to_contain_text("demo / phantom")
     href = page.locator("#download-html").get_attribute("href")
     page.locator("#nav-about").click()
@@ -796,7 +796,7 @@ def test_translated_findings_and_education_require_explicit_presentation(ui_page
             }
         ]
     }
-    page.route("**/api/analyze", lambda route: route.fulfill(json=response))
+    MockJobs(page, lambda _model: response)
     page.locator("#run-analysis").click()
     row = page.locator("#findings-body tr").filter(has_text="pulmonary_nodule")
     expect(row).to_contain_text("Pulmonary nodule")

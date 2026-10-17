@@ -290,9 +290,8 @@ def test_box_round_trip_and_candidate_conversion() -> None:
     assert centre == pytest.approx((60.0, 40.0, 25.0))
     assert extent == pytest.approx((5.0, 8.0, 6.0))
     far = mm_to_box((10.0, 10.0, 10.0), (4.0, 4.0, 4.0), geometry)
-    bad = [math.nan] * 6
-    cands = candidates_from_boxes([far, box, bad], [0.3, 1.2, 0.9], geometry)
-    assert [c.score for c in cands] == [1.0, 0.3]  # clipped, sorted, non-finite dropped
+    cands = candidates_from_boxes([far, box], [0.3, 0.9], geometry)
+    assert [c.score for c in cands] == [0.9, 0.3]
     assert cands[0].diameter_mm == pytest.approx(8.0)
     assert cands[0].label == "pulmonary_nodule"
     assert candidates_from_boxes(np.zeros((0, 6)), [], geometry) == []
@@ -620,3 +619,31 @@ def test_detector_runtime_identity_tracks_device_and_packages(
     assert cuda["device_request"] == "cuda"
     assert set(cpu["packages"]) == {"torch", "torchvision", "monai"}
     assert cpu != cuda
+
+
+@pytest.mark.parametrize(
+    ("box", "score", "message"),
+    [
+        ([1, 1, 1, 3, 3, 3], 1.2, "outside"),
+        ([math.nan, 1, 1, 3, 3, 3], 0.9, "non-finite"),
+        ([1, 1, 1, 3, 3, 3], math.nan, "non-finite"),
+        ([3, 1, 1, 1, 3, 3], 0.9, "reversed"),
+        ([1, 1, 1, 1, 3, 3], 0.9, "empty"),
+        ([-1, 1, 1, 3, 3, 3], 0.9, "outside"),
+        ([1, 1, 1, 11, 3, 3], 0.9, "outside"),
+        ([9.2, 1, 1, 10, 3, 3], 0.9, "centre"),
+    ],
+)
+def test_invalid_detector_outputs_fail_explicitly(
+    box: list[float], score: float, message: str
+) -> None:
+    geometry = BundleGeometry((10, 10, 10), (1.0, 1.0, 1.0), (10, 10, 10))
+    with pytest.raises(ValueError, match=message):
+        candidates_from_boxes([box], [score], geometry)
+
+
+@pytest.mark.parametrize("centre", [(math.nan, 0, 0), (0, math.inf, 0)])
+def test_crop_rejects_nonfinite_centre(centre: tuple[float, float, float]) -> None:
+    volume = _sphere_volume((50, 30, 40), 3)
+    with pytest.raises(ValueError, match="finite"):
+        CandidateCropView(size=32).crop_hu(volume, centre, "axial")

@@ -13,6 +13,8 @@ from typing import Any
 import pytest
 from playwright.sync_api import Page, Route, expect
 
+from tests.e2e.mock_jobs import MockJobs
+
 pytestmark = pytest.mark.e2e
 
 ALLOWED_STORAGE = "['thoraxbench.language', 'thoraxbench.theme', 'thoraxbench.duration-history']"
@@ -135,9 +137,7 @@ def test_ux02_mobile_visual_and_keyboard_order(ui_page: Page, language: str, the
         page.locator("#language-toggle").click()
     if theme == "dark":
         page.locator("#theme-toggle").click()
-    page.route(
-        "**/api/analyze", lambda route: route.fulfill(json=_output("heuristic-hu", [NODULE]))
-    )
+    MockJobs(page, lambda _model: _output("heuristic-hu", [NODULE]))
     page.locator("#run-analysis").click()
     expect(page.locator("#results-content")).to_be_visible()
     page.set_viewport_size({"width": 390, "height": 844})
@@ -181,7 +181,7 @@ def test_ux03_grouping_unknown_labels_and_abstention_downloads(ui_page: Page) ->
         ]
     }
     response = _output("heuristic-hu", findings, presentation=presentation)
-    page.route("**/api/analyze", lambda route: route.fulfill(json=response))
+    jobs = MockJobs(page, lambda _model: response)
     page.locator("#run-analysis").click()
     rows = page.locator("#findings-body tr")
     expect(rows).to_have_count(5)
@@ -206,8 +206,7 @@ def test_ux03_grouping_unknown_labels_and_abstention_downloads(ui_page: Page) ->
         downloads={"json": "/mock/a.json", "markdown": "/mock/a.md", "html": "/mock/a.html"},
     )
     abstained["result"]["report"]["abstain"] = True
-    page.unroute("**/api/analyze")
-    page.route("**/api/analyze", lambda route: route.fulfill(json=abstained))
+    jobs.respond = lambda _model: abstained
     page.locator("#run-analysis").click()
     expect(page.locator("#metric-status")).to_have_text("Abstained")
     expect(rows).to_have_count(1)
@@ -283,34 +282,41 @@ def test_ux04_selection_leads_to_matching_setup_without_download(ui_page: Page) 
     assert pulls == []
 
 
-def test_ux05_session_notice_selection_and_storage(ui_page: Page) -> None:
+def test_ux05_job_status_on_every_page_selection_and_storage(ui_page: Page) -> None:
     page = ui_page
     _demo(page)
     selected = page.locator("#study-select").input_value()
-    pending: list[Route] = []
-    page.route("**/api/analyze", lambda route: pending.append(route))  # noqa: PLW0108
+    jobs = MockJobs(page, lambda _model: "hold")
     page.locator("#run-analysis").click()
-    expect(page.locator("#session-status")).to_be_hidden()
-    page.locator("#nav-about").click()
-    expect(page.locator("#session-status")).to_be_visible()
-    expect(page.locator("#session-status")).to_contain_text("does not cancel or repeat it")
+    expect(page.locator("#job-bar")).to_be_visible()
+    for target in ["#nav-about", "#nav-evaluation", "#nav-jobs"]:
+        page.locator(target).click()
+        expect(page.locator("#job-bar")).to_contain_text("Running: Analysis · demo / phantom")
+    expect(page.locator("#jobs-body tr").first).to_contain_text("Running")
     page.locator("#language-toggle").click()
-    expect(page.locator("#session-status")).to_contain_text("bricht sie weder ab")
+    expect(page.locator("#job-bar")).to_contain_text("Läuft: Analyse")
+    expect(page.locator("#jobs-body tr").first).to_contain_text("Stoppen")
+    page.locator("#language-toggle").click()
     page.locator("#nav-analysis").click()
-    expect(page.locator("#session-status")).to_be_hidden()
-    pending[0].fulfill(json=_output("heuristic-hu", [NODULE]))
-    expect(page.locator("#run-analysis")).to_be_enabled()
+    jobs.finish(_output("heuristic-hu", [NODULE]))
+    page.clock.fast_forward(1000)
+    expect(page.locator("#job-bar")).to_be_hidden()
+    expect(page.locator("#job-notice")).to_contain_text("Job finished: Succeeded")
+    expect(page.locator("#job-announcer")).to_contain_text("Job finished")
     page.locator("#nav-about").click()
-    expect(page.locator("#session-status")).to_be_hidden()
+    expect(page.locator("#job-notice")).to_be_visible()
+    page.locator("#job-notice-dismiss").click()
+    expect(page.locator("#job-notice")).to_be_hidden()
     page.locator("#nav-analysis").click()
     expect(page.locator("#study-select")).to_have_value(selected)
     expect(page.locator("#download-html")).to_have_attribute("href", "/mock/heuristic-hu.html")
-    assert len(pending) == 1
+    assert len(jobs.requests) == 1
     assert page.evaluate("sessionStorage.length") == 0
     assert page.evaluate(f"Object.keys(localStorage).every(key => {ALLOWED_STORAGE}.includes(key))")
     stored = page.evaluate("JSON.stringify(Object.values(localStorage))")
     assert "phantom" not in stored
     assert "Synthetic mocked model output" not in stored
+    assert jobs.jobs[0]["id"] not in stored
 
 
 def test_ux06_hover_grace_escape_and_tab_help(ui_page: Page) -> None:
@@ -387,13 +393,7 @@ def test_ux07_model_and_target_changes_mark_previous_result(ui_page: Page) -> No
     ]
     _inventory(page, models)
     _demo(page)
-    requests: list[str] = []
-
-    def respond(route: Route) -> None:
-        requests.append(route.request.post_data_json["model_id"])
-        route.fulfill(json=_output("heuristic-hu", [NODULE]))
-
-    page.route("**/api/analyze", respond)
+    jobs = MockJobs(page, lambda _model: _output("heuristic-hu", [NODULE]))
     page.locator("#run-analysis").click()
     expect(page.locator("#result-context")).to_contain_text("Model: heuristic-hu")
     expect(page.locator("#previous-settings")).to_be_hidden()
@@ -413,7 +413,7 @@ def test_ux07_model_and_target_changes_mark_previous_result(ui_page: Page) -> No
     page.locator("#language-toggle").click()
     page.locator("#model-select").select_option("medgemma1.5-q4")
     expect(marker).to_contain_text("früheren Einstellungen")
-    assert requests == ["heuristic-hu"]
+    assert [request["model_id"] for request in jobs.requests] == ["heuristic-hu"]
 
 
 def test_ux08_comparison_names_translate_and_identifiers_stay(ui_page: Page) -> None:
@@ -426,16 +426,10 @@ def test_ux08_comparison_names_translate_and_identifiers_stay(ui_page: Page) -> 
     _demo(page)
     unknown = {"label": "<i>odd_label</i>", "present": True, "confidence": 0.6}
 
-    def respond(route: Route) -> None:
-        model = route.request.post_data_json["model_id"]
-        route.fulfill(
-            json=_output(model, [NODULE, unknown] if model != "heuristic-hu" else [NODULE])
-        )
-
-    page.route("**/api/analyze", respond)
-    page.route(
-        "**/api/compare",
-        lambda route: route.fulfill(json={"downloads": {"html": "/mock/comparison.html"}}),
+    MockJobs(
+        page,
+        lambda model: _output(model, [NODULE, unknown] if model != "heuristic-hu" else [NODULE]),
+        models=["heuristic-hu", "medgemma1.5-q4"],
     )
     page.locator("#compare-models").check()
     page.locator("#run-analysis").click()

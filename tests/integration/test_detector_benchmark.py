@@ -53,7 +53,7 @@ def settings(tmp_path_factory: pytest.TempPathFactory) -> Settings:
         series = discover_series(staging)[0]
         (root / "raw" / "lidc_idri" / pid).mkdir(parents=True)
         staging.rename(root / "raw" / "lidc_idri" / pid / series.series_uid)
-        mark = NODULE.format(z=-100.0) if pid == "P1" else ""
+        mark = NODULE.format(z=100.0) if pid == "P1" else ""
         (xml_dir / f"{series.series_uid}.xml").write_text(XML.format(mark))
     (root / "raw" / "lidc_idri" / "SEALED").mkdir()
     repo = root / "repo"

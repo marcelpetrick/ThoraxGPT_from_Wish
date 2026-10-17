@@ -287,3 +287,23 @@ Deferred GUI scope: reference-scored comparison, persistent run history, referen
 volumetric navigation and reader-study mode. Reference scoring of development cases exists
 in the CLI only (`thoraxbench benchmark`). Sealed-holdout evaluation is not implemented;
 `benchmark --unseal` is refused, and the GUI provides no unseal shortcut.
+
+## Server-side jobs
+
+Analysis, model comparison and acknowledged Ollama downloads share one FIFO worker.
+Open **Jobs** to inspect waiting/running work, per-model steps and completed results.
+The status bar and tab title follow the server job on every page. Reloading a page does
+not start another inference. Duplicate active analysis submissions follow the existing job.
+Cancel queued work before it reaches a model. Stop running work at the next stage boundary;
+the connection closes, but the local provider may continue in the background. Completed
+comparison steps remain available when later work fails or is stopped.
+
+Elapsed times use the server monotonic clock. They freeze at completion and differ from
+recorded engine stages and rough wait estimates. Browser storage keeps preferences and
+numeric duration history only. Jobs/results links live in server memory (8 waiting,
+32 terminal jobs retained), so a server restart loses the queue and registered links.
+Saved report files remain under ignored `data/results/ui/`.
+
+**Checkpoint:** submit a synthetic analysis, open About, reload, then open Jobs. The same
+job remains visible. Cancel or inspect its completed report. If the server restarted,
+open the saved report from disk or submit a new job.

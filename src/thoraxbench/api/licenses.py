@@ -8,7 +8,7 @@ from importlib import metadata
 
 def runtime_libraries() -> list[dict[str, str]]:
     """Follow installed runtime requirements without reading source or license bodies."""
-    pending = ["thoraxbench"]
+    pending = ["thoraxbench", "monai", "torch", "torchvision"]
     seen: set[str] = set()
     libraries: list[dict[str, str]] = []
     while pending:

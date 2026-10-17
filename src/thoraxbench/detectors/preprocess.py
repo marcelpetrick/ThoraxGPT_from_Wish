@@ -135,14 +135,28 @@ def candidates_from_boxes(
     out: list[LesionCandidate] = []
     for box, score in zip(box_arr, score_arr, strict=True):
         if not np.all(np.isfinite(box)) or not np.isfinite(score):
-            continue
+            raise ValueError("detector returned non-finite boxes or scores")
+        if not 0.0 <= score <= 1.0:
+            raise ValueError("detector score is outside [0, 1]")
+        lower, upper = box[:3], box[3:]
+        shape_xyz = np.asarray(geometry.resampled_shape_zyx[::-1])
+        if np.any(lower < 0) or np.any(upper > shape_xyz) or np.any(upper <= lower):
+            raise ValueError("detector box is reversed, empty or outside the prepared volume")
         centre, extent = box_to_mm(box, geometry)
+        source_extent = [
+            (n - 1) * spacing
+            for n, spacing in zip(
+                geometry.source_shape_zyx, geometry.source_spacing_zyx, strict=True
+            )
+        ]
+        if any(c < 0 or c > limit for c, limit in zip(centre, source_extent, strict=True)):
+            raise ValueError("detector candidate centre is outside the source volume")
         out.append(
             LesionCandidate(
                 label=label,
                 center_zyx_mm=(round(centre[0], 2), round(centre[1], 2), round(centre[2], 2)),
                 diameter_mm=round(max(extent[1], extent[2]), 2),
-                score=round(float(min(max(score, 0.0), 1.0)), 6),
+                score=round(float(score), 6),
             )
         )
     return sorted(out, key=lambda c: -c.score)

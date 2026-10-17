@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import hashlib
 import re
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
@@ -118,7 +119,7 @@ def _check_image_evidence(report: FindingsReport, n_images: int, *, required: bo
             )
 
 
-def analyze_study(
+def analyze_study(  # noqa: PLR0915 - one linear, staged engine pipeline
     study: Study,
     model_id: str,
     settings: Settings,
@@ -127,12 +128,17 @@ def analyze_study(
     prompt_id: str | None = None,
     view_overrides: dict[str, Any] | None = None,
     client: httpx.Client | None = None,
+    on_stage: Callable[[str], None] | None = None,
 ) -> AnalysisResult:
     """Run *model_id* on *study* and return the parsed, timed, provenance-stamped result.
 
     Inadequate studies abstain before rendering or inference. Runtime failures and
-    invalid model responses remain inspectable in the returned result.
+    invalid model responses remain inspectable in the returned result. *on_stage* is
+    called with ``preprocess``, ``inference`` and ``parse`` before each stage starts; the
+    UI job queue uses it to show the current stage and to stop at stage boundaries (an
+    exception it raises propagates unchanged).
     """
+    announce = on_stage or (lambda _stage: None)
     if request is not None and prompt_id is not None and request.prompt_id != prompt_id:
         msg = "request.prompt_id and prompt_id must agree"
         raise ValueError(msg)
@@ -159,11 +165,14 @@ def analyze_study(
                 parse_warnings=[raw.error or "inadequate study"],
             )
         else:
+            announce("preprocess")
             with m.stage("preprocess"):
                 _ = study.cues
                 prepared = model.prepare(study, req)
+            announce("inference")
             with m.stage("inference"):
                 raw = model.infer(prepared, req)
+            announce("parse")
             with m.stage("parse"):
                 report = model.parse(raw)
                 if not report.study_quality.adequate:

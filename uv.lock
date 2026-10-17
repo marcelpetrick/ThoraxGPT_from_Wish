@@ -1746,6 +1746,7 @@ name = "thoraxbench"
 source = { editable = "." }
 dependencies = [
     { name = "fastapi" },
+    { name = "httpcore" },
     { name = "httpx" },
     { name = "jinja2" },
     { name = "numpy" },
@@ -1783,6 +1784,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "fastapi", specifier = "==0.143.2" },
+    { name = "httpcore", specifier = "==1.0.9" },
     { name = "httpx", specifier = "==0.28.1" },
     { name = "jinja2", specifier = "==3.1.6" },
     { name = "monai", marker = "extra == 'detector'", specifier = "==1.6.1" },

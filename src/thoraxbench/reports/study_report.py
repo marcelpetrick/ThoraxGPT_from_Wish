@@ -110,6 +110,8 @@ def _finding_section(entry: ClinicalEntry, f: Finding) -> list[str]:
     out += [
         f"**What it means:** {_cell(entry.plain_language)}",
         "",
+        f"**Source:** {_cell(f.source)}",
+        "",
         f"**What the model saw:** {'; '.join(evidence) or 'no further detail given'}",
         "",
         f"**Severity:** {sev.name.lower()} ({why}). More serious when: "
@@ -235,6 +237,31 @@ def render_study_report(
             *[f"- ⚠ {_cell(x)}" for x in rep.urgent_flags],
             "",
         ]
+    if usable and rep.lesions is not None:
+        lines += [
+            "## Localised candidates (research reference)",
+            "",
+            "Detector scores are uncalibrated. Box size is approximate. Coordinates are "
+            "canonical (z, y, x) millimetres, not patient/world coordinates. "
+            "Crops in the HTML export are post-inference illustrations, not VLM verification.",
+            "",
+            "Possible training overlap: "
+            f"{result.view_meta.get('possible_training_overlap', 'unknown')}. "
+            "LUNA16-trained detector results on LIDC-IDRI cannot establish unbiased accuracy.",
+            "",
+            "| Candidate | Label | Source | Score | Centre z/y/x (mm) | Box size (mm) |",
+            "|---|---|---|---:|---|---:|",
+        ]
+        for number, lesion in enumerate(rep.lesions, start=1):
+            centre = ", ".join(f"{c:.2f}" for c in lesion.center_zyx_mm)
+            size = "unknown" if lesion.diameter_mm is None else f"{lesion.diameter_mm:.2f}"
+            lines.append(
+                f"| {number} | {_cell(lesion.label)} | {_cell(lesion.source)} | "
+                f"{lesion.score:.3f} | {centre} | {size} |"
+            )
+        if not rep.lesions:
+            lines += ["", "No detector candidates returned. This does not establish health."]
+        lines.append("")
     lines += ["## Deterministic measurements", "", result.context or "none", ""]
     if reference is not None:
         lines += _reference_section(result, reference, limits)

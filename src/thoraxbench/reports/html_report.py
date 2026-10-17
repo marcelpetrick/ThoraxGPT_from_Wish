@@ -10,6 +10,7 @@ from thoraxbench.analysis import AnalysisResult
 from thoraxbench.config import Settings
 from thoraxbench.ontology.clinical import load_clinical_kb
 from thoraxbench.ontology.guidelines import fleischner
+from thoraxbench.reports.candidates import candidate_review
 from thoraxbench.reports.study_report import (
     probability_of,
     render_study_report,
@@ -194,7 +195,7 @@ def _findings(result: AnalysisResult, anchors: dict[int, str]) -> str:
             f"<tr><td>{escape(name)}<code>{escape(finding.label)}</code></td>"
             f'<td><span class="status {status.replace(" ", "-")}">{status}</span></td>'
             f'<td class="score">{score}</td><td>{_severity_context(finding)}</td>'
-            f"<td>{escape(finding.description)}</td>"
+            f"<td>Source: {escape(finding.source)}<br>{escape(finding.description)}</td>"
             f"<td>{evidence}</td></tr>"
         )
     if not rows:
@@ -210,6 +211,54 @@ def _findings(result: AnalysisResult, anchors: dict[int, str]) -> str:
         "<th>Score</th><th>Typical severity (educational)</th><th>Observation</th>"
         "<th>Evidence</th></tr></thead><tbody>" + "".join(rows) + "</tbody></table>"
         "</div>"
+    )
+
+
+def _candidate_gallery(result: AnalysisResult, study: Study) -> str:
+    review = candidate_review(result, study)
+    if review is None:
+        return ""
+    rows: list[str] = []
+    figures: list[str] = []
+    for candidate in review["candidates"]:
+        number = candidate["number"]
+        previews = candidate["previews"]
+        centre = ", ".join(f"{c:.2f}" for c in candidate["center_zyx_mm"])
+        size = candidate["diameter_mm"]
+        link = f'<a href="#candidate-{number}-axial">{number}</a>' if previews else str(number)
+        rows.append(
+            f"<tr><td>{link}</td><td>{escape(candidate['source'])}</td>"
+            f"<td>{candidate['score']:.3f}</td><td>{centre}</td>"
+            f"<td>{size if size is not None else 'unknown'}</td></tr>"
+        )
+        for preview in previews:
+            plane = preview["plane"]
+            caption = (
+                f"Candidate {number}: {plane} illustrative crop; source: {candidate['source']}"
+            )
+            figures.append(
+                f'<figure id="candidate-{number}-{plane}"><img '
+                f'src="{preview["data_url"]}" alt="{escape(caption, quote=True)}">'
+                f"<figcaption>{escape(caption)}</figcaption></figure>"
+            )
+    if not rows:
+        rows.append(
+            '<tr><td colspan="5">No detector candidates. This does not establish health.</td></tr>'
+        )
+    return (
+        '<section class="panel" id="candidates"><h2>Localised detector candidates</h2>'
+        '<p class="notice">Post-inference illustrations only. These crops were not input '
+        "to the detector or verified by a VLM. Detector scores are uncalibrated. LUNA16 "
+        "training overlaps LIDC-IDRI; results there cannot establish unbiased accuracy.</p>"
+        f"<p>{review['previewed']} of {review['total']} candidates have axial/coronal previews. "
+        "64 mm lung-window crops; size is approximate. Coordinates are canonical z/y/x "
+        "millimetres, not patient/world coordinates. Possible training overlap: "
+        f"{escape(str(review['possible_training_overlap']))}.</p>"
+        f"<p>Illustrative crop view SHA-256: <code>{review['crop_view_sha256']}</code></p>"
+        '<div class="table-wrap"><table><thead><tr><th>Candidate</th><th>Source</th>'
+        "<th>Detector score</th><th>Centre z/y/x (mm)</th><th>Box size (mm)</th>"
+        "</tr></thead><tbody>" + "".join(rows) + "</tbody></table></div>"
+        '<div class="gallery">' + "".join(figures) + "</div></section>"
     )
 
 
@@ -284,6 +333,7 @@ def render_html_report(result: AnalysisResult, study: Study) -> str:
         + '</section><section class="panel" id="images">'
         + gallery
         + "</section>"
+        + _candidate_gallery(result, study)
         + _educational_context(result)
         + '<details id="report"><summary>Complete research report and educational context</summary>'
         f"<pre>{escape(markdown)}</pre></details>"
