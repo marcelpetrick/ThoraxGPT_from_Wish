@@ -111,7 +111,20 @@ Status: ✅ done · 🔄 in progress · ⏳ open · ✖ dropped
 
 ## Current activity
 
-- **About contribution link (user request, 2026-10-17):** add the canonical GitHub
+- **Recorded report review (2026-10-17):** add direct new-tab HTML opening beside
+  offline downloads in results, comparison rows/combined export and partial/abstained Jobs
+  steps. Reuse registered output IDs and recheck guarded paths. Report-only CSP permits
+  embedded images/styles and blocks scripts/network; the application policy stays strict.
+  Separate deterministic Input QC, model image assessment and usable-reading status;
+  expose truncation reasons and recorded generation diagnostics. Configured comparison
+  starts with detector/heuristic baselines and uses the explicit Qwen no-think control.
+  Validate synthetic EN/DE desktop/mobile flows, inline downloads and path protections.
+  Runtime integration uses Q4/Q8 P5 schema-v2, uniform raw axial 896-pixel inputs,
+  no cues/coronal/MIP views and repeatable focused CLI labels; UI counts remain overrides.
+  These are completion/input fixes, not established recognition readiness.
+  Model recovery and live checks are tracked in [the recovery plan](model-recovery-plan-2026-10-17.md).
+
+- **About contribution link (complete, 2026-10-17, `6b919ee`):** added the canonical GitHub
   repository link with translated EN/DE text and keyboard/hover help. Open it in a new tab
   with `noopener noreferrer`. Replace the stale benchmark-pending description with the
   implemented study/candidate/recorded-benchmark workflow. Refresh the synthetic About

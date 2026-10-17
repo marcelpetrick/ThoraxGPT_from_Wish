@@ -66,3 +66,46 @@ def test_real_job_survives_navigation_reload_and_can_be_cancelled(
             assert exported.ok
             assert "data:image/png;base64," in exported.text()
             assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
+
+
+@pytest.mark.parametrize("german", [False, True])
+def test_partial_abstained_comparison_report_opens_in_new_tab(tmp_path: Path, german: bool) -> None:
+    with fake_ollama(["medgemma1.5:4b-it-q4_K_M"]) as provider:
+        settings = Settings(data_dir=tmp_path / "data", ollama_url=provider.url)
+        with serve(settings) as address, browser_page(address) as page:
+            page.set_viewport_size({"width": 390, "height": 844})
+            page.locator("#create-demo").click()
+            expect(page.locator("#run-analysis")).to_be_enabled()
+            if german:
+                page.locator("#language-toggle").click()
+                page.locator("#theme-toggle").click()
+            provider.release(8)
+            page.request.post(
+                address + "/api/jobs",
+                data={
+                    "kind": "comparison",
+                    "dataset": "demo",
+                    "case_id": "phantom",
+                    "n_images": 1,
+                },
+            )
+            page.locator("#nav-jobs").click()
+            page.clock.fast_forward(2000)
+            row = page.locator(".job-step").filter(has_text="medgemma1.5-q4")
+            opened = row.locator('a[target="_blank"]')
+            expect(opened).to_be_visible(timeout=30_000)
+            expect(opened).to_contain_text(
+                "HTML in neuem Tab öffnen" if german else "Open HTML in new tab"
+            )
+            assert row.locator("a[download]").count() == 1
+            with page.expect_popup() as popup:
+                opened.click()
+            report = popup.value
+            expect(report.get_by_role("heading", name="Abstention", exact=True)).to_be_visible()
+            expect(report.get_by_role("img").first).to_be_visible()
+            assert (
+                report.evaluate("getComputedStyle(document.querySelector('.hero')).backgroundImage")
+                != "none"
+            )
+            report.close()
+            assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")

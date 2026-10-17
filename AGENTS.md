@@ -143,6 +143,13 @@ as measured inference progress, benchmark latency or guaranteed deadlines. Persi
 numeric durations keyed by model/image count. Model downloads are explicit configured-tag
 Ollama pulls after terms acknowledgement. Show current-layer bytes accurately. Keep HTTP
 services and gated weights on a manual provider-approved setup path; never bypass access.
+Offer direct new-tab HTML review beside downloads for completed and abstained/partial
+outputs. Reuse registered, guarded result URLs; inline disposition applies only to HTML.
+Keep application CSP strict and allow embedded image/style content only under the report's
+script/network-blocking policy. Distinguish deterministic Input QC, model image assessment
+and usable-reading status; preserve per-call truncation diagnostics without recovering
+incomplete findings. Configured comparisons start with detector/heuristic baselines and
+use the explicit Qwen no-think control; availability is not a quality recommendation.
 Offer self-contained HTML exports with embedded previews and experimental findings. Use
 actual prepared model images; label heuristic source-slice previews as illustrations. Model
 image numbers follow one-based captions; heuristic source slice indices are zero-based.

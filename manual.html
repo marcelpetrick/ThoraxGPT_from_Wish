@@ -69,12 +69,12 @@ uv run thoraxbench --help</code></pre><p>Expect a version, the research disclaim
 <li><strong>Inspect the study viewer.</strong><p>Move the slice slider. Use the Left and Right arrow keys when the slider has focus. Change the display window to Lung, Mediastinum, Bone or Abdomen. Window changes affect the viewer only.</p></li>
 <li><strong>Select “heuristic-hu” as the model.</strong><p>This baseline uses HU-volume measurements. It sends no rendered images to a vision model. The image-count control does not affect its predictions.</p></li>
 <li><strong>Select “Run analysis locally”.</strong><p>Wait for a completed result or explicit failure/abstention. “Job elapsed (server clock)” shows time since the worker started, including loading, inference and reporting. It differs from recorded “Engine stages”. Expect synthetic nodule and effusion findings.</p></li>
-<li><strong>Read the status before you read the findings.</strong><p>Check study quality, the finding table, severity/review context and the English research report. Follow the interpretation checklist on the next page.</p></li>
-<li><strong>Select “Download HTML”.</strong><p>Open the saved file in a browser. Check the findings and embedded image gallery. Also save JSON for structured output and “Download report” for Markdown.</p></li>
+<li><strong>Read the status before you read the findings.</strong><p>Check Input QC, model image assessment, abstention reason and the finding table. These checks are separate. A sampled-image negative cannot exclude findings elsewhere in the study. Follow the interpretation checklist on the next page.</p></li>
+<li><strong>Select “Open HTML in new tab”.</strong><p>Inspect findings and embedded images in the new tab. Use “Download HTML” for an offline copy. Also save JSON for structured output and “Download report” for Markdown.</p></li>
 </ol>
-<div class="check"><strong>Checkpoint:</strong> The HTML report opens after you stop the server. It needs no external images, fonts, scripts or internet access. Missing evidence references remain explicit.</div>
-<h3>Optional: compare the recommended local models</h3>
-<p>Enable “Compare recommended local models”, then select “Compare local models”. Available <code>heuristic-hu</code>, MedGemma Q4/Q8, Gemma 3 and Qwen3-VL run sequentially; unavailable models are skipped. “Batch progress” shows the current model, not inference percent. Save per-model downloads and “Download comparison HTML”. See <a href="#model-setup">model setup and rough wait estimates</a> before a longer run.</p>
+<div class="check"><strong>Checkpoint:</strong> The saved “Download HTML” copy opens after you stop the server. Direct review links need the running server. It needs no external images, fonts, scripts or internet access. Missing evidence references remain explicit.</div>
+<h3>Optional: compare configured research models</h3>
+<p>Enable “Compare configured research models”, then select “Compare local models”. Available detector and heuristic baselines, MedGemma Q4/Q8, Gemma 3 and the Qwen3-VL no-think control run sequentially; unavailable models are skipped. “Batch progress” shows the current model, not inference percent. Save per-model downloads and “Download comparison HTML”. See <a href="#model-setup">model setup and rough wait estimates</a> before a longer run.</p>
 <h3>Keyboard help and preferences</h3>
 <p>Use Tab to reach controls and help-bearing fields. Focus or hover shows translated help after a short delay; you can move the pointer onto it. Escape dismisses it until you move to another control. The language switch selects English or German. The theme switch selects light or dark. Both choices persist in this browser. Reports and prompts remain English. About lists attribution and licenses, plus GitHub access for forks and contributions.</p>
 
@@ -123,13 +123,14 @@ uv run thoraxbench --help</code></pre><p>Expect a version, the research disclaim
 <p>First check availability. A configured model is not necessarily installed, licensed for your intended use, or accurate.</p>
 <pre><code>uv run thoraxbench models
 uv run thoraxbench analyze data/demo/manual \
-  --model medgemma1.5-q4 --n 4 \
+  --model medgemma1.5-q4 --n 16 --label pulmonary_nodule \
   --output data/results/manual/vision.json \
   --report data/results/manual/vision.md \
   --html data/results/manual/vision.html</code></pre>
-<p>The model must already exist in local Ollama. Larger image requests may take minutes. Empty predictions, truncated output, invalid responses and unsuitable inputs can cause abstention.</p>
+<p class="small">Q4/Q8 use P5 schema-v2: 16 uniform raw axial images at 896 pixels, without coronal/MIP views or heuristic cues. The UI overrides the requested count; its four-image default stays sparse. These are completion/input fixes, not established recognition readiness.</p>
+<p class="small">The model must exist in local Ollama. Runs may take minutes. Truncation, invalid responses or unsuitable inputs can cause abstention.</p>
 <h3>Available overrides</h3>
-<p><code>--model</code> selects an ID from <code>configs/models/</code>. <code>--prompt</code> selects P0–P5 (P5: strict schema, <code>IMAGE k</code> captions, no heuristic context). <code>thoraxbench coverage</code> reports how many calibration reference nodules land on attached images. <code>--strategy</code> overrides the sampling strategy. <code>--n</code> requests a positive number of sampled slices; the browser limits it to 1–16. Use <code>uv run thoraxbench analyze --help</code> for the current options.</p>
+<p class="small"><code>--model</code> selects a configured model. <code>--prompt</code> selects P0–P5; P5 uses a bounded schema, <code>IMAGE k</code> captions and no heuristic context. Repeat <code>--label</code> for focused labels. <code>--strategy</code> and <code>--n</code> override slice sampling. The browser permits 1–16 slices. <code>thoraxbench coverage</code> checks calibration reference coverage. Read <code>uv run thoraxbench analyze --help</code> for all options.</p>
 <p class="small">HTML output must be inside the configured data directory's <code>results/</code> folder. Destinations or symlinks that escape that folder are rejected before inference. JSON and Markdown examples also stay inside ignored results storage.</p>
 <footer><span>Research use only · Synthetic demonstrations do not measure accuracy</span><span>05 / 16</span></footer>
 </section>

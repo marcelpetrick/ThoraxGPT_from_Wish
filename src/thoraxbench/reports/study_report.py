@@ -59,7 +59,18 @@ def _cell(text: str) -> str:
 def _header(result: AnalysisResult) -> list[str]:
     rep, qc = result.report, result.qc
     spacing = qc.get("spacing_mm", ("?", "?", "?"))
-    adequate = rep.study_quality.adequate and not rep.abstain
+    assessment = (
+        "unavailable"
+        if rep.abstain or result.raw_error
+        else ("adequate" if rep.study_quality.adequate else "limited")
+    )
+    input_qc = (
+        "adequate"
+        if qc.get("adequate") is True
+        else "limited"
+        if qc.get("adequate") is False
+        else "unavailable"
+    )
     limits = rep.study_quality.limitations
     out = [
         f"# Chest CT research report — {result.case_id}",
@@ -72,8 +83,8 @@ def _header(result: AnalysisResult) -> list[str]:
         f"(patient `{result.patient_id}`)",
         f"- Series: `{result.series_uid}` — {qc.get('n_slices', '?')} slices, slice spacing "
         f"{spacing[0]} mm, coverage {float(qc.get('axial_coverage_mm', 0.0)):.0f} mm",
-        f"- Study quality: {'adequate' if adequate else 'limited'}"
-        + (f" — {'; '.join(limits)}" if limits else ""),
+        f"- Input QC (deterministic): {input_qc}",
+        f"- Model image assessment: {assessment}" + (f" — {'; '.join(limits)}" if limits else ""),
         f"- Model: `{result.model_id}` (local), {len(result.image_captions)} image(s), sampling "
         f"`{result.view_meta.get('strategy', '-')}`, prompt `{result.request.prompt_id}`, "
         f"{result.perf.total_s:.1f} s",

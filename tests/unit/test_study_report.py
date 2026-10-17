@@ -93,7 +93,7 @@ def test_empty_and_failed_report(result: AnalysisResult) -> None:
     result.raw_error = "local runtime unavailable"
     result.report.parse_warnings = ["failed to parse"]
     text = render_study_report(result)
-    assert "Study quality: limited" in text
+    assert "Model image assessment: unavailable" in text
     assert "## Abstention" in text
     assert "local runtime unavailable" in text
     assert "failed to parse" in text

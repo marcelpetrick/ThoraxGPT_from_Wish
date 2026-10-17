@@ -109,7 +109,7 @@ def test_queue_duplicate_cancel_and_stop_aborts_provider_request(
 def test_comparison_job_preserves_steps_and_exports(client: TestClient, ollama: FakeOllama) -> None:
     ollama.release(4)
     job = _submit(client, kind="comparison", n_images=2)["job"]
-    assert next(step["model_id"] for step in job["steps"]) == "heuristic-hu"
+    assert next(step["model_id"] for step in job["steps"]) == "monai-lung-nodule"
     planned = {step["model_id"]: step["status"] for step in job["steps"]}
     assert planned["medgemma1.5-q4"] == "waiting"
     assert planned["gemma3-4b"] == "skipped"
@@ -117,7 +117,7 @@ def test_comparison_job_preserves_steps_and_exports(client: TestClient, ollama: 
     steps = {step["model_id"]: step for step in done["steps"]}
     assert steps["medgemma1.5-q4"]["status"] == "abstained"
     assert steps["medgemma1.5-q4"]["output"]["result"]["report"]["abstain"] is True
-    assert steps["qwen3-vl-4b"]["status"] == "skipped"
+    assert steps["qwen3-vl-4b-nothink"]["status"] == "skipped"
     assert steps["heuristic-hu"]["elapsed_s"] is not None
     assert done["status"] in {"succeeded", "abstained"}
     exported = client.get(done["result"]["comparison_download"])

@@ -78,6 +78,21 @@ def test_demo_slices_analysis_and_downloads(client: TestClient) -> None:
     assert html.headers["content-type"].startswith("text/html")
     assert "data:image/png;base64," in html.text
     assert "Source slice index" in html.text
+    assert "attachment" in html.headers["content-disposition"]
+    opened = client.get(body["downloads"]["html"] + "?inline=true")
+    assert opened.text == html.text
+    assert opened.headers["content-disposition"].startswith("inline;")
+    policy = opened.headers["content-security-policy"]
+    assert "default-src 'none'" in policy
+    assert "style-src 'unsafe-inline'" in policy
+    assert "img-src data:" in policy
+    assert "unsafe-inline" not in client.get("/").headers["content-security-policy"]
+    for kind in ("json", "markdown"):
+        assert (
+            client.get(body["downloads"][kind] + "?inline=true")
+            .headers["content-disposition"]
+            .startswith("attachment;")
+        )
     assert "prepared_images" not in saved.json()
     assert client.get(f"/api/results/{uuid4()}/json").status_code == 404
     assert client.get(f"/api/results/{body['id']}/other").status_code == 404
@@ -177,10 +192,12 @@ def test_download_rechecks_output_path_and_missing_files(
     path = settings.data_path("results", "ui", result["id"], "report.html")
     path.unlink()
     assert client.get(result["downloads"]["html"]).status_code == 404
+    assert client.get(result["downloads"]["html"] + "?inline=true").status_code == 404
     outside = tmp_path / "outside.html"
     outside.write_text("private")
     path.symlink_to(outside)
     assert client.get(result["downloads"]["html"]).status_code == 404
+    assert client.get(result["downloads"]["html"] + "?inline=true").status_code == 404
 
 
 def test_about_reports_installed_runtime_libraries(client: TestClient) -> None:

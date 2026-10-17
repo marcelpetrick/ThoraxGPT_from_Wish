@@ -101,10 +101,28 @@ def test_synthetic_study_analysis_downloads_and_about(
     assert "research" in report.lower()
     assert "not medical advice" in report.lower()
     assert "nodule" in report.lower()
+    _check_inline_report(page)
     _check_html_export(page, tmp_path)
     page.set_viewport_size({"width": 390, "height": 844})
     assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")
     _check_about(page, language)
+
+
+def _check_inline_report(page: Page) -> None:
+    with page.expect_popup() as popup:
+        page.locator("#open-html").click()
+    review = popup.value
+    review.wait_for_load_state()
+    expect(review.get_by_role("img").first).to_be_visible()
+    assert (
+        review.evaluate("getComputedStyle(document.querySelector('.hero')).backgroundImage")
+        != "none"
+    )
+    assert review.evaluate("window.opener === null")
+    review.wait_for_function(
+        "[...document.images].every(image => image.complete && image.naturalWidth > 0)"
+    )
+    review.close()
 
 
 def _check_html_export(page: Page, tmp_path: Path) -> None:
@@ -199,6 +217,10 @@ def test_abstention_failure_and_missing_confidence_are_explicit(ui_page: Page) -
     expect(page.locator("#metric-status")).to_have_text("Abstained")
     expect(page.locator("#metric-images")).to_have_text("—")
     expect(page.locator("#notice")).to_contain_text("The engine abstained")
+    expect(page.locator("#result-abstention")).to_contain_text("Synthetic model failure")
+    expect(page.locator("#result-reading-summary")).to_contain_text(
+        "Model image assessment: Unavailable"
+    )
     row = page.locator("#findings-body tr").first
     expect(row).to_have_text("No prediction")
     expect(row).not_to_contain_text("<img src=x onerror=alert(1)>")
@@ -401,6 +423,9 @@ def _check_comparison_results(page: Page, requested: list[str]) -> None:
     expect(page.locator("#comparison-body tr[data-model='qwen3-vl-4b']")).to_contain_text(
         "Synthetic service offline"
     )
+    opened = page.locator("#comparison-body tr[data-model='medgemma1.5-q4'] a[target='_blank']")
+    expect(opened).to_have_attribute("href", "/mock/medgemma1.5-q4.html?inline=true")
+    expect(page.locator("#comparison-open")).to_have_attribute("href", re.compile(r"inline=true$"))
     expect(page.locator("#comparison-findings-table")).to_contain_text("pulmonary_nodule")
     expect(page.locator("#comparison-findings-table")).to_contain_text("0.80")
     expect(page.locator("#comparison-findings-body tr td").nth(3)).to_have_text(
