@@ -41,7 +41,7 @@ runs and no network access happens. The comparison outputs and the download prog
 mocked in the browser and labeled as mocked. Evaluation shots read synthetic benchmark runs
 with scripted model outputs. Never capture patient studies.
 
-The table lists the eleven committed synthetic screenshots. The capture script can
+The table lists the twelve committed synthetic screenshots. The capture script can
 regenerate them; compare the output before replacing tracked images.
 
 | PNG in `docs/assets/` | Content |
@@ -50,6 +50,7 @@ regenerate them; compare the output before replacing tracked images.
 | `ui-results.png` | Real `heuristic-hu` findings below the research banner (full page) |
 | `ui-comparison.png` | Sequential comparison: completed, abstained, failed and skipped models (panel) |
 | `ui-model-setup.png` | Model availability, terms acknowledgement, mocked download progress (panel) |
+| `ui-jobs.png` | Shared processing queue with mocked job states |
 | `ui-about.png` | About page with author, purpose and dependency licenses (full page) |
 | `ui-dark-de.png` | German interface in dark mode after a heuristic run (1440 × 900) |
 | `ui-mobile.png` | Synthetic study at 390 × 844 phone width |
@@ -139,3 +140,7 @@ This sends four synthetic inputs (sphere/control × two windows), one condition 
 up to eight local calls. It writes unique raw/provenance artifacts under ignored
 `data/results/p6-probe/`. It reads no real or sealed patients. Both latest readiness gates
 failed; see `docs/model-usage-review-2026-10-17.md`. Do not present it as accuracy.
+
+Use `--view full --slab-mm 5 --window both` for the separate selected-plane synthetic
+context check. This is a known target plane, not detection. Its latest categorical gate
+also failed. Raw responses and source/script hashes remain preserved per invocation.

@@ -427,3 +427,25 @@ def test_control_margin_uses_rendered_voxel_edges() -> None:
     gap = max((lo - 0.5) * dz - 100.0, 100.0 - (hi - 0.5) * dz) - 5.0
     assert recorded_gap == gap
     assert gap >= 30.0
+
+
+def test_image_dependence_keeps_positive_and_control_sources_separate() -> None:
+    records = [
+        _rec(
+            key=f"phantom-{target}-{condition}",
+            group="same-pair",
+            condition=condition,
+            truth=truth,
+            answer=answer,
+            p_yes=score,
+        )
+        for target, truth, answer, score in [("sphere", 1, "yes", 0.9), ("control", 0, "no", 0.1)]
+        for condition in ["real", "gray", "noise", "none"]
+    ]
+    rows = sn.image_dependence_metrics(records)
+    assert len(rows) == 2
+    by = {row["source"]: row for row in rows}
+    assert by["phantom-sphere"]["truth"] == 1
+    assert by["phantom-sphere"]["real"]["answer"] == "yes"
+    assert by["phantom-control"]["truth"] == 0
+    assert by["phantom-control"]["real"]["answer"] == "no"

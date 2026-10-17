@@ -17,6 +17,14 @@ known LUNA16 training overlap; this is not unbiased accuracy. Offline image/text
 remain under ignored `data/results/detector-review/`. P6 single-image reasoning did not
 solve categorical readiness: all four synthetic sphere/control answers were yes.
 
+Clean v0.4.8 follow-up: S1 completed fourteen requests in 132.6 s, all categorical no;
+S3 completed twelve synthetic descriptions in 118.4 s. Q4 described the RGB sphere nodule
+once but misidentified other anatomy; Q8/Qwen descriptions were also unreliable. The
+original S1 summary mixed sources within one phantom pair. Raw records remain unchanged;
+the corrected four-row aggregation and regression are documented in the usage review.
+A separate full-field P6 check took 24.07 s and again returned four categorical yes answers.
+Neither crop nor full-field P6 passed readiness. No internal-test/sealed data was tuned on.
+
 ## E000 — heuristic HU pipeline baseline (2026-10-15)
 
 **What this is.** A *pipeline baseline of a deterministic HU heuristic*. It shows that the

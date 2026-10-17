@@ -6,7 +6,8 @@ Readiness diagnostics before any further prompt or adaptation work. Each diagnos
 hashed YAML file under ``configs/experiments/sanity/``:
 
 * ``image_dependence`` (S1): the same question with real prepared images, uniform grey,
-  noise, shuffled order and no images. Identical answers mean the image path is ignored.
+  noise, shuffled order and no images. Identical answers fail readiness; they do not
+  establish by themselves that the image path is ignored.
 * ``obvious_target`` (S2): synthetic phantom with a large nodule vs the same phantom
   without, single image or multi-image.
 * ``description`` (S3): free-text description of one image, recorded verbatim.
@@ -59,7 +60,7 @@ from thoraxbench.scoring.classification import auroc_auprc, bootstrap_ci
 from thoraxbench.splits import Phase
 from thoraxbench.splits.guard import config_sha256
 
-SANITY_VERSION = "2"
+SANITY_VERSION = "3"
 SAFE_ID = r"^[A-Za-z0-9][A-Za-z0-9_.-]*$"
 FRAMING = (
     "Readiness diagnostic on synthetic phantoms and calibration-phase cases only. It tests "
@@ -785,8 +786,14 @@ def _split(
 def image_dependence_metrics(records: Sequence[dict[str, Any]]) -> list[dict[str, Any]]:
     """Per model/window/layout/source: answer and P(yes) per condition plus deltas to real."""
     rows: list[dict[str, Any]] = []
+    # Group is a patient/phantom pair identifier; it can contain both sphere and control.
+    # Compare perturbations of the same source image set, never overwrite another source.
+    sources = [
+        r | {"source_key": str(r.get("key", r["group"])).removesuffix(f"-{r['condition']}")}
+        for r in records
+    ]
     for (model, window, layout, group), recs in _split(
-        records, "model", "window", "layout", "group"
+        sources, "model", "window", "layout", "source_key"
     ).items():
         by = {r["condition"]: r for r in recs}
         real = by.get("real", {})

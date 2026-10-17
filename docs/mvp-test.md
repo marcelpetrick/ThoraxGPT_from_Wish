@@ -199,3 +199,12 @@ were regenerated together; all 11 PDF pages have the matching numbered footer.
 The LinkedIn pilots and readiness steps are [planned separately](linkedin-video-plan.md).
 No public recording has been made. A passing gate establishes software checks, not model
 accuracy or readiness for clinical use.
+
+## Detector and protocol integration — 2026-10-17
+
+Version 0.4.8 (`76927e9`) passed **828 tests, 97.84% coverage**, strict typing, formatting,
+lint, build, clean-wheel installation and the locked dependency audit including optional
+extras. GitHub Actions run `39042799803` independently passed. Synthetic browser tests cover
+sourced detector candidates, source navigation, offline previews, EN/light, DE/dark and P6
+one-image controls. These software checks do not establish medical accuracy. Real calibration
+and bounded synthetic results are recorded in `docs/model-usage-review-2026-10-17.md`.

@@ -61,7 +61,7 @@ pinned revision. Do not replace a checksum or disable verification to accept oth
    ```bash
    uv run --extra detector thoraxbench analyze data/demo/mvp \
      --model monai-lung-nodule --output data/results/detector-demo.json \
-     --report data/results/detector-demo.md
+     --report data/results/detector-demo.md --html data/results/detector-demo.html
    ```
 
 **Checkpoint:** the result identifies the detector and records candidates, weights digest,
@@ -174,3 +174,11 @@ flowchart LR
 The review images help inspect which proposal belongs to which location. They do not
 establish lesion presence. Stored benchmark case detail continues to show saved captions
 and image counts without re-rendering unavailable prepared pixels.
+
+## Recorded local readiness
+
+Three calibration studies at the existing 0.5 cutoff produced eleven proposals: eight
+indexed-reference matches and three unmatched. The positive pair took 77.31 s and the
+annotation-negative control 27.92 s. LIDC has known training overlap. These results establish
+reviewable output, not unbiased accuracy. See [the usage review](model-usage-review-2026-10-17.md)
+for references, GPU memory, provenance, limitations and the separate failed VLM gates.

@@ -28,7 +28,7 @@ Its example uses greedy Hugging Face generation with a 2000-token limit. It is n
 validated lung-nodule detector recipe. Our earlier multi-label strict JSON, MIP/slab views
 and Ollama message layout were application choices, not an exact reproduction.
 
-MedGemma is Google's medical adaptation of Gemma; local GGUF packaging is a separate
+MedGemma is Google's medical adaptation of Gemma 3; local GGUF packaging is a separate
 runtime conversion. Check the exact configured source, tag, digest and terms rather than
 attributing third-party packaging to Google. See the [official model card](https://huggingface.co/google/medgemma-1.5-4b-it).
 
@@ -107,9 +107,44 @@ ignored output folder. Never use the sealed split to tune this workflow.
 
 ## Remaining scientific work
 
-Complete bounded S1/S3 controls and, if approved weights become available, official BF16
-runtime parity. Require nonconstant calibrated-case answers and defensible visual evidence
+Extend the completed bounded S1/S3 controls to real calibration examples and, if approved
+weights become available, perform official BF16 runtime parity. Require nonconstant calibrated-case answers and defensible visual evidence
 before enabling VLM crop verification. A useful detector reference baseline is available
 now; a reliable MedGemma verifier is not. Broader sweeps, QLoRA and LAN inference remain
 on hold. The current RQ1 answer is limited to this runtime, these tasks and these calibration
 checks; it is not a verdict on every medical foundation model.
+
+## Bounded follow-up and RQ1 interim answer
+
+Clean commit `76927e9` (v0.4.8) completed S1 in 132.6 s: fourteen requests, all categorical
+answers no, across sphere/control and real/grey/noise/no-image conditions. Actual nonempty
+inputs each contained four images. Scores varied; constant answers do not establish an
+ignored image path. A summary grouping bug combined sphere/control records within the
+same phantom pair. The raw fourteen records were preserved. The fix groups perturbations
+by source input key; a regression test keeps both sources separate. Corrected post-hoc
+aggregation has four source/layout rows under ignored `data/results/sanity-review/` and
+records the original result and aggregation source hashes. The original artifact is unchanged.
+
+S3 `--limit 1` completed twelve single-image descriptions in 118.4 s on the same clean
+commit: a matched synthetic sphere/control pair, two windows and three models. Q4 correctly
+described chest/lung/nodule for the sphere in RGB, but described the lung-window sphere as
+an abdomen with no abnormality. Q8 also misidentified anatomy and hallucinated findings on
+controls. Qwen called the phantom a symbolic graphic. These are qualitative synthetic
+observations, not validated description scores or evidence for real-study accuracy.
+
+This motivated one separately recorded P6 full-field check at the known synthetic target
+plane with 5 mm MIP context. It took 24.07 s; all four answers were again yes. RGB
+control/sphere scores were 0.96059/0.98022. Both categorical gates failed. Its identity
+records a dirty diagnostic checkout and exact source/script hashes. No thresholds were
+chosen from these pairs. The new script options allow reproduction:
+
+```bash
+uv run python scripts/probe_p6.py --view full --slab-mm 5 --window both
+```
+
+**RQ1 interim answer:** useful study-level MedGemma CT accuracy has not been established.
+Output coverage and JSON reliability improved, but categorical decisions and visual binding
+remain unreliable on these bounded checks. Some image-dependent signal exists, so a blanket
+claim that MedGemma cannot see CT is unsupported. The supervised detector provides usable
+research candidate review now, with its training overlap and sparse-reference limits.
+Official-runtime parity, real candidate verification and sealed evaluation remain open.

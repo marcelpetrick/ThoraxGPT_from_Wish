@@ -24,7 +24,8 @@ Any framework can continue from the repository alone. Read this section, then
 **Current integration checkpoint:** detector and sourced UI review are integrated at
 `535ee24`; W3 was pushed at `da473be`. W1 commits through `37f59e7` plus uncommitted P6
 were recovered by the lead; older calibration work was ported with compatibility tests.
-The final integration uses the normal full commit gate. Both delegated workers hit their
+Integration `76927e9` v0.4.8 passed 828 tests / 97.84% and GitHub CI; final follow-up
+fixes S1 summary grouping and records bounded controls through the normal full gate. Both delegated workers hit their
 service usage limit and are no longer running. Preserve the old worktrees/stashes as
 recovery copies until the user chooses cleanup. Do not merge their old diffs again without
 comparing with main. See [the model-usage review](docs/model-usage-review-2026-10-17.md).
@@ -38,7 +39,7 @@ conflict, then `scripts/commit.sh "<message>"` (bumps, full gate, pushes).
 
 | Worktree id | Work item | State at handover | Next action |
 |---|---|---|---|
-| `agent-a2713de6be2350cab` | W1 image-path sanity gate (`thoraxbench sanity`, `configs/experiments/sanity/`) | committed through `37f59e7`; P6 recovered by lead | Compare main before reuse; S1/S3/parity remain open |
+| `agent-a2713de6be2350cab` | W1 image-path sanity gate (`thoraxbench sanity`, `configs/experiments/sanity/`) | committed through `37f59e7`; P6 recovered by lead | Compare main before reuse; bounded S1/S3 complete; expanded controls/parity open |
 | `agent-a97e30bcce02518f3` | W2 MONAI detector baseline + W6 sourced review | integrated `535ee24` | Keep as recovery copy; weights only under ignored `data/` |
 | main checkout | W3 job layer (`src/thoraxbench/api/jobs.py`, `abortable_http.py`) | committed/pushed `da473be`, full gate green | Preserve the shared queue and truthful stage-boundary cancellation during integration |
 | `agent-aebf84a0219298401` | Older session: calibration fitting on the calibration phase, training-overlap tagging, E005–E008 configs (commit `a0b01d7`) | **ported by lead**, base `9e27cef` (old) | Do not reapply blindly; main contains the port with opt-in fitting and legacy export tests |

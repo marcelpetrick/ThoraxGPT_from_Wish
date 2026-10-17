@@ -111,9 +111,11 @@ Status: ✅ done · 🔄 in progress · ⏳ open · ✖ dropped
 
 ## Current activity
 
-- **Lead integration checkpoint (2026-10-17):** W2/W3/W6 are integrated at `535ee24`.
-  W1 commits through `37f59e7`, P6 and recovered calibration changes are being consolidated
-  through the full gate. Both delegated workers stopped at their service usage limit;
+- **Lead integration checkpoint (2026-10-17):** v0.4.8 `76927e9` is pushed with W1/P6,
+  W2/W3/W6 and recovered calibration work. Full gate: 828 tests, 97.84% coverage; GitHub
+  Actions `39042799803` passed. The final follow-up fixes S1 summary grouping, records bounded
+  S1/S3/P6 evidence and synchronizes traceability through the full gate. Both delegated
+  workers stopped at their service usage limit;
   the lead recovered their work and owns completion. No GPU agent is running.
 - **Useful-output evidence:** three calibration-only detector studies yield eleven proposals
   at the existing 0.5 cutoff: eight indexed-reference matches and three unmatched. Positive
@@ -123,7 +125,8 @@ Status: ✅ done · 🔄 in progress · ⏳ open · ✖ dropped
 - **MedGemma verdict:** S2 categorical gate fails; T2 Q4 binding is 5/20 and 1/20 (both fail).
   P6 one-image reasoning/extraction is implemented but all four synthetic sphere/control
   outputs were yes. Both window readiness gates fail. Do not enable VLM candidate filtering.
-  S1/S3 completion and approved official BF16 parity remain scientific follow-up work.
+  Bounded synthetic S1/S3 are complete; expanded calibration controls and approved BF16
+  parity remain scientific follow-up work.
 
 
 - **W6 detector review (2026-10-17):** added manual detector setup/availability, optional
@@ -173,13 +176,13 @@ Status: ✅ done · 🔄 in progress · ⏳ open · ✖ dropped
 
   | # | Work item | Where | State | Merge / done criterion |
   |---|---|---|---|---|
-  | W1 | Image-path sanity gate (T0 layout audit, T2 position binding, S1 blank/noise/shuffle, S2 synthetic spheres, S3 description, S4 paired lesion/control slabs, optional bf16 parity) | lead integration | Core/gates implemented; S1/S3/parity open | Results in `results.md`; gate verdict recorded; full gate green; merged by the lead |
+  | W1 | Image-path sanity gate (T0 layout audit, T2 position binding, S1 blank/noise/shuffle, S2 synthetic spheres, S3 description, S4 paired lesion/control slabs, optional bf16 parity) | lead integration | Core plus bounded S1/S2/S3/S4/T2 recorded; expanded controls/parity open | Results in `results.md`; gate verdict recorded; full gate green; merged by the lead |
   | W2 | Detector reference baseline (MONAI RetinaNet, inference only, overlap-flagged), lesion-level Task C, crop-export view | merged `535ee24` | Implemented; three calibration checks recorded | Explicit weight download, tests with stub network, calibration results, merged |
   | W3 | Job layer: server-side sequential queue, cancel/stop, persistent status bar on all pages and in the tab title, Jobs panel, fixed elapsed display | lead, main checkout | ✅ `da473be`, 680 tests / 98.28% | Playwright: navigate/reload keeps the running job visible; cancel works; docs/manual/screenshots refreshed |
   | W4 | Official-protocol prompt P6 (interleaved `SLICE k`, one label per query, P(yes)), non-constant-output readiness check | lead integration | Implemented single-image adaptation; readiness failed | No claim of official runtime parity |
   | W5 | VLM crop verification of detector candidates | after W2 + W4 | Gated: categorical readiness fails | Requires a successful calibrated-case verification gate |
   | W6 | Usable workflow: study → detector → candidates in viewer → optional VLM check → sourced findings → report, all through the W3 job layer; Evaluation shows these runs | detector review worker, after W2 + W3 | Detector review implemented and tested; VLM verification gated | Synthetic e2e in EN/DE, light/dark, mobile; source navigation and offline HTML; manual synchronized |
-  | W7 | RQ1 report with overlap column; status/plan/AGENTS sync; self-review; worktree and stash cleanup proposal | lead | Report recorded; final integration gate | Final full gate, pushed |
+  | W7 | RQ1 report with overlap column; status/plan/AGENTS sync; self-review; worktree and stash cleanup proposal | lead | Interim RQ1 report recorded; v0.4.8 gate/CI green | Final full gate, pushed |
 
 - 🔄 **Program status and approach check (2026-10-17):** full-program state, real-data
   verdict and the decision plan are in [the status report](status-2026-10-17.md). Running:
@@ -196,7 +199,7 @@ Status: ✅ done · 🔄 in progress · ⏳ open · ✖ dropped
 
 - W1 bounded follow-up (2026-10-17): Q4 single/lung 30 mm synthetic gate completed: 0/10
   positive answers, 10/10 negative answers, 71.1 s. Categorical positive criterion fails
-  despite probability-score separation. Full Q4 T2 completed with both layouts failing. Bounded S1 remains open. Narrowed configurations have separate IDs; no held-out inputs are used.
+  despite probability-score separation. Full Q4 T2 completed with both layouts failing. Bounded S1 completed with fourteen categorical no answers; original raw output preserved. Narrowed configurations have separate IDs; no held-out inputs are used.
 - W1 handover review (2026-10-17): sanity CLI/configs already committed in this worktree.
   Recovered completed S2 `--limit 1` synthetic smoke and S4 calibration paired-slab evidence;
   aggregate results and caveats are in `docs/results.md`. S1, full S2/T2, S3 review and
@@ -531,9 +534,9 @@ Ideas not yet scheduled (need a separate decision):
 ## Next steps (in order)
 
 
-Current executable workflow: detector → sourced candidate review → offline HTML. Finish
-integration tests, manual synchronization and gated push first. Scientific follow-up is
-bounded S1/S3 and approved HF parity. P6 is implemented but failed readiness; VLM
+Current executable workflow: detector → sourced candidate review → offline HTML. The v0.4.8 integration gate, manual synchronization and push passed. The follow-up
+contains the source-grouping regression and final evidence/traceability update. Scientific follow-up is
+expanded calibration controls and approved HF parity. P6 is implemented but failed readiness; VLM
 verification stays disabled. The numbered sequence below retains the approved research
 order, not a claim that its unfinished gates are running.
 
@@ -546,10 +549,10 @@ calibration phase only; each change is a separately hashed configuration.
    lesion/control 5 mm slabs with one yes/no question each (slice-level AUROC, yes-rate on
    controls). Optional HF bf16 parity if weights are available without new terms. Gate:
    if blank-vs-real or the 30 mm sphere fails in every format → failed readiness; separate runtime, task and model causes before assigning blame.
-2. ⏳ **Official protocol prompt (P6):** interleaved image + `SLICE k`, one label per query,
+2. 🔄 **Official-style protocol prompt (P6; implemented single-image adaptation, readiness failed):** interleaved image + `SLICE k`, one label per query,
    short reasoning then constrained yes/no, P(yes) scoring from logprobs on short answers.
-   Add a non-constant-output readiness criterion. Only then rerun E001-schema-style checks.
-3. 🔄 **Detector reference baseline:** MONAI `lung_nodule_ct_detection` (RetinaNet,
+   The nonconstant-output criterion is implemented and failed. Official HF parity remains open.
+3. ✅ **Detector reference baseline (implemented, overlap-limited calibration checks recorded):** MONAI `lung_nodule_ct_detection` (RetinaNet,
    Apache-2.0), inference only, weights in ignored `data/`. `possible_training_overlap: yes`
    on LIDC (LUNA16 ⊂ LIDC), out of distribution on NSCLC. Lesion-level Task C (sensitivity
    at 1/2/4/8 FP per scan) plus study-level max score.
