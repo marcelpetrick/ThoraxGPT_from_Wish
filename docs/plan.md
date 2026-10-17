@@ -101,6 +101,10 @@ Status: ✅ done · 🔄 in progress · ⏳ open · ✖ dropped
 
 ## Current activity
 
+- 🔄 **Program status and approach check (2026-10-17):** full-program state, real-data
+  verdict and the decision plan are in [the status report](status-2026-10-17.md). Running:
+  image-path sanity tests, a paired lesion/control slab test (calibration only) and a web
+  review of whether the small-VLM approach is viable. Direction is decided after these.
 - 🔄 **Completion plan (user request, 2026-10-16 evening):** the user asked for a full
   resume, UX completion, refreshed screenshots, end-to-end tests, a real-data recognition
   check, a fine-tuning strategy and a rethink of the UI for the evaluation workflow, and
