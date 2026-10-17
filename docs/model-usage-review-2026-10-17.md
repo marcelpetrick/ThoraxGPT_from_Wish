@@ -148,3 +148,27 @@ remain unreliable on these bounded checks. Some image-dependent signal exists, s
 claim that MedGemma cannot see CT is unsupported. The supervised detector provides usable
 research candidate review now, with its training overlap and sparse-reference limits.
 Official-runtime parity, real candidate verification and sealed evaluation remain open.
+
+## Real GUI job API verification — 2026-10-17
+
+Clean commit `981e1ec` (v0.4.9) completed one existing LIDC calibration study through
+`POST /api/jobs`, model `monai-lung-nodule`. Polling reached `succeeded`; the report did
+not abstain and recorded no raw error. End-to-end client wall time, including polling
+and HTML download, was **40.93 s**. This repeats an earlier calibration study; it does
+not increase the independent study count or establish accuracy. LIDC training overlap
+remains **yes**. Browser tests and screenshots still use synthetic studies only.
+
+| Check | Recorded result |
+|---|---|
+| Candidate source | All nineteen candidates labelled detector |
+| Existing 0.5 cutoff | Eight candidates; no threshold fitting |
+| Previews | First twelve candidates, axial/coronal illustrations |
+| Offline download | HTTP 200, 616855 bytes, embedded PNG pixels present |
+| Environment | ThoraxBench 0.4.9, PyTorch 2.14.1, MONAI 1.6.1; CUDA and detector availability true |
+| Pinned bundle | All five files passed size/SHA-256 verification; no download during inference |
+
+The local saved run is `data/results/ui/7747a176-39c1-43d4-8fb9-c45329998929/`.
+`result.json`, `report.md`, `report.html` and `verification.json` remain ignored. Patient
+pixels and case identifiers are not reproduced here. Open the local `report.html` offline;
+registered HTTP download links expire when the server restarts. Other machines must
+produce their own run. Setup commands are in [the detector guide](detector-baseline.md).

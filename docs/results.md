@@ -25,6 +25,11 @@ the corrected four-row aggregation and regression are documented in the usage re
 A separate full-field P6 check took 24.07 s and again returned four categorical yes answers.
 Neither crop nor full-field P6 passed readiness. No internal-test/sealed data was tuned on.
 
+The clean v0.4.9 GUI job API repeat completed in 40.93 s with nineteen sourced candidates,
+eight at the existing 0.5 cutoff, and a 616855-byte image-bearing offline HTML download.
+This is the same calibration study, not additional independent accuracy evidence. See the
+[recorded execution check](model-usage-review-2026-10-17.md#real-gui-job-api-verification--2026-10-17).
+
 ## E000 — heuristic HU pipeline baseline (2026-10-15)
 
 **What this is.** A *pipeline baseline of a deterministic HU heuristic*. It shows that the

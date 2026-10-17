@@ -208,3 +208,10 @@ extras. GitHub Actions run `39042799803` independently passed. Synthetic browser
 sourced detector candidates, source navigation, offline previews, EN/light, DE/dark and P6
 one-image controls. These software checks do not establish medical accuracy. Real calibration
 and bounded synthetic results are recorded in `docs/model-usage-review-2026-10-17.md`.
+
+Version 0.4.9 (`981e1ec`) also passed the full gate: **829 tests, 97.84% coverage**, with
+[GitHub run 39043586041](https://github.com/marcelpetrick/ThoraxGPT_from_Wish/actions/runs/39043586041)
+independently green. The new regression prevents S1 sphere/control source mixing. A real
+calibration study then completed through the GUI job API in 40.93 s with sourced candidates
+and a verified offline image/text download. This manual execution check is separate from
+the synthetic automated/browser suite. See the usage review for provenance and limitations.

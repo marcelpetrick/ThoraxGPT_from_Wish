@@ -111,12 +111,17 @@ Status: ✅ done · 🔄 in progress · ⏳ open · ✖ dropped
 
 ## Current activity
 
-- **Lead integration checkpoint (2026-10-17):** v0.4.8 `76927e9` is pushed with W1/P6,
-  W2/W3/W6 and recovered calibration work. Full gate: 828 tests, 97.84% coverage; GitHub
-  Actions `39042799803` passed. The final follow-up fixes S1 summary grouping, records bounded
-  S1/S3/P6 evidence and synchronizes traceability through the full gate. Both delegated
-  workers stopped at their service usage limit;
-  the lead recovered their work and owns completion. No GPU agent is running.
+- **Verified engine checkpoint (2026-10-17):** v0.4.9 `981e1ec` is pushed. Full gate:
+  829 tests / 97.84% coverage; GitHub Actions `39043586041` passed. W1/P6, W2/W3/W6,
+  the S1 source-grouping regression and recovered calibration work are integrated.
+  Both delegated workers stopped at their service usage limit. No agent or GPU run remains
+  active. Recovery worktrees and stashes are preserved; do not reapply their old diffs.
+- **Real GUI job API check:** clean v0.4.9 completed a calibration study in 40.93 s with
+  nineteen detector candidates (eight at the existing 0.5 cutoff), previews for twelve
+  candidates and an offline HTML download with embedded images. No browser screenshot
+  used patient data. Saved report and verification metadata remain under ignored
+  `data/results/ui/7747a176-39c1-43d4-8fb9-c45329998929/`. This repeats one earlier study;
+  do not count it as an additional independent calibration case.
 - **Useful-output evidence:** three calibration-only detector studies yield eleven proposals
   at the existing 0.5 cutoff: eight indexed-reference matches and three unmatched. Positive
   pair 77.31 s, annotation-negative control 27.92 s. LIDC overlap **yes**; no unbiased accuracy
@@ -139,7 +144,7 @@ Status: ✅ done · 🔄 in progress · ⏳ open · ✖ dropped
   safe stage boundary. Optional VLM verification
   remains gated on image-path sanity and the official protocol.
 
-- 🔄 **Older calibration work recovered (2026-10-17):** ported the fitting core and
+- ✅ **Older calibration work recovered (2026-10-17):** ported the fitting core and
   synthetic tests from `a0b01d7` onto the detector baseline in an isolated checkout.
   Fitting is opt-in, uses calibration records only and applies to internal-test only.
   Raw metrics remain separate. Recorded overlap now reaches HTML/CSV/export manifests;
@@ -155,7 +160,7 @@ Status: ✅ done · 🔄 in progress · ⏳ open · ✖ dropped
   pipeline without downloading weights. Detect → VLM verify → review remains an integration
   task. Do not claim unbiased LIDC accuracy or numerically identical upstream preprocessing.
 
-- 🔄 **W3 committed/pushed `da473be` (2026-10-17):** analysis, comparisons and
+- ✅ **W3 committed/pushed `da473be` (2026-10-17):** analysis, comparisons and
   explicit Ollama pulls share a bounded server FIFO. Running jobs survive browser navigation
   and reload, expose stage/server elapsed and support cooperative stop with socket closure.
   Queued work cancels before provider access. Synthetic real-queue browser tests cover
@@ -182,19 +187,18 @@ Status: ✅ done · 🔄 in progress · ⏳ open · ✖ dropped
   | W4 | Official-protocol prompt P6 (interleaved `SLICE k`, one label per query, P(yes)), non-constant-output readiness check | lead integration | Implemented single-image adaptation; readiness failed | No claim of official runtime parity |
   | W5 | VLM crop verification of detector candidates | after W2 + W4 | Gated: categorical readiness fails | Requires a successful calibrated-case verification gate |
   | W6 | Usable workflow: study → detector → candidates in viewer → optional VLM check → sourced findings → report, all through the W3 job layer; Evaluation shows these runs | detector review worker, after W2 + W3 | Detector review implemented and tested; VLM verification gated | Synthetic e2e in EN/DE, light/dark, mobile; source navigation and offline HTML; manual synchronized |
-  | W7 | RQ1 report with overlap column; status/plan/AGENTS sync; self-review; worktree and stash cleanup proposal | lead | Interim RQ1 report recorded; v0.4.8 gate/CI green | Final full gate, pushed |
+  | W7 | RQ1 report with overlap column; status/plan/AGENTS sync; self-review; worktree and stash cleanup proposal | lead | Interim report, source-grouping fix and self-review delivered; v0.4.9 gate/CI green | Final full gate, pushed |
 
-- 🔄 **Program status and approach check (2026-10-17):** full-program state, real-data
-  verdict and the decision plan are in [the status report](status-2026-10-17.md). Running:
-  image-path sanity tests, a paired lesion/control slab test (calibration only) and a web
-  review of whether the small-VLM approach is viable. Direction is decided after these.
+- **Program status and approach check:** the detector workflow is available and tested.
+  Bounded sanity runs and the literature/usage review are recorded. MedGemma verification
+  remains gated; expanded calibration controls and approved BF16 parity are follow-up work.
 
 - W4 P6 implementation (2026-10-17): isolated standard Ollama adapter supports one label
   per visual request, short reasoning then a constrained binary answer call with token
   logprobs. Dedicated one-image/no-cues configuration; missing/truncated outputs remain
   unavailable; both calls are retained. A shared readiness summary distinguishes
   categorical nonconstancy from score discrimination. Synthetic/mocked acceptance tests
-  pass; full gate and a clean-commit bounded live probe follow. This is a local adaptation,
+  pass; v0.4.9 full gate and bounded live probes are recorded. This is a local adaptation,
   not HF/runtime parity or whole-study detection. See `docs/p6.md`.
 
 - W1 bounded follow-up (2026-10-17): Q4 single/lung 30 mm synthetic gate completed: 0/10
@@ -534,11 +538,11 @@ Ideas not yet scheduled (need a separate decision):
 ## Next steps (in order)
 
 
-Current executable workflow: detector → sourced candidate review → offline HTML. The v0.4.8 integration gate, manual synchronization and push passed. The follow-up
-contains the source-grouping regression and final evidence/traceability update. Scientific follow-up is
-expanded calibration controls and approved HF parity. P6 is implemented but failed readiness; VLM
-verification stays disabled. The numbered sequence below retains the approved research
-order, not a claim that its unfinished gates are running.
+Current executable workflow: detector → sourced candidate review → offline HTML. The
+v0.4.9 gate and GitHub CI passed; a real calibration study also passed the GUI job API
+and offline-download check. Scientific follow-up is expanded calibration controls and
+approved HF parity. P6 failed readiness, so VLM verification stays disabled. The numbered
+sequence below retains the approved research order and marks delivered parts explicitly.
 
 Decision record 2026-10-17 (user-approved approach-review plan). All real-data runs use the
 calibration phase only; each change is a separately hashed configuration.
@@ -559,15 +563,17 @@ calibration phase only; each change is a separately hashed configuration.
 4. ⏳ **VLM crop verification:** ≈64 mm lung-window crops (axial, optional coronal) around
    detector/heuristic candidates; "nodule vs vessel/none" per crop; score FP/scan at fixed
    sensitivity against the detector alone. Run only if step 1 shows crop-level signal.
-5. ⏳ **Usable workflow (user request):** one guided path in UI and CLI — choose study →
-   run detector → review candidate list with crops and positions in the viewer → optional
-   VLM verification per candidate → findings with clear source (detector / VLM / heuristic),
-   limitations and overlap flags → offline HTML/Markdown report download. Evaluation section
-   shows detector and verification runs. Synthetic e2e tests, refreshed screenshots/manual.
-6. ⏳ **RQ1 report:** honest result table (VLM study level, VLM slab/crop level, detector,
+5. ✅/🔄 **Usable detector workflow delivered; VLM verification remains gated:** choose
+   study → run detector → review candidates, crops and source slices → inspect sourced
+   findings and limitations → download offline HTML/Markdown. Evaluation shows stored
+   detector benchmark runs. Synthetic e2e and real calibration API checks are recorded;
+   screenshots/manual are synchronized. Per-candidate VLM verification is not enabled.
+
+6. ✅ **Interim RQ1 report delivered:** honest result table (VLM study level, VLM slab/crop level, detector,
    heuristic) with overlap column; negative results stay visible.
-7. ⏳ Close remaining ranked gaps: calibration fitting, overlap column in all reports,
-   E005–E008 configurations. Preserve the historical NSCLC index uncertainty.
+7. ✅ Calibration fitting is opt-in and wired; overlap flags reach reports/exports;
+   E005–E008 planning configurations refuse execution. Preserve the historical NSCLC
+   index uncertainty. Real-model calibration benefit is not established.
 8. On hold: E002–E004 study-level sweeps and QLoRA (`fine-tuning-plan.md`) until steps 1–4
    show a visual signal. Deferred: LAN/40 GB runner. Recording waits for the user's trigger.
 

@@ -88,6 +88,11 @@ uv retains the optional inference packages. The proposal floor includes low-scor
 review scores and limitations. The [usage review](docs/model-usage-review-2026-10-17.md)
 explains preprocessing, official-protocol differences, actual results and remaining gates.
 
+A clean v0.4.9 study run through the GUI job API completed in **40.93 s** with nineteen
+candidates (eight at ≥0.5), previews for twelve candidates and a verified offline image/text
+HTML download. This repeats one calibration study; it is not additional accuracy evidence.
+See [the execution record](docs/model-usage-review-2026-10-17.md#real-gui-job-api-verification--2026-10-17).
+
 ```mermaid
 flowchart LR
     A[Guarded calibration CT] --> B[Local 3D detector]

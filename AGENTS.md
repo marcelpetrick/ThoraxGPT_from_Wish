@@ -21,14 +21,20 @@ do not leave essential information only in chat or temporary files.
 Any framework can continue from the repository alone. Read this section, then
 `docs/plan.md` → *Current activity* (work plan W1–W7) and `docs/status-2026-10-17.md`.
 
-**Current integration checkpoint:** detector and sourced UI review are integrated at
-`535ee24`; W3 was pushed at `da473be`. W1 commits through `37f59e7` plus uncommitted P6
-were recovered by the lead; older calibration work was ported with compatibility tests.
-Integration `76927e9` v0.4.8 passed 828 tests / 97.84% and GitHub CI; final follow-up
-fixes S1 summary grouping and records bounded controls through the normal full gate. Both delegated workers hit their
-service usage limit and are no longer running. Preserve the old worktrees/stashes as
-recovery copies until the user chooses cleanup. Do not merge their old diffs again without
-comparing with main. See [the model-usage review](docs/model-usage-review-2026-10-17.md).
+**Verified engine checkpoint:** `981e1ec` v0.4.9 is pushed. Its full gate passed
+829 tests / 97.84% coverage and GitHub Actions run `39043586041` passed. W1/P6,
+W2/W3/W6 and the older calibration port are integrated. Do not merge the old worker
+branches blindly. No delegated worker is running; both stopped at their service usage
+limit. Preserve worktrees and stashes as recovery copies until the user chooses cleanup.
+
+A real calibration study completed through the GUI job API in 40.93 s: nineteen detector
+candidates (eight at the existing 0.5 cutoff), previews for twelve candidates and a verified
+616855-byte offline HTML download. Local artifacts, including `verification.json`, remain
+under ignored `data/results/ui/7747a176-39c1-43d4-8fb9-c45329998929/`. Never commit their
+patient pixels. This is an execution check, not accuracy or a new independent study.
+The loopback preview now runs from main, replacing the old calibration-clean preview.
+Check the process and active jobs before restarting; saved reports survive, in-memory
+jobs/download links do not. See [the usage review](docs/model-usage-review-2026-10-17.md).
 
 **Parallel worktrees** (all under `.claude/worktrees/`, git branch `worktree-agent-<id>`).
 "locked" means a Claude Code agent was still running there at handover; a lock is only a
@@ -45,7 +51,7 @@ conflict, then `scripts/commit.sh "<message>"` (bumps, full gate, pushes).
 | `agent-aebf84a0219298401` | Older session: calibration fitting on the calibration phase, training-overlap tagging, E005–E008 configs (commit `a0b01d7`) | **ported by lead**, base `9e27cef` (old) | Do not reapply blindly; main contains the port with opt-in fitting and legacy export tests |
 | `agent-a8afbe19832769108` | Older session: docs edits (DATA_POLICY, README, SECURITY, architecture, reproducibility) | uncommitted, base `9e27cef` | Probably superseded by later commits; diff against `main` before discarding |
 | `agent-a9841ef98b05e6b4f` | E001-coverage / P5 | merged (`bcea332`) | Remove the worktree |
-| `.pipeline/calibration-clean`, `.pipeline/evidence-clean` | detached clean checkouts for isolated runs | kept; port 8000 preview runs from `calibration-clean` | Keep until replaced deliberately |
+| `.pipeline/calibration-clean`, `.pipeline/evidence-clean` | detached clean checkouts for isolated runs | kept as recovery copies; preview replaced by main | Keep until replaced deliberately |
 
 **Other state:** an old `commit.sh` stash (base `9453bbe`, 2026-10-16 16:16) appears
 superseded; the user decides before it is dropped. Ignored real data lives in `data/`
