@@ -173,10 +173,12 @@ class OllamaModel(ViewBackedModel):
         system: str,
         user: str,
         images: list[bytes],
-        schema: dict[str, Any] | str,
+        schema: dict[str, Any] | str | None,
         *,
         request_log: list[dict[str, Any]] | None = None,
         response_log: list[dict[str, Any]] | None = None,
+        option_overrides: dict[str, Any] | None = None,
+        top_logprobs: int = 0,
     ) -> tuple[dict[str, Any] | None, str | None, float]:
         message: dict[str, Any] = {"role": "user", "content": user}
         if images:
@@ -188,6 +190,7 @@ class OllamaModel(ViewBackedModel):
             "num_predict": DEFAULT_NUM_PREDICT,
         }
         options.update(self.config.options.get("ollama", {}))
+        options.update(option_overrides or {})
         payload: dict[str, Any] = {
             "model": self.tag,
             "messages": [{"role": "system", "content": system}, message],
@@ -196,12 +199,24 @@ class OllamaModel(ViewBackedModel):
             "options": options,
             "keep_alive": self.config.options.get("keep_alive", "10m"),
         }
+        if schema is None:
+            payload.pop("format")
+        payload.update({"logprobs": True, "top_logprobs": top_logprobs} if top_logprobs else {})
         if "think" in self.config.options:
             payload["think"] = self.config.options["think"]
+        # Reviewed per model config: an empty think block makes thinking models answer.
+        prefill = self.config.options.get("assistant_prefill")
+        extra = (
+            [{"role": "assistant", "content": prefill}]
+            if isinstance(prefill, str) and prefill
+            else []
+        )
+        payload["messages"].extend(extra)
         if request_log is not None:
             recorded_messages: list[dict[str, Any]] = [
                 {"role": "system", "content": system},
                 {"role": "user", "content": user},
+                *extra,
             ]
             if images:
                 recorded_messages[1].update(

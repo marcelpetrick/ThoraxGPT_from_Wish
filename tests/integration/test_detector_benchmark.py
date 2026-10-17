@@ -164,5 +164,5 @@ def test_heuristic_run_keeps_task_c_unscored(tmp_path: Path, settings: Settings)
     )
     (run,) = result.runs
     assert run.metrics["task_c"] is None
-    assert run.metrics["possible_training_overlap"] == {"lidc_idri": "unknown"}
+    assert run.metrics["possible_training_overlap"] == {"lidc_idri": "no"}
     assert any("not scored" in n for n in result.notes)

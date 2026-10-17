@@ -66,6 +66,37 @@ illustrative values, not benchmark measurements. Regenerate them with
 | **Evaluation of stored runs** | **Evaluation case detail** |
 | ![Read-only Evaluation with synthetic benchmark runs and per-case reference versus prediction](docs/assets/ui-evaluation-runs.png) | ![Case detail with image count, evidence check and plain-text raw response](docs/assets/ui-evaluation-case.png) |
 
+## Useful detector results now
+
+The local MONAI detector produces sourced candidates, source-slice navigation and offline
+HTML with candidate images and matching text. Three calibration checks at the existing
+0.5 score cutoff produced **11 proposals: 8 reference matches and 3 unmatched**. The
+positive pair took 77.31 s; the annotation-negative control took 27.92 s. **LIDC overlaps
+training data**, so these are reviewability checks, not unbiased accuracy. MedGemma remains
+experimental: the new single-image P6 readiness check also failed.
+
+After [explicit detector setup](docs/detector-baseline.md), start from the repository root:
+
+```bash
+uv run --extra detector python scripts/fetch_monai_bundle.py --verify
+uv run --extra detector thoraxbench serve
+```
+
+Select `monai-lung-nodule`, run a development study, inspect the candidate table, then
+choose **Show source slice** or **Download HTML**. Keep the `--extra detector` option so
+uv retains the optional inference packages. The proposal floor includes low-score candidates;
+review scores and limitations. The [usage review](docs/model-usage-review-2026-10-17.md)
+explains preprocessing, official-protocol differences, actual results and remaining gates.
+
+```mermaid
+flowchart LR
+    A[Guarded calibration CT] --> B[Local 3D detector]
+    B --> C[Sourced candidates and scores]
+    C --> D[Source slices and crop illustrations]
+    D --> E[Offline HTML with images and text]
+    C -. readiness failed; disabled .-> F[Experimental MedGemma verification]
+```
+
 ## First browser run
 
 Prerequisites: Python 3.14, [uv](https://docs.astral.sh/uv/getting-started/installation/),
@@ -445,3 +476,13 @@ This configuration is calibration-only and does not establish detection accuracy
 Evidence eligibility uses the shared implied presence probability at the default 0.5
 cutoff, including low-confidence absent verdicts that imply a positive probability.
 `include_cues` accepts only YAML booleans; null, numbers and strings are refused.
+
+Image-path readiness checks: see [the sanity diagnostic guide](docs/sanity.md). These
+synthetic/calibration checks establish input-path behavior, not clinical accuracy.
+
+Experimental [P6 single-image protocol](docs/p6.md) runs one condition per visual request,
+then a constrained binary answer. Its uncalibrated scores and sole-image associations
+are separate from model-localized citations and whole-study detection.
+
+Optional development fitting and overlap export: [calibration guide](docs/calibration.md).
+E005–E008 remain explicitly blocked planning configurations.

@@ -126,3 +126,16 @@ for diagnosis or treatment decisions. Never commit medical data or model weights
 
 The `ui-jobs` capture uses scripted server job state and elapsed time over the synthetic phantom.
 It does not run a vision model or measure inference latency.
+
+## Bounded P6 synthetic probe
+
+From the repository root, after the configured local P6 model is installed:
+
+```bash
+uv run python scripts/probe_p6.py --window both
+```
+
+This sends four synthetic inputs (sphere/control × two windows), one condition each, with
+up to eight local calls. It writes unique raw/provenance artifacts under ignored
+`data/results/p6-probe/`. It reads no real or sealed patients. Both latest readiness gates
+failed; see `docs/model-usage-review-2026-10-17.md`. Do not present it as accuracy.

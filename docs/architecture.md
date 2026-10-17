@@ -15,10 +15,12 @@ Source of requirements: [`Vision.md`](../Vision.md). Section references (§) poi
 The diagrams include target architecture. A drawn component does not establish that its
 CLI command is implemented. Current commands are `acquire`, `split`, `index`, `analyze`,
 `benchmark`, `privacy audit`, `demo-data`, `datasets`, `models`, `serve`, `info` and
-`--version`. Use `uv run thoraxbench --help` from the repository root to check the installed
+`sanity` and `--version`. Use `uv run thoraxbench --help` from the repository root to check the installed
 interface. `benchmark` scores development cases only; `benchmark --unseal` is refused.
-Sealed evaluation, an experiment-freeze command, CLI `compare`, calibrated scores and the
-HTML/CSV benchmark report remain open. The *Status* column below marks each module.
+Sealed evaluation, an experiment-freeze command and CLI `compare` remain open.
+Optional calibration fitting and HTML/CSV benchmark export are implemented. Detector
+candidates flow through the sequential job layer into sourced review and offline reports;
+VLM filtering remains gated on readiness. The *Status* column below marks each module.
 
 1. Read `docs/plan.md` for the active work package.
 2. Locate the affected component below.

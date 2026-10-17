@@ -1,0 +1,24 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# E008 — external generalization (Vision §26 E008). BLOCKED: the frozen setup must come from
+# CT-RATE-derived development data, and CT-RATE is pending_access (configs/datasets/ct_rate.yaml).
+id: E008
+title: External generalization to TCIA cohorts
+description: >-
+  Freeze model, prompt, sampling, thresholds and calibrators on CT-RATE-derived development
+  data, then score LIDC-IDRI and NSCLC-Radiogenomics on the overlapping labels without
+  retuning. Development split only until a reviewed sealed workflow exists.
+vision_ref: "Vision §26 E008, §15"
+blocked_reason: >-
+  CT-RATE access is pending (status pending_access); no CT-RATE-derived frozen setup exists
+  to transfer without retuning.
+split: development
+phases: [internal_test]
+model: medgemma1.5-q4
+prompt: P3
+view_overrides:
+  strategy: anatomy
+  n: 32
+datasets: [lidc_idri, nsclc_radiogenomics]
+labels: [pulmonary_nodule, pulmonary_mass]
+n_boot: 1000
+seed: 0

@@ -4,6 +4,10 @@ Research use only. This document is not medical advice. The tools and models it 
 are not validated for diagnosis or treatment. Claims marked **[unverified]** come from secondary
 sources or my own reasoning and were not checked against primary data.
 
+Current evidence and operator commands: [model-usage review](model-usage-review-2026-10-17.md).
+The proposal below predates the detector and P6 runs. Its causal hypotheses are not
+confirmed by constant categorical answers alone.
+
 ## 1. Verdict
 
 **Partially wrong. The benchmark is sound; the working hypothesis is not.**
@@ -46,12 +50,13 @@ reports MedGemma *detecting* small nodules on LIDC/LUNA from slices **[searched;
 
 ## 3. Is a 4B quantized VLM over sampled slices plausible at all?
 
-**Structural limit (calculation, [unverified] for exact FOV):** Gemma 3 / MedGemma encode
+**Token-budget intuition (calculation, [unverified] for exact FOV):** Gemma 3 / MedGemma encode
 every 896² image as 4096 SigLIP patches, average-pooled to **256 tokens** (16×16). At a
 typical 320–380 mm field of view, one token covers about 20–24 mm. A 6 mm nodule fills
 about 7 % of one token, and on a single slice it looks like a vessel seen end-on. A
 radiologist tells them apart by scrolling through 3D. The model sees a few pooled 2D tokens.
-A higher render resolution does not help. Cropping does: a 64 mm crop at 896² gives about
+This is not a hard resolution limit; features can encode smaller structures. Cropping
+changes the nominal footprint: a 64 mm crop at 896² gives about
 4 mm per token.
 
 **What works (supervised detection on LIDC/LUNA16):**
@@ -103,7 +108,7 @@ answers only.
 | T0 | Prompt audit: `OLLAMA_DEBUG=2`, one synthetic request with 4 images. Record where image tokens land relative to the text | Document the layout. If images are prepended without markers → mark single-message evidence numbers as invalid by design |
 | T1 | Describe: 12 single slices (apex, arch, carina, heart, liver dome; calibration only). Ask which structures are visible | ≥10/12 correct anatomical level, and a different description per level |
 | T2 | Position binding: 4 images, one replaced by a synthetic image with a large bright disk. "Which IMAGE shows the disk?" 20 permutations; single-message vs one-message-per-image vs HF interleaved | ≥18/20 correct in the mode used for benchmarks. Chance is 5/20 |
-| T3 | Blank vs real: all-black, uniform gray, noise and real image sets with the P5 prompt | Blank/gray must give `adequate: false` or no positive label. Identical output for blank and real = images ignored → stop |
+| T3 | Blank vs real: all-black, uniform gray, noise and real image sets with the P5 prompt | Blank/gray must give `adequate: false` or no positive label. Identical output fails this readiness check; it does not alone prove that images are ignored |
 | T4 | Synthetic lesion: insert spheres (+40 HU, 30/15/8 mm) into lung on a synthetic phantom or a calibration-negative slice. Single image and a 64 mm crop; per-label yes/no | 30 mm: ≥9/10 yes, correct side ≥8/10. Paired uninserted image: ≥8/10 no. Report the smallest size that still passes |
 | T5 | Swap: real positive vs negative calibration cases, same prompt | Answers must differ in ≥1 class (the "non-constant output" gate already proposed in results.md) |
 | T6 | Runtime parity: T1–T4 and the same 10 LIDC calibration cases through HF transformers bf16 with the official interleaved prompt (`device_map="auto"` with CPU offload on 8 GB, slow; [notebook](https://github.com/google-health/medgemma/blob/main/notebooks/high_dimensional_ct_hugging_face.ipynb)) | If HF passes T2–T4 and Ollama fails → fix the runtime or format. If both fail → it is a model capability limit |

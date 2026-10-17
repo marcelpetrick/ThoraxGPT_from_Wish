@@ -22,6 +22,7 @@ from thoraxbench.benchmark.compare import Setup, comparison_details, setups
 from thoraxbench.config import Settings
 from thoraxbench.provenance import git_state, sha256_of_file, sha256_of_obj
 from thoraxbench.reports.html_report import REPORT_STYLE, require_results_path
+from thoraxbench.scoring.overlap import Overlap, combine_overlaps
 
 
 def _flatten(value: Any, prefix: str = "") -> Iterator[tuple[str, Any]]:
@@ -30,6 +31,22 @@ def _flatten(value: Any, prefix: str = "") -> Iterator[tuple[str, Any]]:
             yield from _flatten(item, f"{prefix}.{key}" if prefix else str(key))
     else:
         yield prefix, value
+
+
+def _overlap_flag(value: Any) -> Overlap:
+    if value == "yes":
+        return "yes"
+    return "no" if value == "no" else "unknown"
+
+
+def _overlap(setup: Setup, dataset: str | None = None) -> str:
+    """Export recorded overlap only; legacy runs remain unknown."""
+    flags = setup.run.metrics.get("possible_training_overlap", {})
+    if not isinstance(flags, dict):
+        return "unknown"
+    if dataset is not None:
+        return _overlap_flag(flags.get(dataset))
+    return combine_overlaps(_overlap_flag(v) for v in flags.values())
 
 
 def metric_rows(items: list[Setup]) -> list[list[Any]]:
@@ -48,6 +65,7 @@ def metric_rows(items: list[Setup]) -> list[list[Any]]:
                     label,
                     metric,
                     value,
+                    _overlap(current),
                     DISCLAIMER,
                 ]
             )
@@ -93,6 +111,7 @@ def case_rows(items: list[Setup]) -> list[list[Any]]:
                         score is not None,
                         len(case.parse_warnings),
                         case.error is not None,
+                        _overlap(setup, case.dataset),
                         DISCLAIMER,
                     ]
                 )
@@ -152,7 +171,7 @@ def render_cohort_html(items: list[Setup], comparisons: list[dict[str, Any]]) ->
                 source.result.experiment_id,
                 run.spec["model"],
                 run.spec["variant"],
-                "Unknown; not assessed for this cohort",
+                _overlap(item),
                 len(run.cases),
                 run.status_counts["scored"],
                 run.status_counts["abstained"],
@@ -167,7 +186,8 @@ def render_cohort_html(items: list[Setup], comparisons: list[dict[str, Any]]) ->
             "invocation_identity_sha256": source.checkpoint.identity_sha256,
             "model": run.spec["model"],
             "model_hash": run.provenance.model_hash,
-            "possible_training_overlap": "unknown; no cohort-specific assessment",
+            "possible_training_overlap": _overlap(item),
+            "overlap_by_dataset": run.metrics.get("possible_training_overlap", {}),
             "license": model["model"]["license"],
             "quantization": model["model"].get("quantization"),
             "prompt": model["prompt"],
@@ -307,7 +327,17 @@ def render_cohort_html(items: list[Setup], comparisons: list[dict[str, Any]]) ->
         )
         + "<details><summary>All stored metrics and reference counts</summary>"
         + _table(
-            ["Setup", "Experiment", "Model", "Variant", "Scope", "Label", "Metric", "Value"],
+            [
+                "Setup",
+                "Experiment",
+                "Model",
+                "Variant",
+                "Scope",
+                "Label",
+                "Metric",
+                "Value",
+                "Training overlap",
+            ],
             [row[:-1] for row in metrics],
         )
         + '</details></section><section class="panel" '
@@ -332,6 +362,7 @@ def render_cohort_html(items: list[Setup], comparisons: list[dict[str, Any]]) ->
                 "Available prediction",
                 "Warning count",
                 "Error recorded",
+                "Training overlap",
             ],
             [row[:-1] for row in cases],
         )
@@ -377,6 +408,7 @@ def write_cohort_exports(
                     "label",
                     "metric",
                     "value",
+                    "possible_training_overlap",
                     "research_disclaimer",
                 ],
                 metric_rows(items),
@@ -397,6 +429,7 @@ def write_cohort_exports(
                     "available_prediction",
                     "warning_count",
                     "error_recorded",
+                    "possible_training_overlap",
                     "research_disclaimer",
                 ],
                 case_rows(items),
@@ -431,7 +464,7 @@ def write_cohort_exports(
                 "id": item.id,
                 "source_index": sources.index(item.source),
                 "variant": item.run.spec["variant"],
-                "possible_training_overlap": "unknown",
+                "possible_training_overlap": _overlap(item),
             }
             for item in items
         ],

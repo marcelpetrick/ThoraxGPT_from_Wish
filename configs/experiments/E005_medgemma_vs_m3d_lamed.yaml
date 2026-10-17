@@ -1,0 +1,27 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# E005 — 4B versus 4B (Vision §26 E005). BLOCKED: no local M3D-LaMed service exists yet.
+# Remove blocked_reason only after `uv run thoraxbench models` reports m3d-lamed-4b available.
+id: E005
+title: MedGemma 4B versus M3D-LaMed 4B
+description: >-
+  MedGemma 1.5 4B Q4_K_M (2D slices, prompt P3, anatomy-balanced 32 slices) against the
+  native-3D M3D-LaMed-Phi-3-4B on the same development cases and study-level labels.
+  Model size is similar; the image representation differs. Development split only.
+vision_ref: "Vision §26 E005, §4 Tier B"
+blocked_reason: >-
+  3D model unavailable: M3D-LaMed-Phi-3-4B has no local inference service in this
+  repository (configs/models/m3d-lamed-4b.yaml names an HTTP service that is not implemented).
+split: development
+phases: [calibration, internal_test]
+model: medgemma1.5-q4
+prompt: P3
+view_overrides:
+  strategy: anatomy
+  n: 32
+datasets: [lidc_idri, nsclc_radiogenomics]
+labels: [pulmonary_nodule, pulmonary_mass]
+n_boot: 1000
+seed: 0
+variants:
+  - {id: medgemma, model: medgemma1.5-q4}
+  - {id: m3d_lamed, model: m3d-lamed-4b}

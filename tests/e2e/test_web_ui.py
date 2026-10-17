@@ -927,3 +927,15 @@ def test_small_text_contrast_in_primary_muted_and_badge_contexts(ui_page: Page) 
         ratios = page.evaluate(CONTRAST_SCRIPT)
         assert all(ratio >= 4.5 for ratio in ratios), ratios
         page.locator("#theme-toggle").click()
+
+
+def test_p6_controls_keep_one_image_and_explain_failed_readiness(ui_page: Page) -> None:
+    page = ui_page
+    page.locator("#model-select").select_option("medgemma1.5-q4-p6")
+    expect(page.locator("#image-count")).to_have_value("1")
+    expect(page.locator("#image-count")).to_be_disabled()
+    expect(page.locator("#model-input-note")).to_contain_text("failed")
+    page.locator("#language-toggle").click()
+    expect(page.locator("#model-input-note")).to_contain_text("nicht bestanden")
+    page.locator("#model-select").select_option("gemma3-4b")
+    expect(page.locator("#image-count")).to_be_enabled()

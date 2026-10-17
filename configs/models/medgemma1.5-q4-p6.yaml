@@ -1,0 +1,30 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 Marcel Petrick <mail@marcelpetrick.it>
+id: medgemma1.5-q4-p6
+adapter: ollama
+family: medgemma
+tag: medgemma1.5:4b-it-q4_K_M
+quantization: Q4_K_M
+view: medgemma_ct_v1
+view_params:
+  strategy: uniform
+  n: 1
+  size: 896
+  slab_mm: 0.0
+  coronal: false
+  include_cues: false
+  caption_style: image_only
+prompt: P6
+capabilities:
+  classification: true
+  probabilities: true
+license: "Health AI Developer Foundations terms"
+tier: A
+notes: "Experimental single-image P6; no study-wide detection or localized evidence claim."
+options:
+  ollama:
+    num_ctx: 4096
+  p6:
+    reasoning_tokens: 192
+    answer_tokens: 16
+    top_logprobs: 20

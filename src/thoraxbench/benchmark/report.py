@@ -108,6 +108,35 @@ def _calibration_rows(run: RunResult) -> list[str]:
     return rows
 
 
+def _fitted_calibration_rows(run: RunResult) -> list[str]:
+    fit = run.metrics.get("calibration", {})
+    rows = [
+        "### Calibration fit / internal-test application",
+        "",
+        f"Status: {fit.get('status', 'not recorded')}. {fit.get('reason') or ''}",
+    ]
+    if fit.get("status") != "applied":
+        return [*rows, ""]
+    rows += [
+        "Fit: calibration phase only. Apply: internal_test only. Raw 0.5 baseline stays available.",
+        "",
+        "| Label | Fit n | Fit positives | Fitted threshold | Method | Notes |",
+        "|---|---:|---:|---:|---|---|",
+    ]
+    for label, item in fit["per_label"].items():
+        rows.append(
+            f"| {label} | {item['fit_n']} | {item['fit_positives']} | "
+            f"{_fmt(item['fitted_threshold'])} | {fit['method']} | "
+            f"{'; '.join(item['notes']) or '-'} |"
+        )
+    rows += [
+        "",
+        "Full fitted parameters and raw/fitted internal-test metrics are retained in result.json.",
+        "",
+    ]
+    return rows
+
+
 def _case_rows(run: RunResult) -> list[str]:
     rows = [
         "| Dataset | Case | Phase | Status | Reference | Predicted present | Detail |",
@@ -150,9 +179,11 @@ def _run_section(run: RunResult) -> list[str]:
         "",
         *_label_rows(run),
         "",
-        "### Task B — calibration of raw scores (no calibrator fitted)",
+        "### Task B — calibration of raw scores",
         "",
         *_calibration_rows(run),
+        "",
+        *_fitted_calibration_rows(run),
         "",
         "### Per dataset — study level (scored cases only)",
         "",

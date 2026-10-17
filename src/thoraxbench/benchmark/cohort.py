@@ -136,7 +136,7 @@ def load_completed_run(  # noqa: PLR0912 - validate the complete stored contract
         if identity.get("schema_version") != 1:
             raise ValueError("Unsupported benchmark manifest version")
         cfg = ExperimentConfig.model_validate(identity["config"])
-        if identity["experiment_canonical"] != sha256_of_obj(cfg.model_dump(mode="json")):
+        if identity["experiment_canonical"] != sha256_of_obj(identity["config"]):
             raise ValueError("Stored experiment canonical hash mismatch")
         _guard_selection(identity, cfg, settings)
         store.state = store.read_checkpoint()
@@ -157,7 +157,7 @@ def load_completed_run(  # noqa: PLR0912 - validate the complete stored contract
         if (
             result.split != "development"
             or result.experiment_id != cfg.id
-            or result.config != cfg.model_dump(mode="json")
+            or result.config != identity["config"]
             or result.config_sha256 != identity["experiment_file"]
             or result.config_canonical_sha256 != identity["experiment_canonical"]
             or result.limit_per_dataset != identity["limit"]

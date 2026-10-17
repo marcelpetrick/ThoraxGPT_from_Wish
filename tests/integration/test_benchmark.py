@@ -18,6 +18,7 @@ import thoraxbench.splits.guard as guard_module
 from thoraxbench.adapters.base import load_model_config
 from thoraxbench.analysis import AnalysisResult, analyze_study
 from thoraxbench.benchmark import CaseStatus, load_experiment, run_experiment, write_outputs
+from thoraxbench.benchmark.report import render_markdown
 from thoraxbench.cli.main import app
 from thoraxbench.config import REPO_ROOT, Settings
 from thoraxbench.dicom import discover_series
@@ -613,3 +614,24 @@ def test_failed_case_artifact_redacts_paths_and_known_identifiers(
     assert str(settings.data_dir) not in text
     assert "[redacted]" in text
     assert "[data]/private/input.dcm" in text
+
+
+def test_opt_in_fit_uses_calibration_and_applies_only_to_internal_test(
+    tmp_path: Path, settings: Settings
+) -> None:
+    loaded = load_experiment(_experiment(tmp_path, calibration={"method": "none"}, n_boot=0))
+    result = run_experiment(loaded, settings)
+    run = result.runs[0]
+    fit = run.metrics["calibration"]
+    assert fit["status"] == "applied"
+    assert fit["n_fit_cases"] == sum(c.phase == "calibration" for c in run.cases)
+    assert fit["n_eval_cases"] == sum(c.phase == "internal_test" for c in run.cases)
+    assert "Calibration fit / internal-test application" in render_markdown(result)
+
+
+def test_planned_experiment_is_refused_before_study_access(tmp_path: Path) -> None:
+    loaded = load_experiment(_experiment(tmp_path, blocked_reason="Manual service missing"))
+    config = Settings(repo_root=tmp_path / "no-repo", data_dir=tmp_path / "no-data")
+    with pytest.raises(ValueError, match="blocked: Manual service missing"):
+        run_experiment(loaded, config)
+    assert not config.data_dir.exists()

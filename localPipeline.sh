@@ -72,8 +72,8 @@ stage_wheel() {
     rm -rf "${tmp}"
 }
 stage_audit() {
-    uv export --frozen --all-groups --no-hashes --no-emit-project -o "${LOG_DIR}/requirements.audit.txt" -q
-    "${PY}" -m pip_audit --strict --progress-spinner off -r "${LOG_DIR}/requirements.audit.txt"
+    uv export --frozen --all-extras --all-groups --no-emit-project -o "${LOG_DIR}/requirements.audit.txt" -q
+    "${PY}" -m pip_audit --strict --no-deps --disable-pip --progress-spinner off -r "${LOG_DIR}/requirements.audit.txt"
 }
 
 overall=0

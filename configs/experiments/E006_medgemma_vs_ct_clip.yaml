@@ -1,0 +1,24 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# E006 — VLM versus CT classifier (Vision §26 E006). BLOCKED: CT-CLIP weights are gated and
+# no local CT-CLIP service exists. Remove blocked_reason only after `thoraxbench models`
+# reports ct-clip available. CT-CLIP was trained on CT-RATE: CT-RATE rows report overlap yes.
+id: E006
+title: MedGemma versus CT-CLIP
+description: >-
+  MedGemma 1.5 4B Q4_K_M against the CT-CLIP study-level classifier on the label both can
+  score on the available cohorts (pulmonary nodule). Development split only.
+vision_ref: "Vision §26 E006, §16"
+blocked_reason: >-
+  3D model unavailable: CT-CLIP weights are gated (pending access) and no local CT-CLIP
+  service exists (configs/models/ct-clip.yaml).
+split: development
+phases: [calibration, internal_test]
+model: medgemma1.5-q4
+prompt: P3
+datasets: [lidc_idri, nsclc_radiogenomics]
+labels: [pulmonary_nodule]
+n_boot: 1000
+seed: 0
+variants:
+  - {id: medgemma, model: medgemma1.5-q4}
+  - {id: ct_clip, model: ct-clip}

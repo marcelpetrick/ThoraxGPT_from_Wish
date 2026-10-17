@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "snapshot_version": 1,
+  "snapshot_date": "2026-10-17",
+  "model_id": "medgemma1.5-q4-p6",
+  "source_config": "configs/models/medgemma1.5-q4-p6.yaml",
+  "source_config_sha256": "c431786b30ec6568672a571fab22408b91fc4b57ed80ad02c6d7d6ed4c7ce9e0",
+  "adapter": "ollama",
+  "family": "medgemma",
+  "tag": "medgemma1.5:4b-it-q4_K_M",
+  "service": null,
+  "quantization": "Q4_K_M",
+  "declared_license": "Health AI Developer Foundations terms",
+  "references": [
+    "configs/models/medgemma1.5-q4-p6.yaml",
+    "configs/prompts/P6.yaml",
+    "docs/sanity.md"
+  ],
+  "recorded_digest": null,
+  "digest_evidence": null,
+  "current_availability": "unknown",
+  "terms_acceptance": "unknown",
+  "possible_training_overlap": "unknown",
+  "overlap_rationale": "Model-level snapshot has no evaluation dataset or exhaustive verified training history. Determine dataset-specific exposure separately; absence of evidence is not verified non-overlap."
+}

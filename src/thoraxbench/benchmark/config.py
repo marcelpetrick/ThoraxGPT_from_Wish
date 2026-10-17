@@ -23,6 +23,20 @@ DevelopmentPhase = Literal["calibration", "internal_test"]
 SAFE_ID = r"^[A-Za-z0-9][A-Za-z0-9_.-]*$"
 
 
+class CalibrationSettings(BaseModel):
+    """How the runner fits post-hoc calibration on the ``calibration`` phase (Vision §14, §20).
+
+    Thresholds and calibrators are fitted on calibration-phase cases only and applied to
+    ``internal_test`` cases. ``method: none`` fits thresholds but no probability map.
+    """
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    method: Literal["platt", "temperature", "isotonic", "none"] = "platt"
+    threshold_method: Literal["youden", "sensitivity"] = "youden"
+    target_sensitivity: float = Field(default=0.9, gt=0.0, le=1.0)
+
+
 class Variant(BaseModel):
     """One arm of a sweep; unset fields inherit the experiment's base setup."""
 
@@ -76,6 +90,8 @@ class ExperimentConfig(BaseModel):
     n_boot: int = Field(default=1000, ge=0)
     seed: int = 0
     variants: list[Variant] = Field(default_factory=list)
+    calibration: CalibrationSettings | None = None
+    blocked_reason: str | None = Field(default=None, min_length=1)
 
     @model_validator(mode="after")
     def _check(self) -> ExperimentConfig:

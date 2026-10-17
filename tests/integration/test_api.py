@@ -482,3 +482,21 @@ def test_library_status_explains_missing_and_unavailable_sources(settings: Setti
         == "unavailable"
     )
     assert str(settings.data_dir) not in json.dumps(payload)
+
+
+def test_p6_single_image_preflight(client: TestClient) -> None:
+    models = {item["id"]: item for item in client.get("/api/models").json()["models"]}
+    assert models["medgemma1.5-q4-p6"]["single_image_protocol"]
+    assert not models["heuristic-hu"]["single_image_protocol"]
+    response = client.post(
+        "/api/jobs",
+        json={
+            "kind": "analysis",
+            "dataset": "demo",
+            "case_id": "phantom",
+            "model_id": "medgemma1.5-q4-p6",
+            "n_images": 4,
+        },
+    )
+    assert response.status_code == 422
+    assert "exactly one" in response.json()["detail"]

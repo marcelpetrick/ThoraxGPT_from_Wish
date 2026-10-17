@@ -111,6 +111,21 @@ Status: ✅ done · 🔄 in progress · ⏳ open · ✖ dropped
 
 ## Current activity
 
+- **Lead integration checkpoint (2026-10-17):** W2/W3/W6 are integrated at `535ee24`.
+  W1 commits through `37f59e7`, P6 and recovered calibration changes are being consolidated
+  through the full gate. Both delegated workers stopped at their service usage limit;
+  the lead recovered their work and owns completion. No GPU agent is running.
+- **Useful-output evidence:** three calibration-only detector studies yield eleven proposals
+  at the existing 0.5 cutoff: eight indexed-reference matches and three unmatched. Positive
+  pair 77.31 s, annotation-negative control 27.92 s. LIDC overlap **yes**; no unbiased accuracy
+  claim. Local offline image/text reports are in ignored `data/results/detector-review/`.
+  See [the model-usage review](model-usage-review-2026-10-17.md).
+- **MedGemma verdict:** S2 categorical gate fails; T2 Q4 binding is 5/20 and 1/20 (both fail).
+  P6 one-image reasoning/extraction is implemented but all four synthetic sphere/control
+  outputs were yes. Both window readiness gates fail. Do not enable VLM candidate filtering.
+  S1/S3 completion and approved official BF16 parity remain scientific follow-up work.
+
+
 - **W6 detector review (2026-10-17):** added manual detector setup/availability, optional
   dependency license inventory, sourced candidate table and source-slice navigation with
   English/German help. UI and offline HTML show bounded post-inference axial/coronal
@@ -121,12 +136,19 @@ Status: ✅ done · 🔄 in progress · ⏳ open · ✖ dropped
   safe stage boundary. Optional VLM verification
   remains gated on image-path sanity and the official protocol.
 
+- 🔄 **Older calibration work recovered (2026-10-17):** ported the fitting core and
+  synthetic tests from `a0b01d7` onto the detector baseline in an isolated checkout.
+  Fitting is opt-in, uses calibration records only and applies to internal-test only.
+  Raw metrics remain separate. Recorded overlap now reaches HTML/CSV/export manifests;
+  E005–E008 planning files refuse execution before study access. Legacy read-only export
+  validates original stored config bytes/hashes; strict resume remains unchanged.
+
 - **W2 reference detector implementation (2026-10-17):** optional checksum-pinned MONAI
   LUNA16 RetinaNet inference adapter, explicit terms/weight helper, millimetre candidates,
   overlap-labelled per-dataset Task A/C reports and in-memory axial/coronal crop component.
   See [setup and limits](detector-baseline.md). Five existing local bundle files verify.
-  A reduced synthetic CPU network/API smoke passed; default-ROI GPU/calibration performance
-  is not yet measured in this handover. Synthetic adapter/geometry/scoring tests cover the
+  A reduced synthetic CPU network/API smoke passed; default-ROI GPU calibration performance
+  is now recorded in the usage review (two positive studies and one negative control). Synthetic adapter/geometry/scoring tests cover the
   pipeline without downloading weights. Detect → VLM verify → review remains an integration
   task. Do not claim unbiased LIDC accuracy or numerically identical upstream preprocessing.
 
@@ -151,18 +173,39 @@ Status: ✅ done · 🔄 in progress · ⏳ open · ✖ dropped
 
   | # | Work item | Where | State | Merge / done criterion |
   |---|---|---|---|---|
-  | W1 | Image-path sanity gate (T0 layout audit, T2 position binding, S1 blank/noise/shuffle, S2 synthetic spheres, S3 description, S4 paired lesion/control slabs, optional bf16 parity) | agent, own worktree | 🔄 running | Results in `results.md`; gate verdict recorded; full gate green; merged by the lead |
-  | W2 | Detector reference baseline (MONAI RetinaNet, inference only, overlap-flagged), lesion-level Task C, crop-export view | agent, own worktree | 🔄 running | Explicit weight download, tests with stub network, calibration results, merged |
+  | W1 | Image-path sanity gate (T0 layout audit, T2 position binding, S1 blank/noise/shuffle, S2 synthetic spheres, S3 description, S4 paired lesion/control slabs, optional bf16 parity) | lead integration | Core/gates implemented; S1/S3/parity open | Results in `results.md`; gate verdict recorded; full gate green; merged by the lead |
+  | W2 | Detector reference baseline (MONAI RetinaNet, inference only, overlap-flagged), lesion-level Task C, crop-export view | merged `535ee24` | Implemented; three calibration checks recorded | Explicit weight download, tests with stub network, calibration results, merged |
   | W3 | Job layer: server-side sequential queue, cancel/stop, persistent status bar on all pages and in the tab title, Jobs panel, fixed elapsed display | lead, main checkout | ✅ `da473be`, 680 tests / 98.28% | Playwright: navigate/reload keeps the running job visible; cancel works; docs/manual/screenshots refreshed |
-  | W4 | Official-protocol prompt P6 (interleaved `SLICE k`, one label per query, P(yes)), non-constant-output readiness check | lead or one agent after W1 | ⏳ | Starts only after W1 is merged; mode chosen from the T2 binding result |
-  | W5 | VLM crop verification of detector candidates | after W2 + W4 | ⏳ | Only if W1 shows crop/slab-level signal |
-  | W6 | Usable workflow: study → detector → candidates in viewer → optional VLM check → sourced findings → report, all through the W3 job layer; Evaluation shows these runs | detector review worker, after W2 + W3 | 🔄 detector review implemented; VLM verification gated | Synthetic e2e in EN/DE, light/dark, mobile; source navigation and offline HTML; manual synchronized |
-  | W7 | RQ1 report with overlap column; status/plan/AGENTS sync; self-review; worktree and stash cleanup proposal | lead | ⏳ | Final full gate, pushed |
+  | W4 | Official-protocol prompt P6 (interleaved `SLICE k`, one label per query, P(yes)), non-constant-output readiness check | lead integration | Implemented single-image adaptation; readiness failed | No claim of official runtime parity |
+  | W5 | VLM crop verification of detector candidates | after W2 + W4 | Gated: categorical readiness fails | Requires a successful calibrated-case verification gate |
+  | W6 | Usable workflow: study → detector → candidates in viewer → optional VLM check → sourced findings → report, all through the W3 job layer; Evaluation shows these runs | detector review worker, after W2 + W3 | Detector review implemented and tested; VLM verification gated | Synthetic e2e in EN/DE, light/dark, mobile; source navigation and offline HTML; manual synchronized |
+  | W7 | RQ1 report with overlap column; status/plan/AGENTS sync; self-review; worktree and stash cleanup proposal | lead | Report recorded; final integration gate | Final full gate, pushed |
 
 - 🔄 **Program status and approach check (2026-10-17):** full-program state, real-data
   verdict and the decision plan are in [the status report](status-2026-10-17.md). Running:
   image-path sanity tests, a paired lesion/control slab test (calibration only) and a web
   review of whether the small-VLM approach is viable. Direction is decided after these.
+
+- W4 P6 implementation (2026-10-17): isolated standard Ollama adapter supports one label
+  per visual request, short reasoning then a constrained binary answer call with token
+  logprobs. Dedicated one-image/no-cues configuration; missing/truncated outputs remain
+  unavailable; both calls are retained. A shared readiness summary distinguishes
+  categorical nonconstancy from score discrimination. Synthetic/mocked acceptance tests
+  pass; full gate and a clean-commit bounded live probe follow. This is a local adaptation,
+  not HF/runtime parity or whole-study detection. See `docs/p6.md`.
+
+- W1 bounded follow-up (2026-10-17): Q4 single/lung 30 mm synthetic gate completed: 0/10
+  positive answers, 10/10 negative answers, 71.1 s. Categorical positive criterion fails
+  despite probability-score separation. Full Q4 T2 completed with both layouts failing. Bounded S1 remains open. Narrowed configurations have separate IDs; no held-out inputs are used.
+- W1 handover review (2026-10-17): sanity CLI/configs already committed in this worktree.
+  Recovered completed S2 `--limit 1` synthetic smoke and S4 calibration paired-slab evidence;
+  aggregate results and caveats are in `docs/results.md`. S1, full S2/T2, S3 review and
+  runtime parity remain open. Parser robustness, rendered control-edge distance and
+  single-image lesion metadata were corrected; historical evidence remains unchanged.
+  Operator instructions: `docs/sanity.md`. No sealed/internal-test data or GPU job was
+  needed for this handover review. Next: coordinate one GPU owner and run the missing
+  bounded gates before resuming study-level sweeps.
+
 - 🔄 **Completion plan (user request, 2026-10-16 evening):** the user asked for a full
   resume, UX completion, refreshed screenshots, end-to-end tests, a real-data recognition
   check, a fine-tuning strategy and a rethink of the UI for the evaluation workflow, and
@@ -487,6 +530,13 @@ Ideas not yet scheduled (need a separate decision):
 
 ## Next steps (in order)
 
+
+Current executable workflow: detector → sourced candidate review → offline HTML. Finish
+integration tests, manual synchronization and gated push first. Scientific follow-up is
+bounded S1/S3 and approved HF parity. P6 is implemented but failed readiness; VLM
+verification stays disabled. The numbered sequence below retains the approved research
+order, not a claim that its unfinished gates are running.
+
 Decision record 2026-10-17 (user-approved approach-review plan). All real-data runs use the
 calibration phase only; each change is a separately hashed configuration.
 
@@ -495,7 +545,7 @@ calibration phase only; each change is a separately hashed configuration.
    shuffled images, synthetic spheres 30/15/8 mm, free-text description, paired
    lesion/control 5 mm slabs with one yes/no question each (slice-level AUROC, yes-rate on
    controls). Optional HF bf16 parity if weights are available without new terms. Gate:
-   if blank-vs-real or the 30 mm sphere fails in every format → model capability limit.
+   if blank-vs-real or the 30 mm sphere fails in every format → failed readiness; separate runtime, task and model causes before assigning blame.
 2. ⏳ **Official protocol prompt (P6):** interleaved image + `SLICE k`, one label per query,
    short reasoning then constrained yes/no, P(yes) scoring from logprobs on short answers.
    Add a non-constant-output readiness criterion. Only then rerun E001-schema-style checks.

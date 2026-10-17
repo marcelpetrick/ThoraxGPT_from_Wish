@@ -1,0 +1,37 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 Marcel Petrick <mail@marcelpetrick.it>
+# S2 obvious target, multi-image: synthetic 30 mm nodule vs none through the E001 image path.
+id: E001-sanity-s2-multi
+test: obvious_target
+title: Obvious synthetic nodule vs identical phantom without, four images
+description: >-
+  Ten synthetic phantoms (seeds 0-4, right or left) with a 30 mm sphere and without, four
+  images from the E001-schema path (lung_extent, 5 mm MIP, 896 px, MedGemma RGB). The
+  nodule_level_sampled column counts inputs whose slabs reach the sphere. Single-message
+  and one-message-per-image layouts.
+vision_ref: "Vision §10, §11, §24: visual-signal readiness diagnostic"
+phases: [calibration]
+models: [medgemma1.5-q4, medgemma1.5-q8, qwen3-vl-4b-nothink]
+question:
+  kind: yes_no
+  system: >-
+    You are assisting a research benchmark of thoracic CT reading. Your output is an
+    experimental research prediction, not medical advice.
+  text: >-
+    Is there a pulmonary nodule in any of the $n_images images? Answer with JSON
+    {"nodule": "yes" or "no", "confidence": probability between 0 and 1 that your answer
+    is correct}.
+  num_predict: 32
+windows: [medgemma]
+layouts: [single, interleaved]
+image_mode: multi
+n_images: 4
+size: 896
+slab_mm: 5.0
+num_ctx: 8192
+top_logprobs: 10
+seed: 0
+synthetic:
+  seeds: [0, 1, 2, 3, 4]
+  sides: [right, left]
+  diameters_mm: [30]

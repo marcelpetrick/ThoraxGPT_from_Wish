@@ -1,0 +1,36 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 Marcel Petrick <mail@marcelpetrick.it>
+# S2 obvious target, single image: synthetic phantoms with 30/15/8 mm nodules vs none (no patient data).
+id: E001-sanity-s2-single
+test: obvious_target
+title: Obvious synthetic nodule vs identical phantom without, single image
+description: >-
+  Ten synthetic phantoms (seeds 0-4, nodule right or left) rendered at the nodule level
+  with a 30, 15 or 8 mm solid sphere and without one (same seed, same level). One image,
+  one yes/no question. Pre-registered expectation (approach review T4): 30 mm >= 9/10 yes;
+  no-nodule >= 8/10 no. MedGemma RGB and lung window.
+vision_ref: "Vision §10, §11, §24: visual-signal readiness diagnostic"
+phases: [calibration]
+models: [medgemma1.5-q4, medgemma1.5-q8, qwen3-vl-4b-nothink, minicpm-v]
+question:
+  kind: yes_no
+  system: >-
+    You are assisting a research benchmark of thoracic CT reading. Your output is an
+    experimental research prediction, not medical advice.
+  text: >-
+    Is there a pulmonary nodule in this image? Answer with JSON {"nodule": "yes" or "no",
+    "confidence": probability between 0 and 1 that your answer is correct}.
+  num_predict: 32
+windows: [medgemma, lung]
+layouts: [single]
+image_mode: single
+n_images: 1
+size: 896
+slab_mm: 5.0
+num_ctx: 4096
+top_logprobs: 10
+seed: 0
+synthetic:
+  seeds: [0, 1, 2, 3, 4]
+  sides: [right, left]
+  diameters_mm: [30, 15, 8]

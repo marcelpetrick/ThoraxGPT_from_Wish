@@ -2,7 +2,9 @@
 # Copyright (C) 2026 Marcel Petrick <mail@marcelpetrick.it>
 """Reference-scored development benchmarks (WP8): experiment configs, runner and reports."""
 
+from thoraxbench.benchmark.calibration import fit_and_apply
 from thoraxbench.benchmark.config import (
+    CalibrationSettings,
     ExperimentConfig,
     LoadedExperiment,
     RunSpec,
@@ -17,9 +19,11 @@ from thoraxbench.benchmark.runner import (
     ExperimentResult,
     RunResult,
     run_experiment,
+    training_overlap,
 )
 
 __all__ = [
+    "CalibrationSettings",
     "CaseOutcome",
     "CaseStatus",
     "DatasetSummary",
@@ -29,8 +33,10 @@ __all__ = [
     "RunResult",
     "RunSpec",
     "Variant",
+    "fit_and_apply",
     "load_experiment",
     "render_markdown",
     "run_experiment",
+    "training_overlap",
     "write_outputs",
 ]

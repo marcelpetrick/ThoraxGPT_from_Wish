@@ -13,6 +13,7 @@ from thoraxbench.cli.benchmark import benchmark
 from thoraxbench.cli.compare import benchmark_export, compare
 from thoraxbench.cli.coverage import coverage
 from thoraxbench.cli.privacy import privacy_app
+from thoraxbench.cli.sanity import sanity
 from thoraxbench.config import get_settings
 from thoraxbench.splits import Phase
 from thoraxbench.study_access import guard_study_input
@@ -33,6 +34,7 @@ app.command()(benchmark_export)
 app.command()(compare)
 app.command()(acquire)
 app.command()(coverage)
+app.command()(sanity)
 app.add_typer(privacy_app)
 
 
@@ -71,7 +73,7 @@ def analyze(
     study_dir: Annotated[Path, typer.Argument(help="Folder with the DICOM study.")],
     *,
     model: Annotated[str, typer.Option(help="Model id from configs/models.")] = "heuristic-hu",
-    prompt: Annotated[str | None, typer.Option(help="Prompt id (P0-P4).")] = None,
+    prompt: Annotated[str | None, typer.Option(help="Prompt id (P0-P6).")] = None,
     strategy: Annotated[str | None, typer.Option(help="Sampling strategy id.")] = None,
     n_images: Annotated[int | None, typer.Option("--n", min=1, help="Number of slices.")] = None,
     output: Annotated[Path | None, typer.Option(help="Write the result JSON here.")] = None,

@@ -5,7 +5,11 @@
 from thoraxbench.scoring.calibration_metrics import task_b
 from thoraxbench.scoring.classification import bootstrap_ci, task_a
 from thoraxbench.scoring.lesions import task_c
-from thoraxbench.scoring.overlap import possible_training_overlap
+from thoraxbench.scoring.overlap import (
+    combine_overlaps,
+    normalize_family,
+    possible_training_overlap,
+)
 from thoraxbench.scoring.records import CaseRecord, PredictedLesion
 from thoraxbench.scoring.report import bleu1, factuality, rouge_l, task_e
 from thoraxbench.scoring.safety import task_g
@@ -20,10 +24,12 @@ __all__ = [
     "bootstrap_ci",
     "box_iou",
     "center_distance",
+    "combine_overlaps",
     "dice",
     "factuality",
     "hausdorff",
     "iou",
+    "normalize_family",
     "possible_training_overlap",
     "rouge_l",
     "score_vqa",

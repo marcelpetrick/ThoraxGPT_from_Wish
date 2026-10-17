@@ -11,6 +11,7 @@ Overlap = Literal["yes", "no", "unknown"]
 
 # Documented pretraining exposure of known models (lower-case dataset ids).
 KNOWN_TRAINING_DATA: dict[str, frozenset[str]] = {
+    "rules": frozenset(),
     "ct_clip": frozenset({"ct_rate"}),
     "ct_chat": frozenset({"ct_rate", "radgenome_chestct"}),
     "m3d_lamed": frozenset({"m3d_data", "m3d_cap", "m3d_vqa"}),
@@ -19,6 +20,19 @@ KNOWN_TRAINING_DATA: dict[str, frozenset[str]] = {
     # (bundle docs/data_license.txt). Patients of every LIDC split may be in LUNA16.
     "monai_retinanet_luna16": frozenset({"luna16", "lidc_idri"}),
 }
+
+
+def normalize_family(family: str) -> str:
+    """Normalize model YAML family identifiers without changing recorded results."""
+    return family.strip().lower().replace("-", "_")
+
+
+def combine_overlaps(values: Iterable[Overlap]) -> Overlap:
+    """Combine documented flags: yes wins, followed by unknown, then no."""
+    flags = set(values)
+    if "yes" in flags:
+        return "yes"
+    return "unknown" if not flags or "unknown" in flags else "no"
 
 
 def possible_training_overlap(
@@ -34,8 +48,11 @@ def possible_training_overlap(
     derived from CT-RATE), is in the model's documented training data. Models without
     documented training data yield ``unknown`` — never ``no``.
     """
-    table = {k: frozenset(v) for k, v in (model_training_data or KNOWN_TRAINING_DATA).items()}
-    trained = table.get(model_family)
+    table = {
+        normalize_family(k): frozenset(v)
+        for k, v in (model_training_data or KNOWN_TRAINING_DATA).items()
+    }
+    trained = table.get(normalize_family(model_family))
     if trained is None:
         return "unknown"
     lineage = {dataset_id, *((parents or {}).get(dataset_id, ()))}

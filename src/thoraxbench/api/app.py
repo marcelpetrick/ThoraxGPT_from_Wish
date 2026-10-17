@@ -330,6 +330,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:  # noqa: PLR0915 - 
                 {
                     "id": item.id,
                     "recommended": item.id in RECOMMENDED_MODELS,
+                    "single_image_protocol": item.prompt == "P6",
                     "adapter": item.adapter,
                     "tag": item.tag,
                     "license": item.license,
@@ -626,6 +627,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:  # noqa: PLR0915 - 
         configured = configured_models()
         if body.kind == "analysis" and body.model_id not in configured:
             raise HTTPException(422, "Unknown model")
+        if (
+            body.kind == "analysis"
+            and configured[body.model_id].prompt == "P6"
+            and body.n_images != 1
+        ):
+            raise HTTPException(422, "P6 requires exactly one prepared image")
         check_study(body.dataset, body.case_id)
         label: dict[str, Any] = {
             "dataset": body.dataset,

@@ -468,3 +468,52 @@ def test_model_declared_inadequate_abstains_even_when_raw_abstain_is_false(study
     assert result.perf.failed
     assert result.raw_text == text
     assert "model marked prepared study inadequate" in result.report.parse_warnings
+
+
+def test_p6_single_input_preserves_probability_without_fabricated_evidence(study: Study) -> None:
+    """The normal analysis path keeps sole-input association separate from citations."""
+    calls: list[dict[str, object]] = []
+
+    def respond(request: httpx.Request) -> httpx.Response:
+        if request.url.path == "/api/tags":
+            return httpx.Response(
+                200, json={"models": [{"name": "medgemma1.5:4b-it-q4_K_M", "digest": "synthetic"}]}
+            )
+        if request.url.path == "/api/show":
+            return httpx.Response(200, json={"details": {}})
+        calls.append(json.loads(request.content))
+        data: dict[str, object] = {
+            "message": {"content": "Focus visible. Final Answer: yes"},
+            "done_reason": "stop",
+        }
+        if len(calls) == 2:
+            data.update(
+                message={"content": '"yes"'},
+                logprobs=[
+                    {
+                        "token": "yes",
+                        "top_logprobs": [
+                            {"token": "yes", "logprob": -0.2},
+                            {"token": "no", "logprob": -1.7},
+                        ],
+                    }
+                ],
+            )
+        return httpx.Response(200, json=data)
+
+    with httpx.Client(transport=httpx.MockTransport(respond)) as client:
+        result = analyze_study(
+            study,
+            "medgemma1.5-q4-p6",
+            Settings(),
+            request=AnalysisRequest(labels=["pulmonary_nodule"], prompt_id="P6"),
+            view_overrides={"size": 64},
+            client=client,
+        )
+    assert len(result.prepared_images) == 1
+    assert not result.report.abstain
+    assert result.report.label_probability("pulmonary_nodule") is not None
+    assert result.report.findings[0].evidence_images == []
+    assert result.raw_meta["image_association"].startswith("sole prepared input")
+    assert len(result.raw_meta["responses"]) == 2
+    assert result.provenance.prompt_hash

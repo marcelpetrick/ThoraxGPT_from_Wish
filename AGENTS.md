@@ -21,6 +21,14 @@ do not leave essential information only in chat or temporary files.
 Any framework can continue from the repository alone. Read this section, then
 `docs/plan.md` → *Current activity* (work plan W1–W7) and `docs/status-2026-10-17.md`.
 
+**Current integration checkpoint:** detector and sourced UI review are integrated at
+`535ee24`; W3 was pushed at `da473be`. W1 commits through `37f59e7` plus uncommitted P6
+were recovered by the lead; older calibration work was ported with compatibility tests.
+The final integration uses the normal full commit gate. Both delegated workers hit their
+service usage limit and are no longer running. Preserve the old worktrees/stashes as
+recovery copies until the user chooses cleanup. Do not merge their old diffs again without
+comparing with main. See [the model-usage review](docs/model-usage-review-2026-10-17.md).
+
 **Parallel worktrees** (all under `.claude/worktrees/`, git branch `worktree-agent-<id>`).
 "locked" means a Claude Code agent was still running there at handover; a lock is only a
 git marker (`git worktree unlock <path>`). Inspect each with `git -C <path> log --oneline
@@ -30,10 +38,10 @@ conflict, then `scripts/commit.sh "<message>"` (bumps, full gate, pushes).
 
 | Worktree id | Work item | State at handover | Next action |
 |---|---|---|---|
-| `agent-a2713de6be2350cab` | W1 image-path sanity gate (`thoraxbench sanity`, `configs/experiments/sanity/`) | in progress, uncommitted | Finish S1–S4/T0/T2 runs (calibration only), record in `results.md`, commit, merge |
-| `agent-a97e30bcce02518f3` | W2 MONAI detector baseline + W6 sourced review | core committed `6662c5e`; review ready in worker branch | Lead merges gated worker result; default-ROI/calibration evidence remains separate; weights only under ignored `data/` |
+| `agent-a2713de6be2350cab` | W1 image-path sanity gate (`thoraxbench sanity`, `configs/experiments/sanity/`) | committed through `37f59e7`; P6 recovered by lead | Compare main before reuse; S1/S3/parity remain open |
+| `agent-a97e30bcce02518f3` | W2 MONAI detector baseline + W6 sourced review | integrated `535ee24` | Keep as recovery copy; weights only under ignored `data/` |
 | main checkout | W3 job layer (`src/thoraxbench/api/jobs.py`, `abortable_http.py`) | committed/pushed `da473be`, full gate green | Preserve the shared queue and truthful stage-boundary cancellation during integration |
-| `agent-aebf84a0219298401` | Older session: calibration fitting on the calibration phase, training-overlap tagging, E005–E008 configs (commit `a0b01d7`) | **committed but not merged**, base `9e27cef` (old) | Rebase or cherry-pick onto `main`; expect conflicts in `benchmark/runner.py` and `report.py`; closes ranked gaps (calibration, overlap column) |
+| `agent-aebf84a0219298401` | Older session: calibration fitting on the calibration phase, training-overlap tagging, E005–E008 configs (commit `a0b01d7`) | **ported by lead**, base `9e27cef` (old) | Do not reapply blindly; main contains the port with opt-in fitting and legacy export tests |
 | `agent-a8afbe19832769108` | Older session: docs edits (DATA_POLICY, README, SECURITY, architecture, reproducibility) | uncommitted, base `9e27cef` | Probably superseded by later commits; diff against `main` before discarding |
 | `agent-a9841ef98b05e6b4f` | E001-coverage / P5 | merged (`bcea332`) | Remove the worktree |
 | `.pipeline/calibration-clean`, `.pipeline/evidence-clean` | detached clean checkouts for isolated runs | kept; port 8000 preview runs from `calibration-clean` | Keep until replaced deliberately |
@@ -55,6 +63,12 @@ crops in UI/HTML; Markdown lists candidates. VLM verification remains gated sepa
 Never silently repair invalid detector boxes/scores or render nonfinite crop centres.
 
 ## 0.1 Current priority
+
+Useful detector output is available for research review. Three calibration checks at the
+existing 0.5 cutoff produced eleven proposals, eight reference matches and three unmatched;
+LIDC training overlap remains **yes**. P6 and T2 failed readiness. Do not enable VLM filtering
+or describe constant responses as proof that the image path is ignored. Preserve explicit
+source labels, limitations and the sealed holdout.
 
 **Direction (user decision, 2026-10-17):** follow `docs/approach-review-2026-10-17.md` and
 `docs/plan.md` → *Next steps*: image-path sanity gate → official MedGemma protocol →
@@ -285,3 +299,21 @@ ablation with heuristic summaries in serialized analysis.
 Evidence eligibility uses the shared implied presence probability at the default 0.5
 cutoff, including low-confidence absent verdicts that imply a positive probability.
 `include_cues` accepts only YAML booleans; null, numbers and strings are refused.
+
+## Sanity diagnostic handover (2026-10-17)
+
+`thoraxbench sanity` is implemented; use `docs/sanity.md`. Preserve completed diagnostic
+artifacts and historical definitions. The S2 smoke is one group, not a passed full gate.
+S4 selected-slab calibration results are not detection accuracy. Full S1/T2 and official
+runtime parity remain open. The sanity command checkpoints each request but has no resume
+option. Keep GPU runs sequential and calibration/sealed boundaries intact.
+
+P6 uses the normal model factory through `adapters/p6.py` and the dedicated
+`medgemma1.5-q4-p6` configuration. It requires exactly one prepared image and keeps
+reasoning/answer calls and unavailable logprobs explicit. Do not fabricate image citations
+or treat a single uniformly sampled slice as a whole-study detection result. See
+`docs/p6.md`. P0–P5 remain unchanged.
+
+Calibration fitting is opt-in through experiment `calibration` settings. Fit calibration
+records only; apply to internal-test records only. Keep raw 0.5 metrics beside fitted
+metrics and retain map parameters. Never reinterpret historical unknown training overlap.

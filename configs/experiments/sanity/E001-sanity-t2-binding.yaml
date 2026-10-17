@@ -1,0 +1,36 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 Marcel Petrick <mail@marcelpetrick.it>
+# T2 position binding (approach review 2026-10-17): synthetic only, 20 permutations, two layouts.
+id: E001-sanity-t2-binding
+test: position_binding
+title: Image-number binding with one bright-disk image among four
+description: >-
+  Four images: three synthetic phantom lung-window slabs at different levels and one black
+  image with a large bright disk at position 1-4 (five permutations each). Captions are
+  neutral and identical, so only the pixels identify the disk. "single" sends all images
+  in one message (Ollama 0.40.4 places them before the text); "interleaved" sends one
+  message per image, each image followed by its IMAGE k label. Criterion: >= 18/20 correct
+  in the layout used for benchmarks (chance 5/20).
+vision_ref: "Vision §10, §11, §24: evidence-binding readiness diagnostic"
+phases: [calibration]
+models: [medgemma1.5-q4, medgemma1.5-q8, qwen3-vl-4b-nothink, minicpm-v]
+question:
+  kind: choice
+  text: >-
+    Exactly one of the $n_images images shows a large bright white disk on a black
+    background. Which IMAGE number shows the disk? Answer with JSON {"image": number}.
+  num_predict: 16
+windows: [lung]
+layouts: [single, interleaved]
+image_mode: multi
+n_images: 4
+size: 896
+slab_mm: 5.0
+num_ctx: 8192
+top_logprobs: 10
+neutral_captions: true
+seed: 0
+synthetic:
+  phantoms:
+    - {seed: 0, side: right, diameter_mm: 0}
+  permutations: 20

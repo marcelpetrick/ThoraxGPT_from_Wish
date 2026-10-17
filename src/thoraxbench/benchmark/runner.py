@@ -17,7 +17,7 @@ from __future__ import annotations
 
 import time
 from collections import Counter
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from datetime import UTC, datetime
 from enum import StrEnum
 from pathlib import Path
@@ -26,8 +26,9 @@ from uuid import uuid4
 
 from pydantic import BaseModel, Field
 
-from thoraxbench.adapters.base import load_model_config
+from thoraxbench.adapters.base import ModelUnavailableError, load_model_config
 from thoraxbench.analysis import DISCLAIMER, AnalysisResult, analyze_study
+from thoraxbench.benchmark.calibration import fit_and_apply
 from thoraxbench.benchmark.checkpoint import BenchmarkStore, runtime_identity
 from thoraxbench.benchmark.config import LoadedExperiment, RunSpec
 from thoraxbench.config import Settings
@@ -40,6 +41,7 @@ from thoraxbench.provenance import (
     sha256_of_file,
     sha256_of_obj,
 )
+from thoraxbench.registry.datasets import load_registry
 from thoraxbench.schemas import AnalysisRequest, FindingsReport, LesionAnnotation
 from thoraxbench.scoring import CaseRecord as ScoreRecord
 from thoraxbench.scoring import (
@@ -51,6 +53,7 @@ from thoraxbench.scoring import (
     task_e,
     task_g,
 )
+from thoraxbench.scoring.overlap import Overlap
 from thoraxbench.splits import CaseGuard, Phase, SealedAccessError
 from thoraxbench.study import Study
 from thoraxbench.study_access import guard_study_input
@@ -283,7 +286,7 @@ def _score(
     cases: list[CaseOutcome],
     loaded: LoadedExperiment,
     references: References | None = None,
-    overlap: dict[str, str] | None = None,
+    overlap: Mapping[str, str] | None = None,
 ) -> dict[str, Any]:
     cfg = loaded.config
     refs = references or {}
@@ -317,6 +320,17 @@ def _score(
             "task_c": _task_c(subset, refs),
         }
     return {
+        "calibration": (
+            fit_and_apply(
+                [(str(c.phase), record(c)) for c in scored_cases],
+                cfg.labels,
+                cfg.calibration,
+                n_boot=cfg.n_boot,
+                seed=cfg.seed,
+            )
+            if cfg.calibration is not None
+            else {"status": "disabled", "reason": "No calibration fit requested"}
+        ),
         "n_scored": len(scored),
         "possible_training_overlap": dict(overlap or {}),
         "task_a": task_a(
@@ -328,6 +342,23 @@ def _score(
         "task_g": task_g(answered),
         "per_dataset": per_dataset,
     }
+
+
+def training_overlap(model_id: str, datasets: list[str], settings: Settings) -> dict[str, Overlap]:
+    """``possible_training_overlap`` per dataset for *model_id* (Vision §16).
+
+    An unknown model or an unreadable registry yields ``unknown``, never ``no``.
+    """
+    try:
+        family = load_model_config(model_id, settings.configs_dir / "models").family
+    except ModelUnavailableError, OSError, ValueError:
+        return dict.fromkeys(datasets, "unknown")
+    try:
+        registry = load_registry(settings.configs_dir / "datasets")
+    except OSError, ValueError:
+        registry = {}
+    parents = {ds: list(entry.parent_datasets) for ds, entry in registry.items()}
+    return {ds: possible_training_overlap(family, ds, parents=parents) for ds in datasets}
 
 
 def _provenance(
@@ -474,6 +505,8 @@ def run_experiment(
 
     invocation_started = time.perf_counter()
     cfg = loaded.config
+    if cfg.blocked_reason:
+        raise ValueError(f"Experiment {cfg.id} is blocked: {cfg.blocked_reason}")
     if sha256_of_file(loaded.path) != loaded.file_sha256:
         raise ValueError("Experiment identity mismatch: file changed after loading")
     if limit is not None and limit < 1:
@@ -699,10 +732,6 @@ def _execute(  # noqa: PLR0912, PLR0915, PLR0917 - one ordered checkpoint transa
         for case in cases
         if case.entry is not None
     }
-    families = {
-        spec.model: load_model_config(spec.model, settings.configs_dir / "models").family
-        for spec in specs
-    }
     runs = [
         RunResult(
             spec=spec.to_dict(),
@@ -713,7 +742,7 @@ def _execute(  # noqa: PLR0912, PLR0915, PLR0917 - one ordered checkpoint transa
                 outcomes[spec.variant],
                 loaded,
                 references,
-                {ds: possible_training_overlap(families[spec.model], ds) for ds in cfg.datasets},
+                training_overlap(spec.model, cfg.datasets, settings),
             ),
             runtime_s=runtimes[spec.variant],
             cases=outcomes[spec.variant],

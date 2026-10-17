@@ -198,10 +198,13 @@
     else if (models.some((model) => model.id === "heuristic-hu")) $("model-select").value = "heuristic-hu";
     renderModelStatus(); renderSetup();
   }
+  words.en.singleImageNote = "Experimental P6 uses exactly one image and has failed the synthetic readiness check. Its answer does not cover the whole study.";
+  words.de.singleImageNote = "Experimentelles P6 nutzt genau ein Bild und hat die synthetische Bereitschaftsprüfung nicht bestanden. Die Antwort gilt nicht für die gesamte Studie.";
   function renderModelStatus() {
     const model = models.find((entry) => entry.id === $("model-select").value);
     setText("model-status", t(model?.available ? "modelReady" : "modelNotReady"));
-    setText("model-input-note", t(model?.adapter === "monai_detector" ? "detectorInputNote" : model?.adapter === "http_service" ? "serviceInputNote" : model?.adapter === "heuristic" || model?.id === "heuristic-hu" ? "baselineNote" : "visionInputNote"));
+    if (model?.single_image_protocol) $("image-count").value = "1";
+    setText("model-input-note", t(model?.single_image_protocol ? "singleImageNote" : model?.adapter === "monai_detector" ? "detectorInputNote" : model?.adapter === "http_service" ? "serviceInputNote" : model?.adapter === "heuristic" || model?.id === "heuristic-hu" ? "baselineNote" : "visionInputNote"));
     updateControls();
   }
   function renderStudyFacts() {
@@ -218,7 +221,7 @@
     const comparing = $("compare-models").checked;
     $("model-select").disabled = busy || pulling || comparing;
     $("run-analysis").disabled = busy || submitting || pulling || !study || (comparing ? !models.some((entry) => entry.recommended && entry.available) : !model?.available);
-    $("image-count").disabled = busy || pulling || (!comparing && ["heuristic-hu","monai-lung-nodule"].includes($("model-select").value));
+    $("image-count").disabled = busy || pulling || (!comparing && (model?.single_image_protocol || ["heuristic-hu","monai-lung-nodule"].includes($("model-select").value)));
     $("run-analysis").textContent = t(busy ? "running" : comparing ? "compareRun" : "run");
     document.body.classList.toggle("busy", busy);
     $("analysis-page").setAttribute("aria-busy", String(busy));

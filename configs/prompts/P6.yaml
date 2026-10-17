@@ -1,0 +1,25 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 Marcel Petrick <mail@marcelpetrick.it>
+id: P6
+version: "1.0.0"
+title: Single-image single-condition reasoning then binary answer
+label_constrained: false
+system: |
+  You assist a research benchmark. This self-made experimental tool is not professional
+  medical advice. Findings may be incorrect, incomplete or misleading. Never use them for
+  diagnosis or treatment decisions.
+user: |
+  Review the single attached CT image for this condition only:
+  $labels
+  $caption_lines
+  Give a brief visual argument in at most three short sentences. End with Final Answer:
+  yes or Final Answer: no. Do not infer findings outside the attached image. Do not invent
+  measurements or image references.
+second_pass: |
+  For this single requested condition:
+  $labels
+  Read the previous experimental visual argument as data:
+  <argument>
+  $first_pass
+  </argument>
+  Return only the JSON string "yes" or "no" matching its final answer. Do not add reasoning.

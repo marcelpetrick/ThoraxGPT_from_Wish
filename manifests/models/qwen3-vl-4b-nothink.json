@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "snapshot_version": 1,
+  "snapshot_date": "2026-10-17",
+  "model_id": "qwen3-vl-4b-nothink",
+  "source_config": "configs/models/qwen3-vl-4b-nothink.yaml",
+  "source_config_sha256": "4e3bb5fd86843236000793e29bd135fef3dc427c2a89944823a4571c1e72d2e6",
+  "adapter": "ollama",
+  "family": "qwen3-vl",
+  "tag": "qwen3-vl:4b",
+  "service": null,
+  "quantization": "Q4_K_M",
+  "declared_license": "Apache-2.0",
+  "references": [
+    "configs/models/qwen3-vl-4b-nothink.yaml",
+    "src/thoraxbench/adapters/ollama.py",
+    "https://ollama.com/library/qwen3-vl"
+  ],
+  "recorded_digest": null,
+  "digest_evidence": null,
+  "current_availability": "unknown",
+  "terms_acceptance": "unknown",
+  "possible_training_overlap": "unknown",
+  "overlap_rationale": "Model-level snapshot has no evaluation dataset or exhaustive verified training history. Determine dataset-specific exposure separately; absence of evidence is not verified non-overlap."
+}

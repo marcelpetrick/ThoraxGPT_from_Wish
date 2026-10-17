@@ -20,6 +20,7 @@ from thoraxbench.adapters.heuristic import HeuristicModel
 from thoraxbench.adapters.http_service import HttpServiceModel
 from thoraxbench.adapters.monai_detector import MonaiDetectorModel
 from thoraxbench.adapters.ollama import OllamaModel
+from thoraxbench.adapters.p6 import P6OllamaModel
 from thoraxbench.config import Settings, get_settings
 from thoraxbench.prompts import load_prompt
 
@@ -89,7 +90,8 @@ def load_model(
     if config.adapter == "ollama":
         chosen = prompt_id or config.prompt or "P3"
         prompt = load_prompt(chosen, s.configs_dir / "prompts")
-        return OllamaModel(
+        adapter = P6OllamaModel if chosen == "P6" else OllamaModel
+        return adapter(
             config,
             prompt,
             s.ollama_url,

@@ -1,0 +1,42 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 Marcel Petrick <mail@marcelpetrick.it>
+id: E001-sanity-s2-q4-gate
+test: obvious_target
+title: Obvious synthetic nodule vs identical phantom without, single image
+description: Bounded Q4-only readiness diagnostic; derived from E001-sanity-s2-single.
+  This is not held-out accuracy.
+vision_ref: "Vision \xA710, \xA711, \xA724: visual-signal readiness diagnostic"
+phases:
+- calibration
+models:
+- medgemma1.5-q4
+question:
+  kind: yes_no
+  system: You are assisting a research benchmark of thoracic CT reading. Your output
+    is an experimental research prediction, not medical advice.
+  text: 'Is there a pulmonary nodule in this image? Answer with JSON {"nodule": "yes"
+    or "no", "confidence": probability between 0 and 1 that your answer is correct}.'
+  num_predict: 32
+windows:
+- lung
+layouts:
+- single
+image_mode: single
+n_images: 1
+size: 896
+slab_mm: 5.0
+num_ctx: 4096
+top_logprobs: 10
+seed: 0
+synthetic:
+  seeds:
+  - 0
+  - 1
+  - 2
+  - 3
+  - 4
+  sides:
+  - right
+  - left
+  diameters_mm:
+  - 30

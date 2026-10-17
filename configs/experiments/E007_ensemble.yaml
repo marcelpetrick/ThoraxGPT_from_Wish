@@ -1,0 +1,27 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# E007 — ensemble (Vision §26 E007). BLOCKED: needs runnable CT-CLIP (see E006) and an
+# ensemble-fusion step that is not implemented. The variants list the planned inputs only.
+id: E007
+title: Calibrated CT-CLIP and MedGemma ensemble
+description: >-
+  Planned fusion of calibrated CT-CLIP probabilities with MedGemma structured findings.
+  Calibrators would be fitted on the calibration phase and the fused output scored on
+  internal_test. Development split only.
+vision_ref: "Vision §26 E007, §20"
+blocked_reason: >-
+  3D model unavailable: CT-CLIP has gated weights and no local service, and no
+  ensemble-fusion adapter exists yet.
+split: development
+phases: [calibration, internal_test]
+model: medgemma1.5-q4
+prompt: P3
+datasets: [lidc_idri, nsclc_radiogenomics]
+labels: [pulmonary_nodule]
+calibration:
+  method: platt
+  threshold_method: youden
+n_boot: 1000
+seed: 0
+variants:
+  - {id: medgemma, model: medgemma1.5-q4}
+  - {id: ct_clip, model: ct-clip}

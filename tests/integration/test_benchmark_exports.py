@@ -61,7 +61,13 @@ def settings(tmp_path: Path) -> Settings:
     return config
 
 
-def _completed(settings: Settings, *, overrides: dict[str, Any] | None = None) -> Path:
+def _completed(
+    settings: Settings,
+    *,
+    overrides: dict[str, Any] | None = None,
+    legacy: bool = False,
+    overlap_flag: str | None = None,
+) -> Path:
     cfg = ExperimentConfig(
         id="EXPORT",
         model="heuristic-hu",
@@ -92,11 +98,15 @@ def _completed(settings: Settings, *, overrides: dict[str, Any] | None = None) -
         prompt_hash="prompt",
         preprocess_hash=sha256_of_obj(cfg.view_overrides),
     )
+    stored_config = cfg.model_dump(mode="json")
+    if legacy:
+        stored_config.pop("calibration")
+        stored_config.pop("blocked_reason")
     identity = {
         "schema_version": 1,
-        "config": cfg.model_dump(mode="json"),
+        "config": stored_config,
         "experiment_file": "filehash",
-        "experiment_canonical": sha256_of_obj(cfg.model_dump(mode="json")),
+        "experiment_canonical": sha256_of_obj(stored_config),
         "limit": None,
         "source_hash": "packagehash",
         "development_splits": {"lidc_idri": "split-hash"},
@@ -197,6 +207,7 @@ def _completed(settings: Settings, *, overrides: dict[str, Any] | None = None) -
         status_counts=counts,
         phase_counts={},
         metrics={
+            **({"possible_training_overlap": {"lidc_idri": overlap_flag}} if overlap_flag else {}),
             "n_scored": 1,
             "task_a": {
                 "macro_f1": 0.5,
@@ -228,7 +239,7 @@ def _completed(settings: Settings, *, overrides: dict[str, Any] | None = None) -
         config_path="fixture.yaml",
         config_sha256="filehash",
         config_canonical_sha256=identity["experiment_canonical"],
-        config=cfg.model_dump(mode="json"),
+        config=stored_config,
         split="development",
         started_at="2026-10-16T00:00:00+00:00",
         runtime_s=0.5,
@@ -633,3 +644,25 @@ def test_variant_renaming_and_source_data_changes_are_separate_factors(settings:
     assert not pair["comparable"]
     assert pair["experimental_factors"]["source_study_inputs"]
     assert not pair["experimental_factors"]["prepared_input_definition"]
+
+
+def test_legacy_config_fields_remain_readable_without_rehashing_results(settings: Settings) -> None:
+    source = _completed(settings, legacy=True)
+    original = (source / "result.json").read_bytes()
+    loaded = load_completed_run(source, settings)
+    assert "calibration" not in loaded.result.config
+    assert "blocked_reason" not in loaded.result.config
+    assert export_completed_runs([source], settings)["html"].is_file()
+    assert (source / "result.json").read_bytes() == original
+
+
+def test_recorded_training_overlap_reaches_html_csv_and_manifest(settings: Settings) -> None:
+    source = _completed(settings, overlap_flag="yes")
+    outputs = export_completed_runs([source], settings)
+    rows = list(csv.DictReader(io.StringIO(outputs["cases_csv"].read_text())))
+    assert {row["possible_training_overlap"] for row in rows} == {"yes"}
+    metrics = list(csv.DictReader(io.StringIO(outputs["metrics_csv"].read_text())))
+    assert {row["possible_training_overlap"] for row in metrics} == {"yes"}
+    manifest = json.loads(outputs["manifest"].read_text())
+    assert manifest["setups"][0]["possible_training_overlap"] == "yes"
+    assert "&quot;overlap_by_dataset&quot;" in outputs["html"].read_text()
