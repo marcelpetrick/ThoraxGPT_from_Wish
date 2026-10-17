@@ -15,6 +15,9 @@ KNOWN_TRAINING_DATA: dict[str, frozenset[str]] = {
     "ct_chat": frozenset({"ct_rate", "radgenome_chestct"}),
     "m3d_lamed": frozenset({"m3d_data", "m3d_cap", "m3d_vqa"}),
     "radfm": frozenset({"medmd", "radmd"}),
+    # MONAI lung_nodule_ct_detection bundle: trained on LUNA16, i.e. 888 LIDC-IDRI scans
+    # (bundle docs/data_license.txt). Patients of every LIDC split may be in LUNA16.
+    "monai_retinanet_luna16": frozenset({"luna16", "lidc_idri"}),
 }
 
 

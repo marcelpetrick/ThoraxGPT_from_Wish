@@ -6,6 +6,7 @@
 * :class:`HttpServiceModel` — 3D/PyTorch models as local HTTP services (CT-CLIP, M3D-LaMed,
   CT-CHAT, RadFM, HuatuoGPT-Vision)
 * :class:`HeuristicModel` — deterministic HU-rule baseline
+* :class:`MonaiDetectorModel` — pretrained LUNA16 RetinaNet nodule detector (reference)
 """
 
 from thoraxbench.adapters.base import (
@@ -20,6 +21,7 @@ from thoraxbench.adapters.base import (
 from thoraxbench.adapters.factory import load_model
 from thoraxbench.adapters.heuristic import HeuristicModel, HUCuesLike, heuristic_findings
 from thoraxbench.adapters.http_service import HttpServiceModel
+from thoraxbench.adapters.monai_detector import MonaiDetectorModel
 from thoraxbench.adapters.ollama import OllamaModel
 
 __all__ = [
@@ -28,6 +30,7 @@ __all__ = [
     "HttpServiceModel",
     "ModelConfig",
     "ModelUnavailableError",
+    "MonaiDetectorModel",
     "OllamaModel",
     "ThoraxModel",
     "ViewBuilderLike",

@@ -37,7 +37,7 @@ class ModelManifest(BaseModel):
     model_id: str = Field(pattern=MODEL_ID)
     source_config: str
     source_config_sha256: str = Field(pattern=SHA256)
-    adapter: Literal["ollama", "http_service", "heuristic"]
+    adapter: Literal["ollama", "http_service", "heuristic", "monai_detector"]
     family: str
     tag: str | None
     service: str | None

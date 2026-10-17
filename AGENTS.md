@@ -16,6 +16,14 @@ and this file must be fixed.
 editing. Preserve existing work. Record decisions and handover details in the repository;
 do not leave essential information only in chat or temporary files.
 
+## W2 detector handover (2026-10-17)
+
+The optional `monai-lung-nodule` adapter and `CandidateCropView` are available. Follow
+`docs/detector-baseline.md` for explicit checksum-pinned setup. Never auto-download weights
+or run training. Detector scores are uncalibrated; LIDC rows must retain training-overlap
+labels. The adapted SciPy input grid and smaller ROI are not upstream benchmark parity.
+Crop generation is a core component; detect → verify workflow integration remains separate.
+
 ## 0.1 Current priority
 
 The CLI engine and frozen pilot holdout are available. The **local UI MVP** is implemented

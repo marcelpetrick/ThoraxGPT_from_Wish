@@ -23,6 +23,7 @@ from thoraxbench.adapters.base import (
     load_model_config,
 )
 from thoraxbench.adapters.factory import load_model
+from thoraxbench.adapters.monai_detector import MonaiDetectorModel
 from thoraxbench.adapters.ollama import OllamaModel
 from thoraxbench.config import Settings
 from thoraxbench.perf import PerfRecord, measure
@@ -190,7 +191,11 @@ def analyze_study(
     perf.tokens_generated = raw.tokens_generated
     perf.failed = raw.error is not None or report.abstain
     perf.error = raw.error
-    identity = model.describe() if isinstance(model, OllamaModel) and study.qc.adequate else {}
+    identity = (
+        model.describe()
+        if isinstance(model, OllamaModel | MonaiDetectorModel) and study.qc.adequate
+        else {}
+    )
 
     tensor = prepared.tensor_path
     provenance = RunProvenance.collect(

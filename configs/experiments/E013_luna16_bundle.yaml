@@ -1,0 +1,24 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# E013-luna16-bundle — pretrained MONAI LUNA16 RetinaNet as a supervised detector reference
+# baseline (inference only), calibration phase only. docs/fine-tuning-plan.md §4 names the
+# LUNA16-bundle test as the comparison arm of E013 (RetinaNet from scratch); the suffix form
+# keeps E009-E014 free for their planned adaptation experiments.
+# LUNA16 is drawn from LIDC-IDRI: possible_training_overlap = yes on lidc_idri, so the LIDC
+# rows are NOT a fair accuracy figure. NSCLC-Radiogenomics is out of distribution.
+id: E013-luna16-bundle
+title: LUNA16 RetinaNet detector reference baseline (calibration only)
+description: >-
+  MONAI lung_nodule_ct_detection (RetinaNet, LUNA16) on calibration-phase LIDC-IDRI and
+  NSCLC-Radiogenomics cases. Study level: pulmonary_nodule probability = maximum candidate
+  score. Lesion level: FROC of millimetre candidates against reference nodule/mass centres.
+  LIDC-IDRI overlaps the detector's training data; not a fair accuracy figure there.
+vision_ref: "Vision §13 Task A/B/C, §16, §24; docs/fine-tuning-plan.md §3 item 5, §4 E013"
+split: development
+phases: [calibration]
+model: monai-lung-nodule
+datasets: [lidc_idri, nsclc_radiogenomics]
+labels: [pulmonary_nodule]
+thresholds:
+  pulmonary_nodule: 0.5
+n_boot: 1000
+seed: 0

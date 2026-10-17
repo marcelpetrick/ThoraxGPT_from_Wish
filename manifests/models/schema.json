@@ -72,7 +72,8 @@
       "enum": [
         "ollama",
         "http_service",
-        "heuristic"
+        "heuristic",
+        "monai_detector"
       ],
       "title": "Adapter",
       "type": "string"

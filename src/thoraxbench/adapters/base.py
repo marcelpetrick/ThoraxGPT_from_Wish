@@ -90,7 +90,7 @@ class ModelConfig(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True, populate_by_name=True)
 
     id: str
-    adapter: Literal["ollama", "http_service", "heuristic"]
+    adapter: Literal["ollama", "http_service", "heuristic", "monai_detector"]
     family: str
     tag: str | None = None
     service: str | None = None

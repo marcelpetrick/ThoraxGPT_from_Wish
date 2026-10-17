@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import fcntl
+import importlib.metadata
 import json
 import os
 from collections.abc import Iterator
@@ -20,6 +21,14 @@ from pydantic import BaseModel, ConfigDict, Field
 from thoraxbench.adapters.base import ModelConfig
 from thoraxbench.adapters.factory import require_local_endpoint
 from thoraxbench.config import Settings
+from thoraxbench.detectors.bundle import (
+    BUNDLE_REVISION,
+    WEIGHTS_ITEM,
+    BundleIntegrityError,
+    bundle_dir,
+    verify_file,
+)
+from thoraxbench.detectors.retinanet import DETECTOR_PACKAGES, DetectorParams
 from thoraxbench.provenance import sha256_of_file, sha256_of_obj
 from thoraxbench.reports.html_report import require_results_path
 
@@ -50,6 +59,25 @@ def runtime_identity(model: ModelConfig, settings: Settings) -> dict[str, Any]:
     """Snapshot local runtime weights without downloading or invoking inference."""
     if model.adapter == "heuristic":
         return {"adapter": model.adapter, "identity": "source-hashed"}
+    if model.adapter == "monai_detector":
+        try:
+            digest: str | None = verify_file(bundle_dir(settings), WEIGHTS_ITEM)
+        except BundleIntegrityError:
+            digest = None
+        packages: dict[str, str | None] = {}
+        for package in DETECTOR_PACKAGES:
+            try:
+                packages[package] = importlib.metadata.version(package)
+            except importlib.metadata.PackageNotFoundError:
+                packages[package] = None
+        params = DetectorParams.model_validate(model.options.get("detector", {}))
+        return {
+            "adapter": model.adapter,
+            "revision": BUNDLE_REVISION,
+            "digest": digest,
+            "packages": packages,
+            "device_request": params.resolved_device_request(),
+        }
     endpoint = (
         settings.ollama_url
         if model.adapter == "ollama"

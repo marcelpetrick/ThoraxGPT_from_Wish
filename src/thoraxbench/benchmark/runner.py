@@ -40,9 +40,17 @@ from thoraxbench.provenance import (
     sha256_of_file,
     sha256_of_obj,
 )
-from thoraxbench.schemas import AnalysisRequest, FindingsReport
+from thoraxbench.schemas import AnalysisRequest, FindingsReport, LesionAnnotation
 from thoraxbench.scoring import CaseRecord as ScoreRecord
-from thoraxbench.scoring import task_a, task_b, task_e, task_g
+from thoraxbench.scoring import (
+    PredictedLesion,
+    possible_training_overlap,
+    task_a,
+    task_b,
+    task_c,
+    task_e,
+    task_g,
+)
 from thoraxbench.splits import CaseGuard, Phase, SealedAccessError
 from thoraxbench.study import Study
 from thoraxbench.study_access import guard_study_input
@@ -53,6 +61,21 @@ FRAMING = (
     "sealed-holdout result. A deterministic HU heuristic measures the pipeline, not a model."
 )
 TASK_C_NOTE = "Task C (lesion localisation) is not scored: no millimetre lesion centres."
+TASK_C_SCORED_NOTE = (
+    "Task C (lesion localisation) is scored only for runs whose model returns millimetre "
+    "candidates. A candidate hits a reference nodule/mass when its centre lies within "
+    "max(reference diameter / 2, 5 mm). 'all_readers': every reference lesion >= 3 mm is a "
+    "target and every other candidate is a false positive. 'luna16_style': lesions marked by "
+    ">= 3 readers are targets; candidates on fewer-reader lesions or on an already-hit lesion "
+    "are ignored. Candidates on unannotated < 3 mm nodules always count as false positives."
+)
+OVERLAP_NOTE = (
+    "possible_training_overlap is per (model family, dataset) from documented training data "
+    "(thoraxbench.scoring.overlap); 'unknown' means undocumented, never verified non-overlap. "
+    "A 'yes' row is not a fair accuracy figure."
+)
+LESION_LABELS = frozenset({"pulmonary_nodule", "pulmonary_mass"})
+LUNA16_MIN_READERS = 3
 RECOVERABLE = (OSError, ValueError, RuntimeError, KeyError)
 
 Analyzer = Callable[..., AnalysisResult]
@@ -215,8 +238,55 @@ def _from_result(base: dict[str, Any], result: AnalysisResult, labels: list[str]
     )
 
 
-def _score(cases: list[CaseOutcome], loaded: LoadedExperiment) -> dict[str, Any]:
+References = dict[tuple[str, str], list[LesionAnnotation]]
+
+
+def _task_c(scored: list[CaseOutcome], references: References) -> dict[str, Any] | None:
+    """Lesion-level scores over scored cases whose report localises in millimetres."""
+    located = [
+        (c, c.report.lesions)
+        for c in scored
+        if c.report is not None and c.report.lesions is not None
+    ]
+    if not located:
+        return None
+
+    def records(min_readers: int) -> list[ScoreRecord]:
+        out: list[ScoreRecord] = []
+        for c, candidates in located:
+            lesions = [
+                lesion
+                for lesion in references.get((c.dataset, c.case_id), [])
+                if lesion.label in LESION_LABELS
+            ]
+            out.append(
+                ScoreRecord(
+                    case_id=f"{c.dataset}:{c.case_id}",
+                    patient_id=f"{c.dataset}:{c.patient_id}",
+                    reference_lesions=[les for les in lesions if les.readers >= min_readers],
+                    ignored_lesions=[les for les in lesions if les.readers < min_readers],
+                    predicted_lesions=[
+                        PredictedLesion(p.center_zyx_mm, p.diameter_mm, p.score) for p in candidates
+                    ],
+                )
+            )
+        return out
+
+    return {
+        "n_scans": len(located),
+        "all_readers": task_c(records(1)).to_dict(),
+        "luna16_style": task_c(records(LUNA16_MIN_READERS), ignore_duplicate_hits=True).to_dict(),
+    }
+
+
+def _score(
+    cases: list[CaseOutcome],
+    loaded: LoadedExperiment,
+    references: References | None = None,
+    overlap: dict[str, str] | None = None,
+) -> dict[str, Any]:
     cfg = loaded.config
+    refs = references or {}
 
     def record(c: CaseOutcome) -> ScoreRecord:
         return ScoreRecord(
@@ -227,16 +297,36 @@ def _score(cases: list[CaseOutcome], loaded: LoadedExperiment) -> dict[str, Any]
             report=c.report,
         )
 
-    scored = [record(c) for c in cases if c.status is CaseStatus.SCORED]
+    scored_cases = [c for c in cases if c.status is CaseStatus.SCORED]
+    scored = [record(c) for c in scored_cases]
     answered = [record(c) for c in cases if c.status in {CaseStatus.SCORED, CaseStatus.ABSTAINED}]
+    per_dataset: dict[str, Any] = {}
+    for dataset in cfg.datasets:
+        subset = [c for c in scored_cases if c.dataset == dataset]
+        per_dataset[dataset] = {
+            "possible_training_overlap": (overlap or {}).get(dataset, "unknown"),
+            "n_cases": sum(1 for c in cases if c.dataset == dataset),
+            "n_scored": len(subset),
+            "task_a": task_a(
+                [record(c) for c in subset],
+                cfg.labels,
+                thresholds=cfg.thresholds,
+                n_boot=cfg.n_boot,
+                seed=cfg.seed,
+            ).to_dict(),
+            "task_c": _task_c(subset, refs),
+        }
     return {
         "n_scored": len(scored),
+        "possible_training_overlap": dict(overlap or {}),
         "task_a": task_a(
             scored, cfg.labels, thresholds=cfg.thresholds, n_boot=cfg.n_boot, seed=cfg.seed
         ).to_dict(),
         "task_b": {k: v.to_dict() for k, v in task_b(scored, cfg.labels).items()},
+        "task_c": _task_c(scored_cases, refs),
         "task_e": task_e(scored).to_dict(),
         "task_g": task_g(answered),
+        "per_dataset": per_dataset,
     }
 
 
@@ -603,13 +693,28 @@ def _execute(  # noqa: PLR0912, PLR0915, PLR0917 - one ordered checkpoint transa
                         raise RuntimeError(runtime_error)
                 outcomes[spec.variant].append(outcome)
                 progress(f"{case.dataset}/{case.case_id} [{spec.variant}]: {outcome.status.value}")
+    references: References = {
+        (case.dataset, case.case_id): list(case.entry.reference.lesions)
+        for cases, _ in selections
+        for case in cases
+        if case.entry is not None
+    }
+    families = {
+        spec.model: load_model_config(spec.model, settings.configs_dir / "models").family
+        for spec in specs
+    }
     runs = [
         RunResult(
             spec=spec.to_dict(),
             provenance=_provenance(spec, loaded, settings, summaries, provenances[spec.variant]),
             status_counts=_counts(outcomes[spec.variant]),
             phase_counts=_phase_counts(outcomes[spec.variant]),
-            metrics=_score(outcomes[spec.variant], loaded),
+            metrics=_score(
+                outcomes[spec.variant],
+                loaded,
+                references,
+                {ds: possible_training_overlap(families[spec.model], ds) for ds in cfg.datasets},
+            ),
             runtime_s=runtimes[spec.variant],
             cases=outcomes[spec.variant],
         )
@@ -631,6 +736,10 @@ def _execute(  # noqa: PLR0912, PLR0915, PLR0917 - one ordered checkpoint transa
         limit_per_dataset=store.identity["limit"],
         datasets=summaries,
         runs=runs,
+        notes=[
+            TASK_C_SCORED_NOTE if any(run.metrics["task_c"] for run in runs) else TASK_C_NOTE,
+            OVERLAP_NOTE,
+        ],
     )
     from thoraxbench.benchmark.report import render_markdown  # noqa: PLC0415 - report imports schema
 

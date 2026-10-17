@@ -101,6 +101,16 @@ Status: ✅ done · 🔄 in progress · ⏳ open · ✖ dropped
 
 ## Current activity
 
+- **W2 reference detector implementation (2026-10-17):** optional checksum-pinned MONAI
+  LUNA16 RetinaNet inference adapter, explicit terms/weight helper, millimetre candidates,
+  overlap-labelled per-dataset Task A/C reports and in-memory axial/coronal crop component.
+  See [setup and limits](detector-baseline.md). Five existing local bundle files verify.
+  A reduced synthetic CPU network/API smoke passed; default-ROI GPU/calibration performance
+  is not yet measured in this handover. Synthetic adapter/geometry/scoring tests cover the
+  pipeline without downloading weights. Detect → VLM verify → review remains an integration
+  task. Do not claim unbiased LIDC accuracy or numerically identical upstream preprocessing.
+
+
 - 🔄 **Program status and approach check (2026-10-17):** full-program state, real-data
   verdict and the decision plan are in [the status report](status-2026-10-17.md). Running:
   image-path sanity tests, a paired lesion/control slab test (calibration only) and a web

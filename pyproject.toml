@@ -33,6 +33,15 @@ dependencies = [
     "uvicorn==0.54.0",
 ]
 
+[project.optional-dependencies]
+# Supervised nodule-detector reference baseline (inference only, docs/model_cards.md).
+# Optional: the default install, CI tests and the wheel stage do not need PyTorch.
+detector = [
+    "monai==1.6.1",
+    "torch==2.14.1",
+    "torchvision==0.29.1",
+]
+
 [project.scripts]
 thoraxbench = "thoraxbench.cli.main:app"
 

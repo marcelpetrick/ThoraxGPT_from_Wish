@@ -154,3 +154,11 @@ studies with Q4/Q8, four 256-pixel axial inputs and two labels. Q4 abstained on 
 scored one response (missed the reference nodule), then hit its generation limit. The run
 took 290.8 seconds; it does not establish accuracy or a quantization winner. See
 [the complete measured setup and limitations](results.md).
+
+## Optional MONAI reference detector (2026-10-17)
+
+`monai-lung-nodule` is an inference-only LUNA16 RetinaNet adapter, not a VLM.
+[Setup, pinned provenance and limitations](detector-baseline.md) describe the explicit
+weight command, adapted preprocessing, source-labelled candidates and LIDC training overlap.
+A reduced synthetic CPU API smoke passed; no default-ROI calibration/GPU accuracy claim
+is established. Candidate crops support later verification, which requires integration.

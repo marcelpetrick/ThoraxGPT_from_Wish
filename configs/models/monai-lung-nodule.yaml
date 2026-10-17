@@ -1,0 +1,35 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Supervised nodule-detector REFERENCE BASELINE (inference only): MONAI bundle
+# lung_nodule_ct_detection v0.6.10, revision 9d6622fda0e52be0a4155fed2e0afb9c17bcd80b
+# (RetinaNet, Apache-2.0). Trained on LUNA16 = 888 LIDC-IDRI scans: possible_training_overlap
+# is "yes" on lidc_idri (thoraxbench.scoring.overlap). Weights are fetched only explicitly:
+#   uv run python scripts/fetch_monai_bundle.py --accept-terms
+# Needs the optional extra: uv sync --all-groups --extra detector
+id: monai-lung-nodule
+adapter: monai_detector
+family: monai_retinanet_luna16
+view: monai_lung_nodule_v1
+capabilities:
+  3d_native: true
+  classification: true
+  probabilities: true
+  localization: true
+options:
+  detector:
+    # Bundle inference.json uses roi 512x512x192; a smaller window fits a shared 8 GB GPU
+    # or CPU. The adapted window and SciPy resampling are not upstream benchmark parity.
+    roi_size_xyz: [256, 256, 128]
+    overlap: 0.25
+    score_thresh: 0.02
+    topk_candidates_per_level: 1000
+    nms_thresh: 0.22
+    detections_per_img: 300
+    device: auto
+    amp: true
+    min_free_gpu_mb: 3000
+license: "Apache-2.0"
+tier: "reference"
+notes: >-
+  Pretrained LUNA16 RetinaNet nodule detector (MONAI Model Zoo). Upstream intended use: an
+  example, not for diagnostic purposes. Trained on LIDC-IDRI scans: results on LIDC-IDRI are
+  not a fair accuracy figure. NSCLC-Radiogenomics is out of distribution.

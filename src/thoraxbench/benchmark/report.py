@@ -27,12 +27,19 @@ def _ci(metric: dict[str, Any], name: str) -> str:
     return f"[{interval[0]:.3f}, {interval[1]:.3f}]" if interval else "n/a"
 
 
+def _overlap(run: RunResult) -> str:
+    overlap = run.metrics.get("possible_training_overlap") or {}
+    return "; ".join(f"{ds}={value}" for ds, value in overlap.items()) or "n/a"
+
+
 def _label_rows(run: RunResult) -> list[str]:
     rows = [
         "| Label | n | Positives | AUROC (95 % CI) | Sensitivity (95 % CI) | "
-        "Specificity (95 % CI) | F1 (95 % CI) | TP/FP/TN/FN | Notes |",
-        "|---|---:|---:|---|---|---|---|---|---|",
+        "Specificity (95 % CI) | F1 (95 % CI) | TP/FP/TN/FN | possible_training_overlap "
+        "| Notes |",
+        "|---|---:|---:|---|---|---|---|---|---|---|",
     ]
+    overlap = _overlap(run)
     for label, m in run.metrics["task_a"]["per_label"].items():
         counts = m.get("counts")
         cm = f"{counts['tp']}/{counts['fp']}/{counts['tn']}/{counts['fn']}" if counts else "n/a"
@@ -41,8 +48,54 @@ def _label_rows(run: RunResult) -> list[str]:
             f"{_fmt(m['auroc'])} {_ci(m, 'auroc')} | "
             f"{_fmt(m.get('sensitivity'))} {_ci(m, 'sensitivity')} | "
             f"{_fmt(m.get('specificity'))} {_ci(m, 'specificity')} | "
-            f"{_fmt(m.get('f1'))} {_ci(m, 'f1')} | {cm} | {'; '.join(m['notes']) or '-'} |"
+            f"{_fmt(m.get('f1'))} {_ci(m, 'f1')} | {cm} | {overlap} | "
+            f"{'; '.join(m['notes']) or '-'} |"
         )
+    return rows
+
+
+def _dataset_rows(run: RunResult) -> list[str]:
+    rows = [
+        "| Dataset | possible_training_overlap | Cases | Scored | Label | n | Positives "
+        "| AUROC (95 % CI) | Sensitivity (95 % CI) | Specificity (95 % CI) | Notes |",
+        "|---|---|---:|---:|---|---:|---:|---|---|---|---|",
+    ]
+    for dataset, d in (run.metrics.get("per_dataset") or {}).items():
+        for label, m in d["task_a"]["per_label"].items():
+            rows.append(
+                f"| {dataset} | {d['possible_training_overlap']} | {d['n_cases']} | "
+                f"{d['n_scored']} | `{label}` | {m['n']} | {m['n_positive']} | "
+                f"{_fmt(m['auroc'])} {_ci(m, 'auroc')} | "
+                f"{_fmt(m.get('sensitivity'))} {_ci(m, 'sensitivity')} | "
+                f"{_fmt(m.get('specificity'))} {_ci(m, 'specificity')} | "
+                f"{'; '.join(m['notes']) or '-'} |"
+            )
+    return rows
+
+
+def _task_c_rows(run: RunResult) -> list[str]:
+    rates = ("0.125", "0.25", "0.5", "1.0", "2.0", "4.0", "8.0")
+    rows = [
+        "| Dataset | possible_training_overlap | Rule | Scans | Lesions | "
+        + " | ".join(f"Sens @{r} FP" for r in rates)
+        + " | CPM | Sensitivity (all candidates) | FP/scan (all candidates) |",
+        "|---|---|---|---:|---:|" + "---:|" * len(rates) + "---:|---:|---:|",
+    ]
+    groups = [("pooled", _overlap(run), run.metrics.get("task_c"))] + [
+        (dataset, d["possible_training_overlap"], d.get("task_c"))
+        for dataset, d in (run.metrics.get("per_dataset") or {}).items()
+    ]
+    for name, overlap, task in groups:
+        if not task:
+            continue
+        for rule in ("all_readers", "luna16_style"):
+            c = task[rule]
+            rows.append(
+                f"| {name} | {overlap} | {rule} | {c['n_scans']} | {c['n_lesions']} | "
+                + " | ".join(_fmt(c["froc_at"].get(r)) for r in rates)
+                + f" | {_fmt(c['froc_average'])} | {_fmt(c['sensitivity'])} | "
+                f"{_fmt(c['fp_per_scan'])} |"
+            )
     return rows
 
 
@@ -88,6 +141,7 @@ def _run_section(run: RunResult) -> list[str]:
         f"* Prompt hash: `{_fmt(prov.prompt_hash)}`; preprocess hash: "
         f"`{_fmt(prov.preprocess_hash)}`; model hash: `{_fmt(prov.model_hash)}`",
         f"* Git commit: `{_fmt(prov.git_commit)}` (dirty: {_fmt(prov.git_dirty)})",
+        f"* possible_training_overlap: {_overlap(run)}",
         "",
         "### Task A — study-level labels (scored cases only)",
         "",
@@ -100,6 +154,20 @@ def _run_section(run: RunResult) -> list[str]:
         "",
         *_calibration_rows(run),
         "",
+        "### Per dataset — study level (scored cases only)",
+        "",
+        *_dataset_rows(run),
+        "",
+        *(
+            [
+                "### Task C — lesion level (FROC; scored, localising cases only)",
+                "",
+                *_task_c_rows(run),
+                "",
+            ]
+            if run.metrics.get("task_c")
+            else []
+        ),
         "### Task E / G — factuality and abstention",
         "",
         f"* Label agreement {_fmt(e['label_agreement'])}: {e['agreements']} agreements, "

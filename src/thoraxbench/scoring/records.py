@@ -30,6 +30,8 @@ class CaseRecord:
         report: Parsed model output (for safety/report metrics), if any.
         reference_lesions: Annotated lesions (Task C).
         predicted_lesions: Predicted lesions (Task C) with an optional score.
+        ignored_lesions: Annotated findings that are neither targets nor false positives
+            (LUNA16 "irrelevant findings", e.g. nodules marked by fewer readers).
     """
 
     case_id: str
@@ -39,3 +41,4 @@ class CaseRecord:
     report: FindingsReport | None = None
     reference_lesions: list[LesionAnnotation] = field(default_factory=list)
     predicted_lesions: list[PredictedLesion] = field(default_factory=list)
+    ignored_lesions: list[LesionAnnotation] = field(default_factory=list)

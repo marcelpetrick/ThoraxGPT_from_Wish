@@ -6,6 +6,7 @@ from thoraxbench.schemas.findings import (
     Finding,
     FindingsReport,
     Laterality,
+    LesionCandidate,
     StudyQuality,
 )
 from thoraxbench.schemas.model_io import (
@@ -23,6 +24,7 @@ __all__ = [
     "FindingsReport",
     "Laterality",
     "LesionAnnotation",
+    "LesionCandidate",
     "PreparedInput",
     "RawOutput",
     "ReferenceLabels",

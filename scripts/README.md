@@ -28,6 +28,7 @@ you intend to commit the staged changes; other work is stashed during verificati
 | `land_branch.sh` | Integrate an existing worker branch onto `main` | `scripts/land_branch.sh --full <branch>`. Requires a clean tree. Do new work directly on `main`; this helper exists for previously created branches. |
 | `check_headers.sh` | Verify GPL-3.0-or-later SPDX headers | `scripts/check_headers.sh`. Expect a success message or a list of missing headers. |
 | `check_no_medical_data.sh` | Reject medical data, weights and secrets in Git inputs | `scripts/check_no_medical_data.sh`. Expect a passed gate. Remove forbidden files from Git inputs before retrying. |
+| `fetch_monai_bundle.py` | Explicit pinned MONAI detector setup | `uv run python scripts/fetch_monai_bundle.py` prints terms without download (exit 2); `--accept-terms` downloads and verifies; `--verify` checks local files only. See `docs/detector-baseline.md`. |
 | `capture_screenshots.py` | Regenerate the documentation screenshots in `docs/assets/` | `uv run python scripts/capture_screenshots.py`. Uses synthetic data and mocked models only. See *Capture documentation screenshots*. |
 | `move_ollama_models_to_home.sh` | Move the system Ollama model store from `/` to `/home` | `sudo scripts/move_ollama_models_to_home.sh [TARGET]`. Administrator operation; read the script's preconditions first. It stops/restarts the service and changes system configuration. |
 

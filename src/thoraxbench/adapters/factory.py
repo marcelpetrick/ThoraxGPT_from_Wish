@@ -18,6 +18,7 @@ from thoraxbench.adapters.base import (
 )
 from thoraxbench.adapters.heuristic import HeuristicModel
 from thoraxbench.adapters.http_service import HttpServiceModel
+from thoraxbench.adapters.monai_detector import MonaiDetectorModel
 from thoraxbench.adapters.ollama import OllamaModel
 from thoraxbench.config import Settings, get_settings
 from thoraxbench.prompts import load_prompt
@@ -82,6 +83,8 @@ def load_model(
     config = load_model_config(model_id, s.configs_dir / "models")
     if config.adapter == "heuristic":
         return HeuristicModel(config)
+    if config.adapter == "monai_detector":
+        return MonaiDetectorModel(config, s)
     view = (view_resolver or default_view_resolver)(config.view, dict(config.view_params))
     if config.adapter == "ollama":
         chosen = prompt_id or config.prompt or "P3"

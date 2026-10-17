@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "snapshot_version": 1,
+  "snapshot_date": "2026-10-17",
+  "model_id": "monai-lung-nodule",
+  "source_config": "configs/models/monai-lung-nodule.yaml",
+  "source_config_sha256": "63281821b40e90a12965d77a2f383dbbd3abb4d740599963c60b52ecb406bc9b",
+  "adapter": "monai_detector",
+  "family": "monai_retinanet_luna16",
+  "tag": null,
+  "service": null,
+  "quantization": null,
+  "declared_license": "Apache-2.0",
+  "references": [
+    "configs/models/monai-lung-nodule.yaml",
+    "src/thoraxbench/detectors/bundle.py",
+    "docs/model_cards.md",
+    "https://huggingface.co/MONAI/lung_nodule_ct_detection/tree/9d6622fda0e52be0a4155fed2e0afb9c17bcd80b"
+  ],
+  "recorded_digest": null,
+  "digest_evidence": null,
+  "current_availability": "unknown",
+  "terms_acceptance": "unknown",
+  "possible_training_overlap": "unknown",
+  "overlap_rationale": "Model-level snapshot has no evaluation dataset. Dataset-specific exposure is documented: the bundle was trained on LUNA16, which consists of 888 LIDC-IDRI scans, so possible_training_overlap is yes for lidc_idri (thoraxbench.scoring.overlap). No documented exposure to NSCLC-Radiogenomics; that is not verified non-overlap. The pinned weights SHA-256 lives in src/thoraxbench/detectors/bundle.py, not here."
+}

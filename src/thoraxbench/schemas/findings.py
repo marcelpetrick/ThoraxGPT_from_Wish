@@ -56,8 +56,29 @@ class Finding(BaseModel):
         return text if text in {m.value for m in Laterality} else Laterality.UNKNOWN
 
 
+class LesionCandidate(BaseModel):
+    """One localised lesion candidate in canonical volume millimetres (Task C input).
+
+    ``center_zyx_mm`` uses the reference-lesion frame: ``z = slice_index * dz`` (slice 0
+    cranial), ``y = row * dy``, ``x = col * dx``. ``score`` is the model's own detection
+    score, not a calibrated probability.
+    """
+
+    model_config = ConfigDict(extra="forbid", frozen=True, allow_inf_nan=False)
+
+    label: str = "pulmonary_nodule"
+    center_zyx_mm: tuple[float, float, float]
+    diameter_mm: float | None = Field(default=None, ge=0.0)
+    score: float = Field(ge=0.0, le=1.0)
+    source: str = "detector"
+
+
 class FindingsReport(BaseModel):
-    """Study-level structured result (Vision §11). Abstention is a first-class outcome."""
+    """Study-level structured result (Vision §11). Abstention is a first-class outcome.
+
+    ``lesions`` is ``None`` when the model does not localise in millimetres (no Task C);
+    an empty list means it localises and proposed no candidate.
+    """
 
     model_config = ConfigDict(extra="ignore")
 
@@ -70,6 +91,7 @@ class FindingsReport(BaseModel):
     uncertainty: str = ""
     abstain: bool = False
     parse_warnings: list[str] = Field(default_factory=list)
+    lesions: list[LesionCandidate] | None = None
 
     def label_probability(self, label: str) -> float | None:
         """Return P(label present) implied by the report, or ``None`` if not stated.
