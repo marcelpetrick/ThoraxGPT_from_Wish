@@ -198,10 +198,19 @@ class OllamaModel(ViewBackedModel):
         }
         if "think" in self.config.options:
             payload["think"] = self.config.options["think"]
+        # Reviewed per model config: an empty think block makes thinking models answer.
+        prefill = self.config.options.get("assistant_prefill")
+        extra = (
+            [{"role": "assistant", "content": prefill}]
+            if isinstance(prefill, str) and prefill
+            else []
+        )
+        payload["messages"].extend(extra)
         if request_log is not None:
             recorded_messages: list[dict[str, Any]] = [
                 {"role": "system", "content": system},
                 {"role": "user", "content": user},
+                *extra,
             ]
             if images:
                 recorded_messages[1].update(

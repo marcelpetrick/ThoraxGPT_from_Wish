@@ -65,7 +65,7 @@ def _chat(content: str) -> dict[str, Any]:
 
 def test_all_model_configs_load() -> None:
     configs = list_model_configs(Settings().configs_dir / "models")
-    assert len(configs) == 15
+    assert len(configs) == 16
     assert {c.adapter for c in configs} == {"ollama", "http_service", "heuristic"}
     with pytest.raises(ModelUnavailableError):
         load_model_config("nope", Settings().configs_dir / "models")
@@ -128,6 +128,21 @@ def test_ollama_two_pass_and_think() -> None:
     assert raw.tokens_generated == 20
     assert json.loads(chat.calls[0].request.content)["think"] is False
     assert "images" not in json.loads(chat.calls[0].request.content)["messages"][1]
+
+
+@respx.mock
+def test_ollama_assistant_prefill_is_sent_and_recorded() -> None:
+    chat = respx.post(f"{OLLAMA}/api/chat").mock(
+        return_value=httpx.Response(200, json=_chat(json.dumps(GOOD)))
+    )
+    model = load_model("qwen3-vl-4b-nothink", _settings(), view_resolver=_resolver)
+    raw = model.infer(model.prepare(object(), REQ), REQ)
+    prefill = {"role": "assistant", "content": "<think>\n\n</think>\n\n"}
+    sent = json.loads(chat.calls.last.request.content)
+    assert sent["messages"][-1] == prefill
+    assert sent["think"] is False
+    assert raw.meta["requests"][0]["messages"][-1] == prefill
+    assert raw.meta["requests"][0]["messages"][1]["image_bytes_omitted"] is True
 
 
 @respx.mock

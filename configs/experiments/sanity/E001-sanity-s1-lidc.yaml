@@ -1,0 +1,35 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 Marcel Petrick <mail@marcelpetrick.it>
+# S1 image dependence on LIDC calibration studies only (2 nodule-positive, 1 negative by split order).
+id: E001-sanity-s1-lidc
+test: image_dependence
+title: Image dependence on LIDC calibration studies (real / grey / noise / shuffled / none)
+description: >-
+  As E001-sanity-s1-synthetic, on three calibration-phase LIDC studies (the first two
+  nodule-positive and the first negative study in calibration order). Diagnostic only.
+vision_ref: "Vision §10, §11, §24: input-path readiness diagnostic"
+phases: [calibration]
+models: [medgemma1.5-q4, medgemma1.5-q8, qwen3-vl-4b-nothink]
+question:
+  kind: yes_no
+  system: >-
+    You are assisting a research benchmark of thoracic CT reading. Your output is an
+    experimental research prediction, not medical advice.
+  text: >-
+    Is there a pulmonary nodule in any of the $n_images images? Answer with JSON
+    {"nodule": "yes" or "no", "confidence": probability between 0 and 1 that your answer
+    is correct}.
+  num_predict: 32
+windows: [medgemma]
+layouts: [single, interleaved]
+conditions: [real, gray, noise, shuffled, none]
+image_mode: multi
+n_images: 8
+size: 896
+slab_mm: 5.0
+num_ctx: 8192
+top_logprobs: 10
+seed: 0
+lidc:
+  positive_studies: 2
+  negative_studies: 1

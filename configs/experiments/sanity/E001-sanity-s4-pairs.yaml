@@ -1,0 +1,41 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 Marcel Petrick <mail@marcelpetrick.it>
+# S4 paired slab test: LIDC calibration reference nodules >= 3 mm vs same-patient controls.
+id: E001-sanity-s4-pairs
+test: paired_slab
+title: Lesion-centred vs matched control slab, one yes/no question per image
+description: >-
+  For each LIDC calibration reference nodule >= 3 mm (round-robin over patients in hash
+  order, largest first, cap 40): one axial 5 mm MIP slab centred on the lesion and one
+  control slab from the same patient at the closest lung level whose slab edge is >= 30 mm
+  from every reference lesion edge (spherical approximation). Lung window, 896 px, one
+  image and one yes/no question per request, seeded random order. Score: P(yes) from the
+  answer-token logprobs (renormalised over yes/no) and the stated confidence. Slice-level
+  AUROC with a 95 % patient-level bootstrap CI, sensitivity/specificity and yes-rate on
+  controls. Controls may contain unmarked findings (< 3 mm nodules, non-nodules).
+vision_ref: "Vision §10, §11, §19, §24: slice-level visual-signal diagnostic"
+phases: [calibration]
+models: [medgemma1.5-q4, medgemma1.5-q8, qwen3-vl-4b-nothink, minicpm-v]
+question:
+  kind: yes_no
+  system: >-
+    You are assisting a research benchmark of thoracic CT reading. Your output is an
+    experimental research prediction, not medical advice.
+  text: >-
+    Is there a pulmonary nodule in this image? Answer with JSON {"nodule": "yes" or "no",
+    "confidence": probability between 0 and 1 that your answer is correct}.
+  num_predict: 32
+windows: [lung]
+layouts: [single]
+image_mode: single
+n_images: 1
+size: 896
+slab_mm: 5.0
+num_ctx: 4096
+top_logprobs: 10
+seed: 0
+n_boot: 2000
+lidc:
+  min_diameter_mm: 3.0
+  max_lesions: 40
+  control_distance_mm: 30.0

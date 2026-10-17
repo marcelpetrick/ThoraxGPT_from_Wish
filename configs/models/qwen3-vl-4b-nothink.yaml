@@ -1,0 +1,21 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Reviewed 2026-10-17 (E001-sanity): qwen3-vl:4b ignores "think": false on Ollama 0.40.4 and
+# spends the generation budget on thinking. An assistant prefill with an empty think block
+# makes it answer directly (synthetic probe: 2 generated tokens). Same weights as qwen3-vl-4b.
+id: qwen3-vl-4b-nothink
+adapter: ollama
+family: qwen3-vl
+tag: qwen3-vl:4b
+quantization: Q4_K_M
+view: generic_multislice_v1
+prompt: P5
+options:
+  think: false
+  assistant_prefill: "<think>\n\n</think>\n\n"
+capabilities:
+  multi_image: true
+  classification: true
+  report_generation: true
+license: "Apache-2.0"
+tier: "D"
+notes: "General VLM control without thinking (assistant prefill with an empty think block)."
