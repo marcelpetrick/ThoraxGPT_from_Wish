@@ -13,7 +13,11 @@ No sealed/internal-test case, acquisition, upload or publication is authorized b
 Keep all real frames, full takes, failed attempts and edits under ignored
 `data/results/linkedin/`. Never commit patient pixels or video.
 
-The completed local draft delivery is recorded in [the delivery record](video-delivery-2026-10-19.md).
+The completed delivery is recorded in [the delivery record](video-delivery-2026-10-19.md).
+**Later user instruction (2026-10-19):** commit/push only the two reviewed final cuts
+and accompanying captions/credits/checksums under [`media/`](../media/README.md).
+This supersedes the local-only Git restriction for those cuts. Full takes, reports and
+other frames stay ignored; no LinkedIn upload is authorized.
 
 ## Current recorder procedure
 
@@ -46,6 +50,12 @@ establish absence of burned-in identifiers.
 3. Inspect `cut-plan.json`. Adjust its per-shot pixel crops/start times to keep the UI
    readable and inside the recorded frame. Crops are presentation changes. Keep the genuine
    model/result pairing, explicit shortened-wait captions and actual processing duration.
+   For animated framing, use `crop: [x, y, width, height]` for the complete context
+   rectangle (omit it for the whole frame) and `focus_crop` for the full detail panel.
+   Focus must lie inside context. The camera holds context for 0.6 seconds, moves
+   smoothly for 1.8 seconds, then holds focus. Optional `return_to_overview: true`
+   returns to context. Endpoints preserve aspect ratio; the entire focus stays visible
+   throughout motion. Check the actual output, including all columns and image captions.
    The original take is never overwritten. Its finalized SHA-256 is checked before rendering.
 
 4. Render separately after reviewing the original. Substitute the printed folder.

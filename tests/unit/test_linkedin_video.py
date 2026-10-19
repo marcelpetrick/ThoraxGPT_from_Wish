@@ -12,6 +12,8 @@ from scripts.linkedin_video import (
     MODEL,
     default_plan,
     focus_crop,
+    framing_filter,
+    framing_geometry,
     guard_case_request,
     hash_file,
     local_url,
@@ -228,3 +230,91 @@ def test_capture_cannot_inherit_personal_wayland_display(monkeypatch: pytest.Mon
     assert env["XDG_SESSION_TYPE"] == "x11"
     assert "WAYLAND_DISPLAY" not in env
     assert "WAYLAND_SOCKET" not in env
+
+
+@pytest.mark.parametrize("height", [1080, 1350])
+@pytest.mark.parametrize("focus", [[0, 0, 400, 900], [1500, 500, 1000, 900]])
+def test_animated_framing_keeps_complete_focus_and_output_aspect(
+    height: int, focus: list[int]
+) -> None:
+    geometry = framing_geometry([0, 0, 2560, 1440], focus, height - 320)
+    assert geometry["width"] / geometry["height"] == pytest.approx(1080 / (height - 320))
+    viewport_w = geometry["width"] / geometry["zoom"]
+    viewport_h = geometry["height"] / geometry["zoom"]
+    left = max(0, min(geometry["width"] - viewport_w, geometry["center_x"] - viewport_w / 2))
+    top = max(0, min(geometry["height"] - viewport_h, geometry["center_y"] - viewport_h / 2))
+    assert left <= geometry["center_x"] - focus[2] / 2 + 1e-8
+    assert left + viewport_w >= geometry["center_x"] + focus[2] / 2 - 1e-8
+    assert top <= geometry["center_y"] - focus[3] / 2 + 1e-8
+    assert top + viewport_h >= geometry["center_y"] + focus[3] / 2 - 1e-8
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("focus_crop", [-1, 0, 100, 100]),
+        ("focus_crop", [0, 0, 0, 100]),
+        ("focus_crop", [0, 0, 99999, 100]),
+        ("focus_crop", []),
+        ("return_to_overview", "yes"),
+    ],
+)
+def test_invalid_animated_framing_is_refused(field: str, value: object) -> None:
+    take = synthetic_take()
+    plan = default_plan(take)
+    plan["cuts"]["A"][0][field] = value
+    with pytest.raises(ValueError, match=r"Crop|boolean"):
+        validate_plan(plan, take)
+
+
+def test_focus_cannot_escape_the_overview_rectangle() -> None:
+    take = synthetic_take()
+    plan = default_plan(take)
+    plan["cuts"]["A"][0].update(crop=[100, 100, 1000, 1000], focus_crop=[0, 0, 400, 400])
+    with pytest.raises(ValueError, match="contained"):
+        validate_plan(plan, take)
+
+
+def test_animation_is_optional_and_return_is_explicit() -> None:
+    take = synthetic_take()
+    clip = {"duration": 5, "focus_crop": [300, 100, 900, 900]}
+    forward = framing_filter(clip, take, 1350)
+    assert "zoompan=" in forward
+    assert ":d=1:s=1080x1030:fps=30" in forward
+    assert "on/149-.12" in forward
+    assert ".88-on/149" not in forward
+    returning = framing_filter(clip | {"return_to_overview": True}, take, 1350)
+    assert ".88-on/149" in returning
+    static = framing_filter({"crop": [100, 100, 800, 900]}, take, 1080)
+    assert "crop=800:900:100:100" in static
+    assert "zoompan=" not in static
+
+
+@pytest.mark.parametrize("height", [1080, 1350])
+@pytest.mark.parametrize("focus", [[0, 0, 400, 900], [2000, 400, 560, 1000], [200, 0, 2300, 400]])
+@pytest.mark.parametrize("returning", [False, True])
+def test_every_animation_frame_keeps_all_focus_corners(
+    height: int, focus: list[int], returning: bool
+) -> None:
+    geometry = framing_geometry([0, 0, 2560, 1440], focus, height - 320)
+    for frame in range(150):
+        phase = max(0, min(1, (frame / 149 - 0.12) / 0.36))
+        if returning:
+            phase = min(phase, max(0, min(1, (0.88 - frame / 149) / 0.36)))
+        ease = phase * phase * (3 - 2 * phase)
+        zoom = 1 / (1 + (1 / geometry["zoom"] - 1) * ease)
+        viewport_w, viewport_h = geometry["width"] / zoom, geometry["height"] / zoom
+        center_x = geometry["width"] / 2 + (geometry["center_x"] - geometry["width"] / 2) * ease
+        center_y = geometry["height"] / 2 + (geometry["center_y"] - geometry["height"] / 2) * ease
+        left = max(0, min(geometry["width"] - viewport_w, center_x - viewport_w / 2))
+        top = max(0, min(geometry["height"] - viewport_h, center_y - viewport_h / 2))
+        assert left <= geometry["center_x"] - focus[2] / 2 + 1e-8
+        assert left + viewport_w >= geometry["center_x"] + focus[2] / 2 - 1e-8
+        assert top <= geometry["center_y"] - focus[3] / 2 + 1e-8
+        assert top + viewport_h >= geometry["center_y"] + focus[3] / 2 - 1e-8
+    rendered = framing_filter(
+        {"duration": 5, "focus_crop": focus, "return_to_overview": returning},
+        {"width": 2560, "height": 1440},
+        height,
+    )
+    assert "zoompan=z='1/(1+(1/" in rendered

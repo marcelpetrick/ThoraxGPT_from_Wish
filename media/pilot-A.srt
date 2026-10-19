@@ -1,0 +1,23 @@
+1
+00:00:00,000 --> 00:00:05,000
+Inspect the selected calibration CT: source slices and window controls
+
+2
+00:00:05,000 --> 00:00:10,000
+Select MONAI; the detector reads the full volume locally
+
+3
+00:00:10,000 --> 00:00:15,000
+Actual processing 80.1 seconds; the wait is shortened
+
+4
+00:00:15,000 --> 00:00:20,000
+Review detector proposals and scores; not a medical diagnosis
+
+5
+00:00:20,000 --> 00:00:25,000
+Open the actual report: candidate images with their source labels
+
+6
+00:00:25,000 --> 00:00:30,000
+github.com/marcelpetrick/ThoraxGPT_from_Wish

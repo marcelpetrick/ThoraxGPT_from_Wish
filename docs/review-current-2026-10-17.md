@@ -65,3 +65,30 @@ reviewed across all six scenes and decoded in full without errors. FFprobe confi
 The failed first take and initial renders remain preserved; no patient pixels enter Git.
 No unresolved finding remains in this delivery scope. Model recognition and unbiased
 accuracy remain open scientific work, unaffected by presentation or software gate success.
+
+## User framing correction and leftover review — 2026-10-19
+
+The user correctly identified truncated interface content in the fixed-crop edits. The
+pending media commit was stopped before publication. Replacements begin with context,
+then smoothly pan/zoom to a complete panel. Independent source-rectangle review checked
+viewer controls, full MONAI card, all Jobs columns, finding source, paired candidate
+captions, report images and About details. Root review caught a further intermediate-frame
+clipping risk: linear zoom plus linear camera-center motion does not preserve containment.
+Reciprocal zoom now interpolates viewport dimensions linearly with the center.
+Forty-nine focused tests pass. Actual synthetic encodes in both formats preserve all
+four colored focus corners in every decoded frame, including optional return motion.
+
+Historical Git changes were classified and preserved before cleanup. Calibration/P6
+work is integrated or superseded. One ad hoc HMAC identifier proposal remains preserved
+for a separate reviewed port; see [the inventory](worktree-cleanup-2026-10-19.md).
+
+Revised real cuts passed complete decoding and exact 900-frame/30-second checks. Root
+reviewed 15 overview/movement/focus frames per format. Gate exceptions name only the
+two approved MP4 paths and pin their SHA-256; changed approved bytes and an unrelated
+oversized synthetic file were both refused. No general media or size exemption was added.
+
+Final independent acceptance found no blocker. The reviewer inspected both 15-frame
+motion sheets, native-resolution Jobs/findings/candidate-pair/report frames and both
+endcards, then independently checked both MP4s with FFprobe. Required content and labels
+remain visible. Dense Jobs text is readable at native resolution. Exact-path/hash gate
+exceptions match the final MP4s; all other guards remain intact.

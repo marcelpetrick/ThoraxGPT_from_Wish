@@ -553,18 +553,84 @@ def validate_plan(plan: dict[str, Any], take: dict[str, Any]) -> None:
                 or clip["start"] + clip["duration"] > take["recording_wall_s"]
             ):
                 raise ValueError("Excerpt lies outside the preserved master")
-            crop = clip.get("crop")
-            if crop and (
-                len(crop) != 4
-                or any(type(value) is not int for value in crop)
-                or crop[0] < 0
-                or crop[1] < 0
-                or crop[2] <= 0
-                or crop[3] <= 0
-                or crop[0] + crop[2] > take["width"]
-                or crop[1] + crop[3] > take["height"]
-            ):
-                raise ValueError("Crop lies outside the recorded frame")
+            overview = clip.get("crop")
+            focus = clip.get("focus_crop")
+            for rect in (overview, focus):
+                if rect is not None:
+                    validate_rectangle(rect, take["width"], take["height"])
+            if "return_to_overview" in clip and type(clip["return_to_overview"]) is not bool:
+                raise ValueError("return_to_overview must be a boolean")
+            if focus is not None:
+                whole = overview or [0, 0, take["width"], take["height"]]
+                if (
+                    focus[0] < whole[0]
+                    or focus[1] < whole[1]
+                    or focus[0] + focus[2] > whole[0] + whole[2]
+                    or focus[1] + focus[3] > whole[1] + whole[3]
+                ):
+                    raise ValueError("Focus must be fully contained in overview crop")
+
+
+def validate_rectangle(rect: object, width: int, height: int) -> None:
+    """Use recorded pixels only; reject malformed/empty rectangles explicitly."""
+    if (
+        not isinstance(rect, list)
+        or len(rect) != 4
+        or any(type(value) is not int for value in rect)
+        or rect[0] < 0
+        or rect[1] < 0
+        or rect[2] <= 0
+        or rect[3] <= 0
+        or rect[0] + rect[2] > width
+        or rect[1] + rect[3] > height
+    ):
+        raise ValueError("Crop lies outside the recorded frame")
+
+
+def framing_geometry(
+    overview: list[int], focus: list[int], content_height: int
+) -> dict[str, float]:
+    """Contain complete endpoints in one aspect-correct camera canvas without stretching."""
+    divisor = math.gcd(1080, content_height)
+    ratio_w, ratio_h = 1080 // divisor, content_height // divisor
+    units = math.ceil(max(overview[2] / ratio_w, overview[3] / ratio_h) / 2) * 2
+    canvas_w, canvas_h = units * ratio_w, units * ratio_h
+    pad_x, pad_y = (canvas_w - overview[2]) // 2, (canvas_h - overview[3]) // 2
+    center_x = focus[0] - overview[0] + pad_x + focus[2] / 2
+    center_y = focus[1] - overview[1] + pad_y + focus[3] / 2
+    # A capped zoom keeps extra context rather than cutting a small requested focus.
+    zoom = min(8.0, canvas_w / focus[2], canvas_h / focus[3])
+    return {
+        "width": canvas_w,
+        "height": canvas_h,
+        "zoom": zoom,
+        "center_x": center_x,
+        "center_y": center_y,
+    }
+
+
+def framing_filter(clip: dict[str, Any], take: dict[str, Any], height: int) -> str:
+    """One output frame per source frame; smooth camera movement never changes the wait."""
+    overview = clip.get("crop") or [0, 0, take["width"], take["height"]]
+    crop = f"crop={overview[2]}:{overview[3]}:{overview[0]}:{overview[1]},"
+    content = height - 320
+    focus = clip.get("focus_crop")
+    if focus is None:
+        return crop + f"scale=1080:{content}:force_original_aspect_ratio=decrease,"
+    geometry = framing_geometry(overview, focus, content)
+    frames = max(1, round(clip["duration"] * 30) - 1)
+    phase = f"clip((on/{frames}-.12)/.36,0,1)"
+    if clip.get("return_to_overview", False):
+        phase = f"min({phase},clip((.88-on/{frames})/.36,0,1))"
+    ease = f"(({phase})*({phase})*(3-2*({phase})))"
+    zoom = f"1/(1+(1/{geometry['zoom']:.12g}-1)*{ease})"
+    x = f"max(0,min(iw-iw/zoom,iw/2+({geometry['center_x']:.12g}-iw/2)*{ease}-iw/(2*zoom)))"
+    y = f"max(0,min(ih-ih/zoom,ih/2+({geometry['center_y']:.12g}-ih/2)*{ease}-ih/(2*zoom)))"
+    return (
+        crop + "fps=30," + f"pad={geometry['width']:.0f}:{geometry['height']:.0f}:"
+        "(ow-iw)/2:(oh-ih)/2:color=0x102e3b,setsar=1,"
+        f"zoompan=z='{zoom}':x='{x}':y='{y}':d=1:s=1080x{content}:fps=30,"
+    )
 
 
 def filter_path(path: Path) -> str:
@@ -642,13 +708,11 @@ def render(args: argparse.Namespace) -> Path:
             import textwrap  # noqa: PLC0415 - caption formatting only
 
             caption.write_text("\n".join(textwrap.wrap(clip["caption"], 42)))
-            roi = clip.get("crop")
-            crop = f"crop={roi[2]}:{roi[3]}:{roi[0]}:{roi[1]}," if roi else ""
+            framing = framing_filter(clip, take, height)
             # Reserve header and caption bands even for tall square-cut crops.
             chains.append(
                 f"[s{index}]trim=start={clip['start']}:duration={clip['duration']},"
-                f"setpts=PTS-STARTPTS,{crop}scale=1080:{height - 320}:"
-                f"force_original_aspect_ratio=decrease,pad=1080:{height}:"
+                f"setpts=PTS-STARTPTS,{framing}pad=1080:{height}:"
                 f"(ow-iw)/2:80+({height - 320}-ih)/2:color=0x102e3b,setsar=1,fps=30,"
                 f"drawtext=fontfile='{filter_path(Path(font))}':"
                 f"textfile='{filter_path(caution)}':fontcolor=white:fontsize=22:x=30:y=28,"

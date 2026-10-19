@@ -59,6 +59,12 @@ superseded; the user decides before it is dropped. Ignored real data lives in `d
 `THORAXBENCH_DATA_DIR=<repo>/data`. Ollama at `localhost:11434` holds MedGemma 1.5 Q4/Q8 and
 general VLM controls; 8 GB VRAM, one GPU job at a time.
 
+**Cleanup update (2026-10-19):** four historical dirty worktrees were preserved in named
+recovery stashes and cleaned. See `docs/worktree-cleanup-2026-10-19.md` for stable hashes,
+verification and the separate ad hoc identifier pseudonym proposal. The older table above
+is historical; do not interpret its uncommitted state as current. No old stash/worktree
+was removed. Do not reapply superseded P6/calibration changes.
+
 ## W2 detector handover (2026-10-17)
 
 The optional `monai-lung-nodule` adapter and `CandidateCropView` are available. Follow
@@ -177,6 +183,9 @@ follow the proposed design in `docs/lan-runner.md` when resumed.
 2. **No medical data in Git.** DICOM, NIfTI, rendered slices of real studies, model weights,
    archives and secrets never get committed. `scripts/check_no_medical_data.sh` enforces this in the
    pipeline. Raw data lives in `data/` (git-ignored, 10 GB budget).
+   User exception (2026-10-19): commit only the two reviewed public-calibration cuts
+   `media/pilot-A.mp4` and `media/pilot-B.mp4`, with captions, checksums and TCIA credits.
+   Full takes, other real renders and reports stay ignored. No LinkedIn upload is authorized.
 3. **The sealed split stays sealed.** The 20 % sealed-validation patients
    (`data/sealed/`, hash-only manifest in `manifests/splits/`) must never be read by
    development, prompt tuning, calibration fitting, threshold fitting or tests. Only
@@ -310,6 +319,10 @@ under ignored `data/results/linkedin/`. No upload is authorized. The readiness r
 still must pass; do not use sealed/internal-test data or commit patient pixels. Preserve
 a full original take, label edited waits, and retain genuine failures/abstentions. Verify actual prepared-image counts; anatomy
 sampling can exceed `n`. Never imply clinical usefulness or model accuracy.
+
+The subsequent explicit user instruction (2026-10-19) authorizes committing/pushing
+only the two reviewed final cuts and their supporting credits/captions/checksums in
+`media/`; see the narrow exception in §1. Other recording artifacts stay ignored.
 
 Local draft delivery and frame/encoding checks are recorded in
 `docs/video-delivery-2026-10-19.md`. Preserve the uncut master and failed attempts.

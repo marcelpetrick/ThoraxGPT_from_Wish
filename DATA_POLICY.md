@@ -13,7 +13,13 @@ in [`AGENTS.md`](AGENTS.md) §1.
 Never commit DICOM studies, NIfTI or other volumes, rendered slices of real CT studies,
 dataset archives, model weights, credentials or tokens.
 
-Two controls enforce this:
+**Explicit user exception (2026-10-19):** the two reviewed public-calibration demo cuts
+`media/pilot-A.mp4` and `media/pilot-B.mp4` may be committed and pushed with their
+attribution, captions and checksums. This authorizes only those cuts, not raw data,
+other real-study renders, reports, full takes, new recordings or LinkedIn uploads.
+See [the media record](media/README.md). All other restrictions remain in force.
+
+Two controls enforce file-type, size and secret restrictions (they do not inspect pixels):
 
 1. `.gitignore` excludes `/data/`, `*.dcm`, `*.nii`, `*.nii.gz`, `*.nrrd`, `*.mha`,
    `*.mhd`, `*.npz`, `*.npy`, any `rendered/` or `raw/` directory, model weights
@@ -24,7 +30,8 @@ Two controls enforce this:
    * image-volume, weight or archive extensions (`dcm`, `nii`, `nii.gz`, `nrrd`, `mha`,
      `mhd`, `npz`, `npy`, `gguf`, `safetensors`, `pt`, `pth`, `ckpt`, `zip`, `tar`, `tgz`);
    * any `.env` file or any path containing `data/`;
-   * files larger than 2 MB (except `uv.lock`);
+   * files larger than 2 MB (except `uv.lock` and the two explicit, SHA-256-pinned demo cuts);
+   * either approved demo MP4 differing from its reviewed SHA-256;
    * files under `tests/fixtures/` larger than 200 KB;
    * strings that look like Hugging Face (`hf_…`) or GitHub (`ghp_…`, `gho_…`) tokens.
 
@@ -39,7 +46,7 @@ Prerequisite: a source checkout. Start in the repository root.
    ```
 
 **Checkpoint:** the script prints
-`data-policy gate passed: no medical data, weights or secrets tracked` and exits 0.
+`data-policy gate passed: no forbidden file types, unapproved oversized binaries or secrets tracked` and exits 0.
 
 **Recovery:** the script names each offending file. Remove it from the Git inputs, for
 example with `git rm --cached <file>`, and move it under `data/`. Run the gate again.

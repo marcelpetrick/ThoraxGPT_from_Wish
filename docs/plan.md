@@ -111,6 +111,29 @@ Status: ✅ done · 🔄 in progress · ⏳ open · ✖ dropped
 
 ## Current activity
 
+### Leftover cleanup and video reframing — 2026-10-19
+
+Four historical dirty worktrees are now clean. Their tracked and untracked files were
+verified in named recovery stashes; old stashes/worktrees/data remain preserved.
+See [the cleanup inventory](worktree-cleanup-2026-10-19.md). One ad hoc identifier HMAC
+proposal needs a separate reviewed port; no obsolete source patch was blindly merged.
+
+The user rejected the first fixed-crop edits because they cut off interface content.
+The media commit was stopped before creating a commit. Both cuts now start with a
+complete context view followed by a smooth pan/zoom to the full relevant panel.
+Each scene was reviewed at overview, transition and focus. Forty-nine focused tests
+pass, plus synthetic decoded-frame corner checks and complete real-cut decode checks.
+Both revised videos are under `media/`, with exact-path/hash exceptions to the 2 MB gate.
+Tampered approved bytes and an unrelated oversized file are correctly refused.
+The final full commit gate must pass before publication.
+
+### Media publication — user instruction, 2026-10-19
+
+Copy the two reviewed cuts into top-level `media/` and commit/push them with TCIA
+credits, SRT captions and SHA-256 checksums. This explicit instruction supersedes the
+local-only Git restriction for these two files only. Preserve the ignored originals.
+Run the full commit gate. No LinkedIn upload is authorized. See [media](../media/README.md).
+
 ### Finish plan — 2026-10-19
 
 Checkpoint: clean engine `d171803` (v0.4.17) recorded the genuine 4K Chromium tour.
@@ -136,7 +159,8 @@ to detector output. See [the delivery record](video-delivery-2026-10-19.md).
   captions, credits, readable framing and recorded source/model identity.
 - [x] V5: record delivery paths, limitations and final review. Final handover uses the
   full commit/push gate; verify the resulting GitHub Actions run before closing the session.
-  No real frames are committed and nothing is uploaded to LinkedIn.
+  At this checkpoint no real frames were committed. The later media instruction above
+  authorizes only the two reviewed cuts; nothing is uploaded to LinkedIn.
 
 The recorder worker and independent reviewer have finished. The lead owns
 all live inference/capture. Keep GPU jobs sequential and the frozen 20% sealed. VLM

@@ -1417,6 +1417,11 @@ Do not commit:
 - credentials/tokens;
 - sensitive source metadata.
 
+User-approved exception (2026-10-19): the two reviewed, attributed public-calibration
+demo videos in `media/pilot-A.mp4` and `media/pilot-B.mp4` may be committed and pushed.
+This does not authorize other real-image assets, raw volumes, full takes or LinkedIn
+uploads. Retain the selected-case, training-overlap and research-only disclosures.
+
 Before making the repository public, run a license/data audit and remove anything that cannot be redistributed.
 
 ---

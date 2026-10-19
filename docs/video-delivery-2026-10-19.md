@@ -6,14 +6,16 @@ must not inform diagnosis or treatment decisions.
 
 ## Delivered files
 
-Run commands from the repository root. These paths are local, ignored and intentionally
-absent from Git. No LinkedIn upload occurred.
+Run commands from the repository root. The take/render paths below remain local and
+ignored. The user subsequently authorized committing the two final cuts into
+[`media/`](../media/README.md), with captions, attribution and checksums. This is a narrow
+exception; original takes and reports remain absent from Git. No LinkedIn upload occurred.
 
 Take folder:
 `data/results/linkedin/20261019T102836Z-9da74f42c5c74ca1b3a71e0e8164076e/`
 
 Final render subfolder:
-`render-7bba9de9237644679dbe91bbd8e48970/`
+`render-3ff5d26d738f44578a6280ad7c6d47e9/`
 
 | File | Purpose |
 |---|---|
@@ -47,6 +49,13 @@ The detector processes the volume; prepared VLM image count is zero. Slice targe
 are not a VLM input count. No heuristic model or VLM filtering was used.
 
 ## Review and limitations
+
+The final cuts replace the initial fixed-crop edits rejected by the user. Each scene
+starts with full context, then smoothly zooms/pans to the complete relevant panel.
+Source rectangles were independently reviewed. Overview, transition and focus frames
+were visually checked in both formats. All scene camera positions preserve the requested
+focus; synthetic decoded-frame tests also retain all four focus corners throughout
+motion. Root review fixed a mid-transition clipping risk with reciprocal zoom.
 
 Both final cuts contain exactly 900 frames at 30 fps, H.264/yuv420p, and decode fully
 without FFmpeg errors. Visual review checked each scene, model/result pairing, crop

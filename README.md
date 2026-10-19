@@ -21,6 +21,8 @@ Hatchling 1.32.4; CI uses uv 0.13.1. Runtime, development and locked transitive 
 were checked against stable PyPI releases on 2026-10-19. The lockfile preserves
 provider-required CUDA versions; see [the latest dependency review](docs/dependency-review-2026-10-19.md).
 
+The completed demo videos are in [`media/`](media/README.md): [square](media/pilot-A.mp4) and [portrait](media/pilot-B.mp4), 30 seconds each. They show a selected calibration case with training overlap; they do not establish diagnostic accuracy.
+
 | Document | Content |
 |---|---|
 | [`docs/video-delivery-2026-10-19.md`](docs/video-delivery-2026-10-19.md) | Completed local 4K tour and two verified 30-second cuts; selected calibration and overlap limitations |
