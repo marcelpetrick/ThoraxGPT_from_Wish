@@ -29,6 +29,19 @@ def _complete(page: Page, job_id: str) -> dict[str, Any]:
     pytest.fail("Synthetic folder/analysis job did not finish")
 
 
+def expect_ready_to_run(page: Page) -> None:
+    """An enabled Run button shows no blocking reason."""
+    expect(page.locator("#run-analysis")).to_be_enabled()
+    expect(page.locator("#run-blocked-reason")).to_be_hidden()
+
+
+def expect_local_result_label(page: Page, case_id: str, language: str) -> None:
+    """Local results name the study as the selector does, not as a raw session UUID."""
+    label = ("Lokale Studie " if language == "de" else "Local study ") + case_id[:8]
+    expect(page.locator("#result-context")).to_contain_text(label)
+    assert case_id not in page.locator("#result-context").inner_text()
+
+
 @pytest.mark.parametrize(("language", "theme"), [("en", "light"), ("de", "dark")])
 def test_local_folder_to_real_analysis_and_image_report(
     ui_page: Page, phantom_dir: Path, tmp_path: Path, language: str, theme: str
@@ -68,11 +81,13 @@ def test_local_folder_to_real_analysis_and_image_report(
         job["kind"] == "analysis" and job["case_id"] == opened["case_id"] for job in jobs
     )
     page.locator("#model-select").select_option("heuristic-hu")
+    expect_ready_to_run(page)
     with page.expect_response("**/api/jobs") as submitted:
         page.locator("#run-analysis").click()
     analyzed = _complete(page, submitted.value.json()["job"]["id"])
     assert analyzed["result"]["result"]["report"]["abstain"] is False
     expect(page.locator("#download-html")).to_have_attribute("aria-disabled", "false")
+    expect_local_result_label(page, opened["case_id"], language)
     with page.expect_download() as downloaded:
         page.locator("#download-html").click()
     target = tmp_path / "folder-report.html"

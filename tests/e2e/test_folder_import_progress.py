@@ -14,6 +14,16 @@ from tests.e2e.test_local_folder_ui import FolderAPI
 pytestmark = pytest.mark.e2e
 
 
+def expect_quiet_progress_near_folder(page: Page, text: str) -> None:
+    """Counts sit beside the folder controls; only operation changes are announced."""
+    progress = page.locator("#folder-job-progress")
+    expect(progress).to_have_text(text)
+    expect(progress).to_have_attribute("role", "status")
+    expect(progress).to_have_attribute("aria-live", "off")
+    expect(page.locator("#job-announcer")).to_contain_text(text.split(":", maxsplit=1)[0])
+    expect(page.locator(".local-folder-controls")).to_contain_text(text)
+
+
 @pytest.mark.parametrize("german", [False, True])
 def test_import_progress_counts_follow_operations_and_clear_after_cancel(
     ui_page: Page, german: bool
@@ -61,9 +71,7 @@ def test_import_progress_counts_follow_operations_and_clear_after_cancel(
         api.job["stage"] = "study"
         api.job["elapsed_s"] = 12.4
         page.clock.fast_forward(1100)
-        expect(progress).to_have_text(deutsch if german else english)
-        expect(progress).to_have_attribute("role", "status")
-        expect(progress).to_have_attribute("aria-live", "polite")
+        expect_quiet_progress_near_folder(page, deutsch if german else english)
         expect(page.locator("#request-elapsed")).to_have_text(re.compile(r"00:1[2-5]"))
         expect(page.locator("#run-analysis")).to_be_disabled()
         page.locator("#nav-jobs").click()

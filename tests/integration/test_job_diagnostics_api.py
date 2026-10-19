@@ -78,3 +78,39 @@ def test_successful_folder_with_bad_header_exports_warning_trace(tmp_path: Path)
         assert "PRIVATE-PATIENT" not in exported.text
         assert "PRIVATE-FILENAME" not in exported.text
         assert exported.json()["diagnostic"]["trace_id"] == job["diagnostic"]["trace_id"]
+
+
+def test_raw_private_value_counter_is_exported_but_never_a_warning() -> None:
+    """``private_values_raw`` is informational; unknown or invalid counters stay excluded."""
+    from thoraxbench.api.diagnostics import header_warning_diagnostic, job_diagnostic
+
+    discovery = {
+        "files_scanned": 12,
+        "headers_readable": 10,
+        "headers_unreadable": 2,
+        "non_dicom_files": 0,
+        "private_values_raw": 40,
+        "source_path": 7,
+        "ct_files": True,
+    }
+    warning = header_warning_diagnostic(discovery, {"BytesLengthException": 2})
+    assert warning["severity"] == "warning"
+    assert warning["discovery"]["private_values_raw"] == 40
+    assert "source_path" not in warning["discovery"]
+    assert "ct_files" not in warning["discovery"]
+
+    error = ValueError("synthetic")
+    vars(error)["discovery"] = dict(discovery, private_values_raw=-1)
+    assert "private_values_raw" not in job_diagnostic(error, "study")["discovery"]
+    vars(error)["discovery"] = {"private_values_raw": 3}
+    assert job_diagnostic(error, "study")["discovery"] == {"private_values_raw": 3}
+
+
+def test_workbench_page_exposes_run_reason_and_quiet_folder_progress(tmp_path: Path) -> None:
+    with TestClient(create_app(Settings(data_dir=tmp_path / "data"))) as client:
+        page = client.get("/").text
+    assert 'id="run-blocked-reason"' in page
+    controls = page.index('class="local-folder-controls"')
+    progress = page.index('id="folder-job-progress"')
+    assert controls < progress < page.index('class="library-controls"')
+    assert 'id="folder-job-progress" class="muted small" role="status" aria-live="off"' in page

@@ -64,7 +64,12 @@ are supported; changing an extension does not repair malformed content.
 
 Wait until the current viewer image loads and input QC permits analysis. Run remains
 unavailable while loading or after an unusable input. A failed folder open must not silently
-run the previous study. Review warnings before choosing a model.
+run the previous study. After a failed open, the study selector shows *Choose a study…*
+until you choose a study or open a valid folder. A line below **Run analysis locally**
+names the current blocking reason. Review warnings before choosing a model.
+
+*Vendor private values kept raw (informational)* counts vendor-private header values kept
+as raw bytes. It is not an error and does not add a warning.
 
 Select **Details** for a warning or failed job. The trace records the stage, error category,
 exception classes, aggregate counts and software identity. Download the diagnostic JSON

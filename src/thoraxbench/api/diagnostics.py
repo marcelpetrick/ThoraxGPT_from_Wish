@@ -13,6 +13,8 @@ from thoraxbench.provenance import git_state
 from thoraxbench.splits import SealedAccessError
 from thoraxbench.study import StudyLoadError
 
+# Aggregate discovery counters safe to export. ``private_values_raw`` counts vendor-private
+# header values kept as raw bytes; it is informational and never a warning or failure.
 DISCOVERY_COUNTERS = frozenset(
     {
         "files_scanned",

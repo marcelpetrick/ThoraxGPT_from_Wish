@@ -142,21 +142,34 @@ def test_successful_import_warning_counts_do_not_claim_all_files_were_used(ui_pa
         "headers_readable": 7,
         "headers_unreadable": 2,
         "non_dicom_files": 3,
+        "private_values_raw": 40,
     }
     page.clock.fast_forward(1100)
-    expect(page.locator("#local-folder-warnings")).to_contain_text("2 unreadable")
-    expect(page.locator("#local-folder-warnings")).to_contain_text("not every scanned file")
+    expect(page.locator("#local-folder-warnings")).to_contain_text(
+        "Opened with a warning: 2 file(s)"
+    )
+    expect(page.locator("#local-folder-warnings")).to_contain_text("Not every scanned file")
     expect(page.locator("#local-folder-discovery")).to_contain_text("Files scanned: 12")
+    # Raw vendor-private values are informational: shown with counts, never added to warnings.
+    expect(page.locator("#local-folder-discovery")).to_contain_text(
+        "Vendor private values kept raw (informational): 40"
+    )
+    assert "40" not in page.locator("#local-folder-warnings").inner_text()
+    expect(page.locator("#job-notice-link")).to_have_text("Open study")
+    expect(page.locator("#job-notice-text")).to_contain_text("not a model result")
     expect(page.locator("#local-folder-debug")).to_be_visible()
     expect(page.locator("#run-analysis")).to_be_enabled()
     page.locator("#local-folder-debug").click()
+    expect(page.locator("#job-debug-reason")).to_contain_text("Warning only; the import succeeded.")
     expect(page.locator("#job-debug-reason")).to_contain_text("selected CT series opened")
     page.locator("#job-debug-technical summary").click()
     expect(page.locator("#job-debug-json")).to_contain_text("BytesLengthException")
     page.locator("#job-debug-close").click()
     page.locator("#language-toggle").click()
-    expect(page.locator("#local-folder-warnings")).to_contain_text("2 unlesbaren")
+    expect(page.locator("#local-folder-warnings")).to_contain_text("2 Datei(en) mit unlesbarem")
     expect(page.locator("#local-folder-discovery")).to_contain_text("Durchsuchte Dateien: 12")
+    expect(page.locator("#local-folder-discovery")).to_contain_text("(Information): 40")
+    expect(page.locator("#job-notice-link")).to_have_text("Studie öffnen")
     expect(page.locator("#run-analysis")).to_be_enabled()
     page.locator("#local-folder-debug").click()
     expect(page.locator("#job-debug-reason")).to_contain_text("CT-Serie wurde geöffnet")

@@ -178,6 +178,8 @@
     visible.sort((a,b) => Number(a.study.dataset === "demo") - Number(b.study.dataset === "demo") || a.study.dataset.localeCompare(b.study.dataset) || a.study.case_id.localeCompare(b.study.case_id));
     const select = $("study-select"); select.replaceChildren();
     if (!visible.length) select.add(new Option(studies.length ? t("noMatches") : t("noStudies"),""));
+    // A blocked folder attempt shows no study as selected, so re-choosing the previous one is a real change.
+    else if (folderInputBlocked) select.add(new Option(t("chooseStudyPlaceholder"),""));
     const groups = new Map();
     visible.forEach(({study,index}) => { if (!groups.has(study.dataset)) { const group = document.createElement("optgroup"); group.label = study.dataset === "local" ? t("localPhase") : study.dataset; select.append(group); groups.set(study.dataset,group); } const option = new Option(study.dataset === "local" ? `${t("localStudy")} ${study.case_id.slice(0,8)} · ${study.n_slices} ${t("slices")}` : study.case_id,String(index)); groups.get(study.dataset).append(option); });
     if (visible.some(({index}) => String(index) === previous)) select.value = previous;
@@ -229,6 +231,9 @@
     const comparing = $("compare-models").checked;
     $("model-select").disabled = busy || pulling || comparing;
     $("run-analysis").disabled = busy || submitting || pulling || folderInputBlocked || viewerLoading || viewerReadyKey !== studyKey(study) || !$("ct-image").complete || !$("ct-image").naturalWidth || !study || (study.dataset === "local" && !study.qc_adequate) || (comparing ? !models.some((entry) => entry.recommended && entry.available) : !model?.available);
+    // Name the first reason why Run is unavailable instead of leaving a silently disabled button.
+    const blocked = !initialized || busy || submitting || !$("run-analysis").disabled ? "" : pulling ? "runBlockedPull" : folderInputBlocked ? "runBlockedFolder" : !study ? "runBlockedStudy" : viewerLoading ? "runBlockedImage" : study.dataset === "local" && !study.qc_adequate ? "runBlockedQc" : viewerReadyKey !== studyKey(study) || !$("ct-image").naturalWidth ? "runBlockedImageFailed" : comparing ? "runBlockedNoModels" : "runBlockedModel";
+    $("run-blocked-reason").hidden = !blocked; if ($("run-blocked-reason").textContent !== (blocked ? t(blocked) : "")) setText("run-blocked-reason", blocked ? t(blocked) : "");
     $("image-count").disabled = busy || pulling || (!comparing && (model?.single_image_protocol || ["heuristic-hu","monai-lung-nodule"].includes($("model-select").value)));
     $("run-analysis").textContent = t(busy ? "running" : comparing ? "compareRun" : "run");
     document.body.classList.toggle("busy", busy);
@@ -290,14 +295,14 @@
   function renderResultContext() {
     if (!output) return;
     const recorded = output.ui_snapshot || {dataset:output.result.dataset || "—",case_id:output.result.case_id || "—",target:"—",model:output.result.model_id};
-    setText("result-context", `${t("study")}: ${recorded.dataset} / ${recorded.case_id} · ${t("model")}: ${output.result.model_id} · ${t("imageCount")}: ${recorded.target} · ${t("actualImages")}: ${preparedImageCount(output.result)}`);
+    setText("result-context", `${t("study")}: ${recorded.dataset === "local" ? `${t("localStudy")} ${String(recorded.case_id).slice(0,8)}` : `${recorded.dataset} / ${recorded.case_id}`} · ${t("model")}: ${output.result.model_id} · ${t("imageCount")}: ${recorded.target} · ${t("actualImages")}: ${preparedImageCount(output.result)}`);
     $("previous-settings").hidden = settingsMatch(recorded);
   }
   function renderComparisonContext() {
     const recorded = comparison.find((entry) => entry.output)?.output.ui_snapshot || (comparison.length ? requestSnapshot : null);
     $("comparison-context").hidden = !recorded;
     $("comparison-previous-settings").hidden = !recorded || settingsMatch(recorded);
-    if (recorded) setText("comparison-context", `${t("study")}: ${recorded.dataset} / ${recorded.case_id} · ${t("imageCount")}: ${recorded.target}`);
+    if (recorded) setText("comparison-context", `${t("study")}: ${recorded.dataset === "local" ? `${t("localStudy")} ${String(recorded.case_id).slice(0,8)}` : `${recorded.dataset} / ${recorded.case_id}`} · ${t("imageCount")}: ${recorded.target}`);
   }
   function findingCell(label) { const element = cell("","findingTip"), name = document.createElement("span"), code = document.createElement("code"); name.textContent = findingNames[language][label] || label; code.textContent = label; code.className = "canonical-label"; element.append(name,code); return element; }
   function educationCell(output,index,finding,key,tip) { const item = output.presentation?.findings?.find((entry) => entry.finding_index === index && entry.label === finding.label); const allowed = key === "severity" ? ["incidental","low","moderate","high","critical"] : ["routine","soon","urgent","emergency"]; return cell(presenceOf(finding) === "present" && item?.status === "present" && allowed.includes(item[key]) ? t(item[key]) : "—",tip); }
@@ -590,7 +595,7 @@
     const index = job.steps.findIndex((step) => step.status === "running");
     return index >= 0 ? `${job.steps[index].model_id} (${index + 1} / ${job.steps.length})` : `${job.steps.length} ${t("jobModels")}`;
   }
-  function jobSummary(job) { return `${t(`jobKind_${job.kind.replaceAll("-","_")}`)} · ${studyText(job)} · ${modelsText(job)}`; }
+  function jobSummary(job) { return `${t(`jobKind_${job.kind.replaceAll("-","_")}`)} · ${studyText(job)}${job.kind === "study-import" ? "" : ` · ${modelsText(job)}`}`; }
   function localTime(iso) { if (!iso) return "—"; const date = new Date(iso); return Number.isNaN(date.getTime()) ? "—" : date.toLocaleTimeString(language === "de" ? "de-DE" : "en-GB"); }
   function uiSnapshotOf(job) { return {dataset:job.dataset,case_id:job.case_id,target:job.n_images,model:(job.models || [])[0],compare:job.kind === "comparison"}; }
   function announce(text) { setText("job-announcer", text); }
@@ -651,6 +656,7 @@
       || job.steps.find((step) => step.status === "cancelled" && step.elapsed_s != null);
     return active?.model_id === "monai-lung-nodule";
   }
+  let announcedOperation = "";
   const importOperations = ["path_check","header_check","discovery","pixel_decode","input_qc","source_recheck"];
   function importProgressText(job) {
     const progress = job?.progress;
@@ -662,6 +668,10 @@
   function renderFollowed() {
     const job = followed;
     const progress = importProgressText(job); $("folder-job-progress").hidden = !progress; if ($("folder-job-progress").textContent !== progress) setText("folder-job-progress",progress);
+    // Counts change every poll; announce only a new loading operation so screen readers are not flooded.
+    const operation = progress ? `${job.id}:${job.progress.operation}` : "";
+    if (operation && operation !== announcedOperation) announce(`${t("folderProgressStarted")}: ${t(`folderProgress_${job.progress.operation}`)}`);
+    announcedOperation = operation;
     $("request-timer").hidden = !job; $("batch-status").hidden = !job || job.kind !== "comparison";
     if (!job) return;
     const position = job.status === "queued" && job.queue_position ? ` · ${t("jobPosition")} ${job.queue_position}` : "";
@@ -689,7 +699,7 @@
     $("job-notice").className = `notice job-notice ${job.status === "failed" ? "error" : job.status === "succeeded" ? "" : "warning"}`;
     setText("job-notice-text", `${t("jobNoticeDone")}: ${t(`jobStatus_${job.status}`)} · ${jobSummary(job)}${job.elapsed_s == null ? "" : ` · ${formatClock(job.elapsed_s)}`}`);
     $("job-notice-debug").hidden = !job.diagnostic;
-    $("job-notice-link").hidden = !job.result_available; $("job-notice-link").href = `/?job=${encodeURIComponent(job.id)}`; $("job-notice-link").dataset.jobLink = job.id;
+    $("job-notice-link").hidden = !job.result_available; setText("job-notice-link",t(job.kind === "study-import" ? "jobOpenStudy" : "jobOpen")); if (job.kind === "study-import" && job.status === "succeeded") $("job-notice-text").textContent += ` · ${t("folderNotResult")}`; $("job-notice-link").href = `/?job=${encodeURIComponent(job.id)}`; $("job-notice-link").dataset.jobLink = job.id;
   }
   function trackTransitions() {
     jobs.forEach((job) => {
@@ -732,7 +742,7 @@
     button.setAttribute("aria-label", `${t(queued ? "jobCancel" : "jobStop")}: ${jobSummary(job)}`);
     button.addEventListener("click", () => cancelJob(job.id)); return button;
   }
-  function jobLink(id) { const link = document.createElement("a"); link.href = `/?job=${encodeURIComponent(id)}`; link.dataset.jobLink = id; link.dataset.tip = "jobOpenTip"; link.className = "button secondary"; link.textContent = t("jobOpen"); return link; }
+  function jobLink(id) { const link = document.createElement("a"); link.href = `/?job=${encodeURIComponent(id)}`; link.dataset.jobLink = id; link.dataset.tip = "jobOpenTip"; link.className = "button secondary"; link.textContent = t(jobs.find((job) => job.id === id)?.kind === "study-import" ? "jobOpenStudy" : "jobOpen"); return link; }
   function elapsedCell(key) { const element = cell("—","jobElapsedTip"); element.dataset.elapsed = key; element.classList.add("job-time"); return element; }
   function renderJobsTable() {
     const focusedProgress = document.activeElement?.dataset?.jobProgress;
@@ -828,22 +838,28 @@
     if (folderSubmitting) return;
     const intent = ++folderIntent;
     if (followed?.kind === "study-import") unfollow();
-    folderInputBlocked = true; viewerReadyKey = ""; ++viewerRequest; showSlice();
-    let path; try { path = localFolderPath(raw); } catch { folderMessage("folderInvalid"); return; }
+    folderInputBlocked = true; viewerReadyKey = ""; ++viewerRequest; renderStudies(""); renderStudyFacts(); showSlice();
+    $("local-folder-path").removeAttribute("aria-invalid");
+    let path; try { path = localFolderPath(raw); } catch { folderMessage("folderInvalid"); markFolderPathInvalid(); return; }
     folderDiagnosticJob = null; $("local-folder-debug").hidden = true; renderFolderWarnings(null);
     folderSubmitting = true; $("local-folder-path").value = path; updateControls();
     try { const data = await api("/api/local-studies",{path}); if (intent !== folderIntent) return; $("local-folder-path").value = ""; follow(data.job,false,true); folderMessage("folderQueued"); await pollJobs(); }
-    catch (error) { if (intent === folderIntent) folderMessage("folderUnavailable",error.message); }
+    catch (error) { if (intent === folderIntent) { folderSubmitting = false; updateControls(); folderMessage("folderUnavailable",serverDetail(error.message)); markFolderPathInvalid(); } }
     finally { folderSubmitting = false; updateControls(); }
   }
+  // Known fixed server refusals are translated; any other detail stays as escaped text.
+  const SERVER_DETAILS = {"Local folder is unavailable or not permitted":"folderNotPermitted"};
+  function serverDetail(message) { return SERVER_DETAILS[message] ? t(SERVER_DETAILS[message]) : message; }
+  function markFolderPathInvalid() { const input = $("local-folder-path"); input.setAttribute("aria-invalid","true"); input.setAttribute("aria-errormessage","local-folder-notice"); if (!input.disabled) input.focus(); }
   async function importedStudy(job) {
     if (!initialized || job.status !== "succeeded" || !job.result?.study || importedJobs.has(job.id)) return;
     importedJobs.add(job.id);
     const intent = folderIntent;
-    try { const data = await api("/api/studies"); if (intent !== folderIntent || followed?.id !== job.id) return; loadLibrary(data); const study = job.result.study, index = studies.findIndex((entry) => entry.dataset === study.dataset && entry.case_id === study.case_id); if (index < 0) throw new Error(t("folderUnavailable")); $("study-search").value = ""; $("dataset-filter").value = "local"; renderStudies(String(index)); folderInputBlocked = false; renderStudyFacts(); showSlice(true); renderResultContext(); folderDiagnosticJob = job.diagnostic ? job : null; $("local-folder-debug").hidden = !job.diagnostic; folderMessage("folderOpened"); renderFolderWarnings(job.result); }
+    try { const data = await api("/api/studies"); if (intent !== folderIntent || followed?.id !== job.id) return; loadLibrary(data); const study = job.result.study, index = studies.findIndex((entry) => entry.dataset === study.dataset && entry.case_id === study.case_id); if (index < 0) throw new Error(t("folderUnavailable")); $("study-search").value = ""; $("dataset-filter").value = "local"; folderInputBlocked = false; renderStudies(String(index)); renderStudyFacts(); showSlice(true); renderResultContext(); folderDiagnosticJob = job.diagnostic ? job : null; $("local-folder-debug").hidden = !job.diagnostic; folderMessage("folderOpened"); renderFolderWarnings(job.result); }
     catch (error) { if (intent !== folderIntent || followed?.id !== job.id) return; importedJobs.delete(job.id); folderMessage("folderUnavailable",error.message); }
   }
   $("local-folder-form").addEventListener("submit",(event) => { event.preventDefault(); openLocalFolder($("local-folder-path").value); });
+  $("local-folder-path").addEventListener("input",() => $("local-folder-path").removeAttribute("aria-invalid"));
   const folderDropzone = $("folder-dropzone");
   function expandFolderControls() { folderDropzone.closest(".local-folder-controls").classList.add("expanded"); folderDropzone.setAttribute("aria-expanded","true"); }
   function folderExpansionState() { folderDropzone.setAttribute("aria-expanded", String(window.innerWidth > 700 || folderDropzone.closest(".local-folder-controls").classList.contains("expanded"))); }
@@ -869,7 +885,7 @@
       let cumulative = ""; ["",...data.path.split("/").filter(Boolean)].forEach((part) => { cumulative = part ? `${cumulative}/${part}` : ""; const target = cumulative || "/", button = document.createElement("button"); button.type = "button"; button.className = "button secondary"; button.textContent = part || "/"; button.dataset.tip = "folderEnterTip"; button.addEventListener("click",() => browseFolders(target)); $("folder-breadcrumbs").append(button); });
       (data.folders || []).forEach((entry) => { const li = document.createElement("li"), button = document.createElement("button"); button.type = "button"; button.className = "button secondary"; button.textContent = entry.name; button.dataset.tip = "folderEnterTip"; button.addEventListener("click",() => browseFolders(entry.path)); li.append(button); $("folder-browser-list").append(li); });
       setText("folder-browser-notice",data.truncated ? t("folderTruncated") : data.folders.length ? "" : t("folderEmpty")); initializeTooltips();
-    } catch (error) { if (request === folderRequest && $("folder-browser").open) setText("folder-browser-notice",`${t("folderUnavailable")}: ${error.message === "folderInvalid" ? t("folderInvalid") : error.message}`); }
+    } catch (error) { if (request === folderRequest && $("folder-browser").open) setText("folder-browser-notice",`${t("folderUnavailable")}: ${error.message === "folderInvalid" ? t("folderInvalid") : serverDetail(error.message)}`); }
   }
   $("browse-local-folders").addEventListener("click",() => { folderInvoker = document.activeElement; $("folder-browser").showModal(); $("folder-browser").append(tooltip); browseFolders(); $("folder-browser-path").focus(); });
   $("folder-browser-form").addEventListener("submit",(event) => { event.preventDefault(); browseFolders($("folder-browser-path").value); });
@@ -884,7 +900,7 @@
   function diagnosticReason(diagnostic) { const key = `diag_${diagnostic?.code || "job_failed"}`; return words.en[key] ? t(key) : t("diag_job_failed"); }
   function discoverySummary(discovery) {
     if (!discovery || typeof discovery !== "object") return "";
-    return [["files_scanned","debugScanned"],["headers_readable","debugReadable"],["headers_unreadable","debugHeaders"],["non_dicom_files","debugOtherFiles"],["ct_files","debugCT"],["series_found","debugSeries"]].filter(([key]) => typeof discovery[key] === "number" && Number.isFinite(discovery[key]) && discovery[key] >= 0).map(([key,label]) => `${t(label)}: ${discovery[key]}`).join(" · ");
+    return [["files_scanned","debugScanned"],["headers_readable","debugReadable"],["headers_unreadable","debugHeaders"],["non_dicom_files","debugOtherFiles"],["ct_files","debugCT"],["series_found","debugSeries"],["private_values_raw","debugPrivateRaw"]].filter(([key]) => typeof discovery[key] === "number" && Number.isFinite(discovery[key]) && discovery[key] >= 0).map(([key,label]) => `${t(label)}: ${discovery[key]}`).join(" · ");
   }
   function renderFolderWarnings(result) {
     folderWarningResult = result;
@@ -894,7 +910,7 @@
   }
   function folderJobFailure(job) {
     folderDiagnosticJob = job;
-    if (followed?.id === job.id) { folderInputBlocked = true; showSlice(); }
+    if (followed?.id === job.id) { folderInputBlocked = true; renderStudies(""); renderStudyFacts(); showSlice(); }
     const diagnostic = job.diagnostic;
     folderMessage("folderUnavailable",`${diagnostic ? diagnosticReason(diagnostic) : job.error || t("diag_job_failed")}${diagnostic?.trace_id ? ` · ${t("debugTrace")}: ${diagnostic.trace_id}` : ""}`);
     $("local-folder-debug").hidden = !diagnostic;
@@ -903,7 +919,7 @@
     if (!job?.diagnostic) return;
     debugInvoker = document.activeElement; debugJobId = job.id;
     debugBundle = {job_id:job.id,kind:job.kind,status:job.status,diagnostic:job.diagnostic,disclaimer:job.disclaimer || words.en.disclaimer};
-    setText("job-debug-reason",diagnosticReason(job.diagnostic)); setText("job-debug-trace",job.diagnostic.trace_id || "—"); setText("job-debug-stage",job.diagnostic.stage ? t(`stage_${job.diagnostic.stage}`) : "—"); setText("job-debug-class",job.diagnostic.exception_type || "—");
+    setText("job-debug-reason",`${job.diagnostic.severity === "warning" && job.status === "succeeded" ? `${t("debugWarningPrefix")} ` : ""}${diagnosticReason(job.diagnostic)}`); setText("job-debug-trace",job.diagnostic.trace_id || "—"); setText("job-debug-stage",job.diagnostic.stage ? t(`stage_${job.diagnostic.stage}`) : "—"); setText("job-debug-class",job.diagnostic.exception_type || "—");
     setText("job-debug-json",JSON.stringify(debugBundle,null,2)); setText("job-debug-copy-status","");
     const summary = discoverySummary(job.diagnostic.discovery); $("job-debug-discovery").hidden = !summary; setText("job-debug-discovery",summary);
     $("job-debug-download").href = `/api/jobs/${encodeURIComponent(job.id)}/diagnostics`; $("job-debug-technical").open = false;
@@ -922,6 +938,9 @@
   Object.assign(words.de,{localStudy:"Lokale Studie",viewerLoading:"Quellbild wird geladen…",viewerLoadingNote:"Die ausgewählte DICOM-Vorschau wird geladen. Analyse bleibt gesperrt, bis dieses Bild bereit ist.",viewerBlocked:"Eine nutzbare Studie wählen",viewerBlockedNote:"Der neue Ordner wurde nicht erfolgreich geöffnet. Vorherige Bilder sind verborgen und die Analyse ist gesperrt. Einen gültigen Ordner öffnen oder ausdrücklich eine Bibliotheksstudie wählen.",viewerLimited:"Eingabe-QC ist eingeschränkt. Diese lokale Studie kann nicht analysiert werden; eine nutzbare CT-Serie wählen.",viewerRetry:"Bild erneut laden",viewerRetryTip:"Das ausgewählte Quellbild erneut laden. Analyse bleibt gesperrt, bis es erfolgreich angezeigt wird.",diag_unreadable_dicom_headers:"Die ausgewählte CT-Serie wurde geöffnet, aber einige Header waren unlesbar und wurden übersprungen. Suchstatistik und Eingabe-QC prüfen. Übersprungene Dateien allein machen die ausgewählte Serie nicht unbrauchbar."});
   Object.assign(words.en,{folderProgress_path_check:"Path check",folderProgress_header_check:"Header check",folderProgress_discovery:"DICOM discovery",folderProgress_pixel_decode:"Pixel decoding",folderProgress_input_qc:"Input QC",folderProgress_source_recheck:"Source recheck",folderProgressEntries:"entries",folderProgressFiles:"files",folderProgressChecks:"checks",folderProgressUnknown:"total unknown",folderProgressTip:"Actual completed work in this operation, reported by the server. File checks and pixel decoding are separate passes; Input QC counts checks. Totals may be unknown. These counts are not an overall percentage or a remaining-time estimate."});
   Object.assign(words.de,{folderProgress_path_check:"Pfadprüfung",folderProgress_header_check:"Headerprüfung",folderProgress_discovery:"DICOM-Suche",folderProgress_pixel_decode:"Pixeldekodierung",folderProgress_input_qc:"Eingabe-QC",folderProgress_source_recheck:"Quellen-Nachprüfung",folderProgressEntries:"Einträge",folderProgressFiles:"Dateien",folderProgressChecks:"Prüfungen",folderProgressUnknown:"Gesamtzahl unbekannt",folderProgressTip:"Vom Server gemeldete, tatsächlich abgeschlossene Arbeit dieses Vorgangs. Dateiprüfung und Pixeldekodierung sind getrennte Durchläufe; Eingabe-QC zählt Prüfungen. Gesamtzahlen können unbekannt sein. Die Zähler sind weder Gesamtprozente noch Restzeit-Schätzungen."});
+  // UI red-team review 2026-10-19: blocked-run reasons, informational counters and import wording.
+  Object.assign(words.en,{chooseStudyPlaceholder:"Choose a study…",runBlockedTip:"Why Run is unavailable right now. Analysis starts only for a loaded, permitted image with usable input QC and an available model.",runBlockedPull:"Run is unavailable while a model download is in progress.",runBlockedFolder:"Run is unavailable: the last folder did not open. Open a valid folder or select a study.",runBlockedStudy:"Run is unavailable: select a study first.",runBlockedImage:"Run is unavailable until the selected source image has loaded.",runBlockedImageFailed:"Run is unavailable: the selected source image did not display. Retry the image or choose another study.",runBlockedQc:"Run is unavailable: Input QC is limited for this local study.",runBlockedNoModels:"Run is unavailable: no configured research model is available locally. Open model setup.",runBlockedModel:"Run is unavailable: the selected model is not available locally. Open model setup or choose another model.",folderProgressStarted:"Folder loading step",folderNotPermitted:"The folder does not exist, is not a folder, or is not permitted (for example a protected holdout path). Check the absolute path and try again.",folderWarning:"Opened with a warning: {n} file(s) with unreadable DICOM headers were skipped. Not every scanned file is necessarily used; review Input QC before choosing a model.",folderOpened:"Local study opened. Review Input QC, then choose a model when ready. Opening a folder is not a model result or an accuracy check.",folderNotResult:"study opened; not a model result",debugPrivateRaw:"Vendor private values kept raw (informational)",debugWarningPrefix:"Warning only; the import succeeded.",debugDownloadTip:"Save sanitized diagnostic JSON for this job (failure or warning). Contains no patient images, input paths or header values.",jobOpenStudy:"Open study"});
+  Object.assign(words.de,{chooseStudyPlaceholder:"Studie auswählen…",runBlockedTip:"Warum Analysieren gerade nicht verfügbar ist. Eine Analyse startet nur mit geladenem, zugelassenem Bild, nutzbarer Eingabe-QC und verfügbarem Modell.",runBlockedPull:"Analysieren ist während eines Modell-Downloads nicht verfügbar.",runBlockedFolder:"Analysieren nicht verfügbar: Der letzte Ordner wurde nicht geöffnet. Einen gültigen Ordner öffnen oder eine Studie auswählen.",runBlockedStudy:"Analysieren nicht verfügbar: zuerst eine Studie auswählen.",runBlockedImage:"Analysieren ist erst verfügbar, wenn das ausgewählte Quellbild geladen ist.",runBlockedImageFailed:"Analysieren nicht verfügbar: Das ausgewählte Quellbild wurde nicht angezeigt. Bild erneut laden oder eine andere Studie wählen.",runBlockedQc:"Analysieren nicht verfügbar: Die Eingabe-QC dieser lokalen Studie ist eingeschränkt.",runBlockedNoModels:"Analysieren nicht verfügbar: Kein konfiguriertes Forschungsmodell ist lokal verfügbar. Modelleinrichtung öffnen.",runBlockedModel:"Analysieren nicht verfügbar: Das ausgewählte Modell ist lokal nicht verfügbar. Modelleinrichtung öffnen oder anderes Modell wählen.",folderProgressStarted:"Ladeschritt des Ordners",folderNotPermitted:"Der Ordner existiert nicht, ist kein Ordner oder ist nicht zugelassen (zum Beispiel ein geschützter Holdout-Pfad). Absoluten Pfad prüfen und erneut versuchen.",folderWarning:"Mit Warnung geöffnet: {n} Datei(en) mit unlesbarem DICOM-Header übersprungen. Nicht jede durchsuchte Datei wird zwangsläufig verwendet; vor der Modellwahl Eingabe-QC prüfen.",folderOpened:"Lokale Studie geöffnet. Eingabe-QC prüfen und bei Bedarf ein Modell auswählen. Das Öffnen eines Ordners ist kein Modellergebnis und keine Genauigkeitsprüfung.",folderNotResult:"Studie geöffnet; kein Modellergebnis",debugPrivateRaw:"Private Herstellerwerte roh behalten (Information)",debugWarningPrefix:"Nur Warnung; der Import war erfolgreich.",debugDownloadTip:"Bereinigtes Diagnose-JSON dieses Auftrags speichern (Fehler oder Warnung). Enthält keine Patientenbilder, Eingabepfade oder Headerwerte.",jobOpenStudy:"Studie öffnen"});
   const PAGES = {"/":"analysis","/about":"about","/evaluation":"evaluation","/jobs":"jobs"};
   async function navigate(path, push = false) {
     viewScroll[currentPage] = window.scrollY;

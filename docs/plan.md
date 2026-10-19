@@ -129,10 +129,16 @@ rejected whole valid slices (probably a complete series).
 - [x] Tests: synthetic implicit-VR ELSCINT1 series loads all 32 slices with no warnings;
   public mistyped values are still rejected; evaluator scan/single-file regressions. Related
   suites 40/40 passed. No private file was read by the agent.
+- [x] Importer fix committed `5e2769a` v0.5.2: full gate GREEN, exact-commit CI
+  `39329540433` passed. Idle preview (empty job queue) restarted on v0.5.2, port 8002.
 - [ ] Operator re-check: rerun the same `--scan-headers --check-import` command; expect
   `header_errors: 0`, `private_values_raw: 317` and possibly a different selected series.
-- [ ] UI/UX red-team (isolated worktree worker): ranked findings, focused fixes, adapted
-  e2e/integration tests, record in `docs/review-ui-redteam-2026-10-19.md`; separate commit.
+- [x] UI/UX red-team (isolated worker, synthetic data only): 8 findings fixed — stale study
+  after failed folder open, unexplained disabled Run (translated, live reason), progress
+  placement/announcement noise, untranslated folder error, header warnings worded as
+  failures, folder jobs looking like model results, field-level path error, inconsistent
+  study label. Worker: 362 e2e/integration + 649 unit passed. Remaining items are listed in
+  [the review](review-ui-redteam-2026-10-19.md). Integrated as a separate gated commit.
 - [ ] Release: v0.5.1 draft stays unpublished; publish one release after these atomic
   commits pass the gate and exact-commit CI, replacing draft assets and checksums.
 
