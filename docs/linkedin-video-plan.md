@@ -21,7 +21,8 @@ and DejaVu Sans. Run commands from the repository root. Complete a real UI rehea
 inspect the source images for identifiers before capture. Header audit alone does not
 establish absence of burned-in identifiers.
 
-1. Start continuous capture on an isolated Xvfb display. It never records the personal desktop.
+1. Start continuous capture on an isolated Xvfb display. It never records the personal desktop. Chromium is forced to X11 and does not inherit
+   the personal Wayland display.
 
    ```bash
    uv run --extra detector python scripts/linkedin_video.py --repo "$PWD" capture \

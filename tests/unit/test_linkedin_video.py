@@ -24,6 +24,7 @@ from scripts.linkedin_video import (
     stop_process,
     validate_plan,
     verify_result,
+    x11_environment,
 )
 
 from thoraxbench.splits import Phase
@@ -215,3 +216,15 @@ def test_real_result_identity_guard(change: str) -> None:
     else:
         with pytest.raises(ValueError, match=r"detector|identity"):
             verify_result(result, "synthetic-source")
+
+
+def test_capture_cannot_inherit_personal_wayland_display(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("WAYLAND_DISPLAY", "personal-wayland")
+    monkeypatch.setenv("WAYLAND_SOCKET", "42")
+    monkeypatch.setenv("DISPLAY", ":0")
+    monkeypatch.setenv("XDG_SESSION_TYPE", "wayland")
+    env = x11_environment(":91")
+    assert env["DISPLAY"] == ":91"
+    assert env["XDG_SESSION_TYPE"] == "x11"
+    assert "WAYLAND_DISPLAY" not in env
+    assert "WAYLAND_SOCKET" not in env

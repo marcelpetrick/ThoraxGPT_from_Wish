@@ -118,11 +118,15 @@ Core recovery, result tabs, About metadata, dependency refresh and review repair
 complete. The four MedGemma calibration requests finish but fail useful-reading readiness.
 The detector rehearsal completed in 49.68 seconds: 19 proposals, 8 at the fixed 0.5 cutoff,
 12 illustrated. This is an overlap-affected selected-case workflow check, not accuracy.
-No UI server is currently running after the workstation restart; saved files remain.
+The clean UI is running on port 8001. The first 4K take closed Chromium before model
+inference; its failed original is preserved. A synthetic 4K X11 capture succeeded after
+forcing the X11 backend and removing inherited Wayland routing. Apply that correction
+and retain original errors when a browser page closes.
 
 - [x] V1: recorder `ba66639` passed independent review and its full gate: 858 tests,
   97.84% coverage, including 25 synthetic recorder regressions. Real recording remains next.
-- [ ] V2: merge into main, synchronize operator documentation and pass the combined gate.
+- [x] V2: integrated `dc206c5` (v0.4.16), synchronized the 16-page manual; full gate
+  passed 871 tests /97.87% coverage.
 - [ ] V3: restore detector extras, start the clean committed UI and record one genuine
   Chromium tour of the authorized calibration case; preserve original/failed takes.
 - [ ] V4: inspect the take, render two 30-second cuts, verify all 900 frames per cut,

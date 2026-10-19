@@ -22,6 +22,7 @@ from urllib.parse import unquote, urlsplit
 
 import yaml
 from PIL import Image, ImageDraw, ImageFont
+from playwright.sync_api import Error as PlaywrightError
 from playwright.sync_api import Route, sync_playwright
 
 from thoraxbench.splits import CaseGuard, Phase
@@ -179,6 +180,15 @@ def verify_result(payload: dict[str, Any], commit: str) -> None:
         raise ValueError("Result source identity differs from clean take source")
 
 
+def x11_environment(target: str) -> dict[str, str]:
+    """Keep Chromium on our Xvfb display even inside a Wayland desktop session."""
+    return {
+        key: value
+        for key, value in os.environ.items()
+        if key not in {"WAYLAND_DISPLAY", "WAYLAND_SOCKET"}
+    } | {"DISPLAY": target, "XDG_SESSION_TYPE": "x11"}
+
+
 def capture(args: argparse.Namespace) -> Path:  # noqa: PLR0912, PLR0915 - linear UI recording procedure
     repo, url = args.repo.resolve(), local_url(args.url)
     registry = preflight(repo, args.dataset, args.case, args.model, args.allow_real_calibration)
@@ -239,8 +249,13 @@ def capture(args: argparse.Namespace) -> Path:  # noqa: PLR0912, PLR0915 - linea
             downloads_path=str(folder / "downloads"),
             executable_path=str(executable),
             headless=False,
-            env=os.environ | {"DISPLAY": target},
-            args=["--kiosk", f"--window-size={args.width},{args.height}"],
+            env=x11_environment(target),
+            args=[
+                "--ozone-platform=x11",
+                "--disable-gpu",
+                "--kiosk",
+                f"--window-size={args.width},{args.height}",
+            ],
         )
         cleanup.callback(browser.close)
         context = browser.new_context(
@@ -305,7 +320,8 @@ def capture(args: argparse.Namespace) -> Path:  # noqa: PLR0912, PLR0915 - linea
                 yield
                 page.wait_for_timeout(6000)
             finally:
-                active = context.pages[-1]
+                pages = context.pages
+                active = pages[-1] if pages else None
                 focus = {
                     "study": "#viewer-heading",
                     "viewer": "#ct-image",
@@ -316,7 +332,7 @@ def capture(args: argparse.Namespace) -> Path:  # noqa: PLR0912, PLR0915 - linea
                     "report": "#candidates",
                     "about": "#about-page",
                 }.get(name)
-                if focus:
+                if focus and active is not None:
                     locator = active.locator(focus)
                     if locator.count():
                         box = locator.bounding_box()
@@ -435,7 +451,8 @@ def capture(args: argparse.Namespace) -> Path:  # noqa: PLR0912, PLR0915 - linea
             take["status"] = "finalizing"
         except Exception as exc:
             take["status"], take["error"] = "failed", str(exc)
-            page.wait_for_timeout(5000)
+            with contextlib.suppress(PlaywrightError):
+                page.wait_for_timeout(5000)
             raise
         finally:
             take["recording_wall_s"] = time.monotonic() - started
