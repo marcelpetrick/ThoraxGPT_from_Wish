@@ -21,6 +21,7 @@ import numpy.typing as npt
 import pydicom
 
 from thoraxbench.dicom.discovery import SeriesInfo, discover_series, select_series
+from thoraxbench.dicom.headers import HEADER_ERRORS
 
 HU_MIN = -1024
 HU_MAX = 3071
@@ -32,6 +33,17 @@ MAX_ADEQUATE_GAP_MM = 20.0
 MIN_LUNG_FRACTION = 0.02
 
 HUArray = npt.NDArray[np.int16]
+
+
+class DicomPixelError(ValueError):
+    """Selected CT pixel loading failed; never silently discard selected slices."""
+
+    code = "dicom_read_error"
+
+    def __init__(self, discovery: dict[str, int], header_error_types: dict[str, int]) -> None:
+        super().__init__("Selected CT pixel data could not be decoded")
+        self.discovery = dict(discovery)
+        self.header_error_types = dict(header_error_types)
 
 
 @dataclass
@@ -224,14 +236,28 @@ def load_study(root: Path) -> tuple[Volume | None, dict[str, Any]]:
 
     Returns the volume (or ``None``) and a metadata dict with all selection decisions.
     """
-    series = discover_series(root)
+    discovery: dict[str, int] = {}
+    header_error_types: dict[str, int] = {}
+    series = discover_series(root, discovery, header_error_types)
     selection = select_series(series)
     meta: dict[str, Any] = {
         "n_series": len(series),
+        "discovery": discovery,
+        "header_error_types": header_error_types,
+        "warnings": (
+            [f"{discovery['headers_unreadable']} unreadable DICOM header file(s) skipped"]
+            if discovery["headers_unreadable"]
+            else []
+        ),
         "selected_series": selection.series.series_uid if selection.series else None,
         "reason": selection.reason,
         "rejected": selection.rejected,
     }
     if selection.series is None:
         return None, meta
-    return load_volume(selection.series, selection.reason), meta
+    try:
+        volume = load_volume(selection.series, selection.reason)
+    except (*HEADER_ERRORS, RuntimeError) as error:
+        raise DicomPixelError(discovery, header_error_types) from error
+    volume.qc.warnings.extend(meta["warnings"])
+    return volume, meta

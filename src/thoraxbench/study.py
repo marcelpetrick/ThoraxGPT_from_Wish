@@ -55,6 +55,18 @@ class Study:
 class StudyLoadError(RuntimeError):
     """Raised when a folder contains no usable chest CT series."""
 
+    def __init__(self, message: str, selection: dict[str, Any] | None = None) -> None:
+        super().__init__(message)
+        source = selection or {}
+        # Do not carry series UIDs, rejection keys, file paths or header values.
+        self.selection = {
+            key: source[key]
+            for key in ("n_series", "reason", "discovery", "warnings", "header_error_types")
+            if key in source
+        }
+        self.discovery = dict(self.selection.get("discovery", {}))
+        self.header_error_types = dict(self.selection.get("header_error_types", {}))
+
 
 def _cache_file(cache_dir: Path, series_uid: str) -> Path:
     return cache_dir / f"{series_uid}.v{CACHE_VERSION}.npz"
@@ -128,7 +140,7 @@ def load_study_dir(
     loaded, selection = load_study(path)
     if loaded is None:
         msg = f"no eligible axial chest CT series below {path}: {selection['reason']}"
-        raise StudyLoadError(msg)
+        raise StudyLoadError(msg, selection)
     volume = loaded
     if cache_dir is not None:
         _save_cache(_cache_file(cache_dir, volume.series_uid), volume, selection)

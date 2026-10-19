@@ -33,6 +33,16 @@ VLM filtering remains gated on readiness. The *Status* column below marks each m
 path bypasses a guard, reject that design rather than weakening the guard.
 **Recovery:** inspect `.pipeline/<stage>.log` after a failed gate and fix the cause.
 
+Local DICOM folder opening is an explicit same-origin request. Directory browsing lists
+folders without loading images. Registration runs through the shared sequential job worker,
+uses the CLI header/path/split guard before pixels, and retains a bounded session-only
+opaque registration. Viewer and analysis access recheck paths, source signatures and split
+policy. Unchanged cached pixels avoid repeated DICOM header scans; cache misses and changed
+inputs require full header validation. Strict header reads contain deferred value conversion
+errors and expose only aggregate error categories. Failed jobs and successful header warnings
+retain session-only diagnostic traces with software identity and no raw exception values. No upload, file copy,
+model download or automatic inference occurs. See [the folder procedure](local-folders.md).
+
 The pilot uses metadata-only pseudorandom patient splits before development indexing.
 The stratified split design below remains a future research option, not the pilot procedure.
 

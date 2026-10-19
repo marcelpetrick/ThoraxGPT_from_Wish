@@ -131,6 +131,29 @@ the ranked gaps in
 `docs/vision_traceability.md`. See `docs/plan.md` → *Priority* and *Next steps*.
 Keep `manual.html` and `manual.pdf` synchronized with user-facing configuration and commands.
 
+Local folder opening (2026-10-19 user request) accepts explicit absolute path/file-URI
+drops and paste, with an in-app directory-browser fallback when browsers hide paths.
+Never upload/copy files or infer automatically. Folder loading uses the shared job queue;
+local registrations are bounded and session-only. Reuse `guard_study_input` before pixels
+and on later access, including cached folders. Keep sealed/path/header checks intact.
+Test folder → viewer → analysis → HTML with synthetic studies and both languages/themes.
+See `docs/local-folders.md`. Never persist absolute paths in browser storage/job snapshots.
+Successful imports must select the Local dataset and load the viewer immediately. Block
+analysis until the current selected image loads and input QC permits analysis. Clear the
+previous selection while opening another folder; a failed import must never leave an old
+study ready to run. Ignore stale asynchronous import completions after a later folder
+attempt or explicit study selection. Search alone must not clear a failed-import block;
+unrelated search must preserve the selected slice. Distinguish unreadable excluded headers from fatal selected-series
+pixel failures. Show aggregate counts and traceable warning/error details with a JSON
+export, including stage, exception classes and software identity. Never export raw exception
+messages, filenames, input paths or header values. Preserve diagnostics for successful
+imports with warnings as well as failures. Reuse unchanged validated cached pixels without
+re-reading every header for every PNG; check paths/signatures before cache access and run
+the full header guard before a new pixel load. Do not inspect private inputs forbidden by
+the user. The current private Downloads study is excluded from agent inspection; use
+synthetic fixtures and never commit its path or identifying names.
+
+
 UI defaults are **English and light mode**, independent of browser preferences. Offer
 persistent English/German and light/dark switches. Every action, field label and result
 metric needs concise translated help via accessible hover/focus tooltips. The About page

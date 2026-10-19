@@ -111,6 +111,72 @@ Status: ✅ done · 🔄 in progress · ⏳ open · ✖ dropped
 
 ## Current activity
 
+### Local DICOM folder opening — 2026-10-19
+
+User request: add folder-path drag/drop, consider the UI, implement it and open the new
+version. The previous video delivery is committed/pushed at `688ac0c` (v0.4.19); 895
+local tests and GitHub Actions passed. Main and recovery worktrees were clean at start.
+
+- [x] F1: add guarded directory browsing and session-only local study registration through
+  the shared processing queue. Reuse CLI header/split checks before loading pixels.
+- [x] F2: add accessible path drag/drop, paste/open and an in-app folder browser, with
+  English/German help and both themes. Keep indexed study selection available.
+- [x] F3: review sealed/symlink/copy boundaries, queue cancellation, reloads, errors and
+  responsive UX. Run synthetic end-to-end folder → viewer → analysis → HTML checks.
+- [x] F4: synchronize README, architecture, AGENTS and HTML/PDF manuals; run the full
+  commit gate, push the feature and open the new local UI.
+
+Functional checkpoint (2026-10-19, 22:28 CEST): guarded registration, folder drag/drop,
+extensionless inputs, strict lazy-header validation and traceable diagnostics are integrated.
+Synthetic EN/DE folder → viewer → actual analysis → offline HTML checks passed. A malformed
+synthetic header reproduces the reported pydicom failure; malformed files are excluded
+before series selection, while corrupt selected-series pixels still fail explicitly.
+No files in the user's forbidden private folder were inspected. Its reported counts alone
+do not establish whether its selected series is usable.
+
+F3 integration checkpoint (22:33 CEST): Local selection, viewer readiness/failure/retry,
+QC blocking and previous-study protection are implemented. Twenty-six focused browser
+checks pass, including actual extensionless folder → engine → offline HTML and real
+failure-trace downloads. Cached slices perform no header rescans when source and split
+policy are unchanged. New pixel loads, source changes and split-policy changes still
+require full header guards. Successful warning traces retain aggregate parser categories.
+Independent integrated review found no additional guard/privacy/cancellation blockers;
+eighteen cache-policy/diagnostic checks passed. README, architecture, AGENTS and the
+17-page HTML/PDF manuals are synchronized; the new manual page was visually reviewed.
+Supplementary `reviewBranch` checkpoint (22:39 CEST): the committed comparison is empty
+because main and origin/main both point to `688ac0c`. The actual pending patch received
+independent backend and frontend reviews. Backend review found no additional blocker.
+Frontend review identified a stale import-completion race: delayed folder A selection could
+unblock Run after folder B started. The release was stopped before commit and its version
+bump reverted. Add a generation guard and delayed A/B regression. Also preserve the failed-import block
+when search text does not select a new study, and retain the current slice during
+unrelated search while its image is pending/failed. The existing UX-01 acceptance check
+confirmed that slice 5 incorrectly reset to 32. Fix these three confirmed review findings,
+then rerun the full gate.
+The initial three findings and a fourth confirmed stale-library-refresh path are fixed. Import continuations use an input-intent generation guard;
+new input/selection intentions also stop following earlier import jobs without cancelling
+server work. Search alone retains the failed-import block. Unchanged-study search preserves
+the slice. Added regressions cover delayed completion, failure, pending POST, running-import
+manual selection and language-switch recovery. See [the review](review-local-folders-2026-10-19.md).
+The focused folder/readiness/diagnostic/acceptance suite passes 39/39; an additional
+delayed-refresh regression checks that old inventory cannot replace a newly opened folder. The full
+release gate is rerun against the fixed tree; a failed gate creates no commit.
+
+F4 release acceptance is enforced by `scripts/commit.sh`: commit only after all pipeline
+stages pass, then push. Preserve the idle preview job snapshot before restarting; restore
+the optional detector environment after the locked base-environment gate.
+Both local-folder worker worktrees are clean. Their integrated patches remain in named
+`recovery: local-folder backend/UI integrated into main 2026-10-19` stashes; keep them
+until deliberate cleanup. No running worker or additional GPU task remains.
+
+Delegate backend and frontend to two isolated worktrees. The lead owns integration,
+independent review, documentation, full gate and the local preview. No real study is
+needed for tests. Do not upload/copy files, infer automatically, weaken sealed guards,
+or persist absolute paths in browser storage/job snapshots. Browser folder APIs can hide
+absolute paths; support local file-URI/plain-text drops and explain the folder-browser
+fallback. Never guess a path from a relative FileSystemEntry name.
+
+
 ### Leftover cleanup and video reframing — 2026-10-19
 
 Four historical dirty worktrees are now clean. Their tracked and untracked files were

@@ -477,6 +477,7 @@ def test_library_status_explains_missing_and_unavailable_sources(settings: Setti
     assert payload["summary"] == {
         "total_studies": 0,
         "development_studies": 0,
+        "local_studies": 0,
         "synthetic_studies": 0,
     }
     assert all(row["status"] == "split_required" for row in payload["libraries"])

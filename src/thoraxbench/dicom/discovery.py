@@ -8,8 +8,7 @@ from collections import defaultdict
 from dataclasses import dataclass, field
 from pathlib import Path
 
-import pydicom
-from pydicom.errors import InvalidDicomError
+from thoraxbench.dicom.headers import HEADER_ERRORS, read_header, record_header_error
 
 AXIAL_TOLERANCE = 0.1
 MIN_SERIES_SLICES = 20
@@ -61,7 +60,9 @@ def _text(value: object) -> str:
     return "" if value is None else str(value)
 
 
-def discover_series(root: Path) -> list[SeriesInfo]:
+def discover_series(
+    root: Path, stats: dict[str, int] | None = None, issue_types: dict[str, int] | None = None
+) -> list[SeriesInfo]:
     """Read DICOM headers below *root* and group files by series.
 
     Non-DICOM files are skipped. The result is sorted by (study UID, series UID) so the
@@ -69,32 +70,39 @@ def discover_series(root: Path) -> list[SeriesInfo]:
     """
     groups: dict[str, SeriesInfo] = {}
     files_by_series: dict[str, list[Path]] = defaultdict(list)
+    counts = stats if stats is not None else {}
+    counts.update(files_scanned=0, headers_readable=0, headers_unreadable=0, non_dicom_files=0)
     for path in sorted(p for p in root.rglob("*") if p.is_file()):
-        try:
-            ds = pydicom.dcmread(path, stop_before_pixels=True)
-        except InvalidDicomError, OSError, EOFError, ValueError:
+        counts["files_scanned"] += 1
+        ds = read_header(path, counts, issue_types)
+        if ds is None:
             continue
-        series_uid = _text(ds.get("SeriesInstanceUID"))
+        try:
+            series_uid = _text(ds.get("SeriesInstanceUID"))
+            orientation = ds.get("ImageOrientationPatient")
+            thickness = ds.get("SliceThickness")
+            info = SeriesInfo(
+                study_uid=_text(ds.get("StudyInstanceUID")),
+                series_uid=series_uid,
+                patient_id=_text(ds.get("PatientID")),
+                modality=_text(ds.get("Modality")).upper(),
+                description=_text(ds.get("SeriesDescription")),
+                image_type=tuple(str(v) for v in (ds.get("ImageType") or ())),
+                slice_thickness=float(thickness) if thickness not in (None, "") else None,
+                kernel=_text(ds.get("ConvolutionKernel")) or None,
+                contrast=_text(ds.get("ContrastBolusAgent")) or None,
+                orientation=tuple(float(v) for v in orientation) if orientation else None,
+                manufacturer=_text(ds.get("Manufacturer")) or None,
+            )
+        except HEADER_ERRORS as error:
+            record_header_error(error, issue_types)
+            counts["headers_unreadable"] += 1
+            continue
+        counts["headers_readable"] += 1
         if not series_uid:
             continue
         files_by_series[series_uid].append(path)
-        if series_uid in groups:
-            continue
-        orientation = ds.get("ImageOrientationPatient")
-        thickness = ds.get("SliceThickness")
-        groups[series_uid] = SeriesInfo(
-            study_uid=_text(ds.get("StudyInstanceUID")),
-            series_uid=series_uid,
-            patient_id=_text(ds.get("PatientID")),
-            modality=_text(ds.get("Modality")).upper(),
-            description=_text(ds.get("SeriesDescription")),
-            image_type=tuple(str(v) for v in (ds.get("ImageType") or ())),
-            slice_thickness=float(thickness) if thickness not in (None, "") else None,
-            kernel=_text(ds.get("ConvolutionKernel")) or None,
-            contrast=_text(ds.get("ContrastBolusAgent")) or None,
-            orientation=tuple(float(v) for v in orientation) if orientation else None,
-            manufacturer=_text(ds.get("Manufacturer")) or None,
-        )
+        groups.setdefault(series_uid, info)
     for uid, info in groups.items():
         info.files = files_by_series[uid]
     return sorted(groups.values(), key=lambda s: (s.study_uid, s.series_uid))

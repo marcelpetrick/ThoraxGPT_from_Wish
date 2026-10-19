@@ -24,14 +24,13 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Literal
 
-import pydicom
 from pydantic import BaseModel, Field
 from pydicom.dataelem import DataElement
 from pydicom.dataset import Dataset
-from pydicom.errors import InvalidDicomError
 
 from thoraxbench.config import Settings
 from thoraxbench.dicom.discovery import SeriesInfo
+from thoraxbench.dicom.headers import read_header
 
 AUDIT_VERSION = "1"
 PROFILE = "DICOM PS3.15 Basic Application Level Confidentiality Profile (subset)"
@@ -225,10 +224,7 @@ def audit_dataset(ds: Dataset, *, pseudonyms: Collection[str] | None = None) -> 
 
 
 def _read(path: Path) -> Dataset | None:
-    try:
-        return pydicom.dcmread(path, stop_before_pixels=True)
-    except InvalidDicomError, OSError, EOFError, ValueError:
-        return None
+    return read_header(path)
 
 
 def audit_files(paths: Iterable[Path], *, pseudonyms: Collection[str] | None = None) -> DeidAudit:

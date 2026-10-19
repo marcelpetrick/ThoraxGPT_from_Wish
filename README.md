@@ -4,7 +4,7 @@
 [![License: GPL v3 or later](https://img.shields.io/badge/license-GPLv3%20or%20later-blue.svg)](LICENSE)
 [![Python 3.14+](https://img.shields.io/badge/Python-3.14%2B-3776ab.svg)](https://www.python.org/)
 [![FastAPI 0.147.0](https://img.shields.io/badge/FastAPI-0.147.0-009688.svg)](pyproject.toml)
-[![Coverage 97.87%](https://img.shields.io/badge/coverage-97.87%25-brightgreen.svg)](docs/mvp-test.md)
+[![Coverage gate ≥95%](https://img.shields.io/badge/coverage_gate-%E2%89%A595%25-brightgreen.svg)](pyproject.toml)
 [![mypy strict](https://img.shields.io/badge/mypy-strict-blue.svg)](pyproject.toml)
 [![Local inference](https://img.shields.io/badge/inference-local%20only-087f8c.svg)](docs/architecture.md)
 [![Research use only](https://img.shields.io/badge/use-research%20only-orange.svg)](Vision.md)
@@ -24,6 +24,7 @@ provider-required CUDA versions; see [the latest dependency review](docs/depende
 The completed demo videos are in [`media/`](media/README.md): [square](media/pilot-A.mp4) and [portrait](media/pilot-B.mp4), 30 seconds each. They show a selected calibration case with training overlap; they do not establish diagnostic accuracy.
 
 | Document | Content |
+| [`docs/local-folders.md`](docs/local-folders.md) | Open a local DICOM folder by path drop, paste or folder browsing |
 |---|---|
 | [`docs/video-delivery-2026-10-19.md`](docs/video-delivery-2026-10-19.md) | Completed local 4K tour and two verified 30-second cuts; selected calibration and overlap limitations |
 | [`docs/linkedin-video-plan.md`](docs/linkedin-video-plan.md) | Guarded Chromium recording, two 30-second edits, credits and verification |
@@ -148,6 +149,15 @@ Restart an existing server after an upgrade.
 To start from another directory after installation, use
 `uv run --project /path/to/checkout thoraxbench serve`.
 
+To open your own existing DICOM CT folder, use **Choose a study → Open local DICOM
+folder**. Drop an absolute folder path or local file link to queue opening. Alternatively,
+paste a path and select **Open folder**, or use **Browse folders → Open selected folder**. The queued loader checks access and selects the study for viewing;
+it does not upload/copy files or start inference. Local folders are session-only and
+separate from the frozen development library. See [the folder procedure](docs/local-folders.md)
+for browser drop limitations and recovery. File suffixes are optional. The dataset switches
+to **Local** after opening; Run waits for a decoded viewer image and usable input QC.
+Warnings and failures offer **Details** and a downloadable trace for debugging.
+
 The **Rough remaining estimate** starts with broad workstation guesses: 1–60 seconds for
 the HU baseline and 1–15+ minutes for a vision model. Later estimates use recent local
 request durations for the same model and image count. They are not measured benchmarks,
@@ -157,7 +167,7 @@ Only numeric duration history is stored locally; no study identifiers are used.
 ![Synthetic processing queue with scripted elapsed time](docs/assets/ui-jobs.png)
 
 The **Jobs** page lists the server-side queue, status, stage, elapsed time and results.
-Analysis, comparisons and model downloads run sequentially. Navigation and browser reloads
+Folder loading, analysis, comparisons and model downloads run sequentially. Navigation and browser reloads
 retain jobs while the server stays running. Cancel queued work or stop running work; the
 provider may continue in the background after its connection closes. Jobs are kept in memory
 for this server session only (8 waiting, 32 completed). Saved reports remain on disk.

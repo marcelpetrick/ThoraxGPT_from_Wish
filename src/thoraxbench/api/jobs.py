@@ -13,6 +13,7 @@ filesystem paths.
 from __future__ import annotations
 
 import contextlib
+import logging
 import time
 from collections.abc import Callable
 from dataclasses import dataclass, field
@@ -22,6 +23,7 @@ from typing import Any, Literal
 from uuid import UUID, uuid4
 
 from thoraxbench.analysis import DISCLAIMER
+from thoraxbench.api.diagnostics import job_diagnostic
 
 JobStatus = Literal[
     "queued", "running", "cancelling", "succeeded", "failed", "abstained", "cancelled"
@@ -30,6 +32,7 @@ ACTIVE: frozenset[str] = frozenset({"queued", "running", "cancelling"})
 TERMINAL: frozenset[str] = frozenset({"succeeded", "failed", "abstained", "cancelled"})
 STEP_OPEN: frozenset[str] = frozenset({"waiting", "running"})
 MAX_DETAIL = 500
+LOGGER = logging.getLogger(__name__)
 
 
 class JobCancelledError(Exception):
@@ -55,6 +58,7 @@ class JobOutcome:
     status: Literal["succeeded", "failed", "abstained"]
     result: dict[str, Any] | None = None
     error: str | None = None
+    diagnostic: dict[str, Any] | None = None
 
 
 def _iso(seconds: float | None) -> str | None:
@@ -79,6 +83,7 @@ class _Job:
     finished_mono: float | None = None
     result: dict[str, Any] | None = None
     error: str | None = None
+    diagnostic: dict[str, Any] | None = None
     cancel: Event = field(default_factory=Event)
     cancel_stage: str | None = None
     aborters: list[Callable[[], None]] = field(default_factory=list)
@@ -259,15 +264,29 @@ class JobManager:
     def _execute(self, job: _Job) -> None:
         context = JobContext(self, job)
         cancelled = False
+        diagnostic: dict[str, Any] | None = None
         try:
             context.check()
             outcome = job.work(context)
+            diagnostic = outcome.diagnostic
         except JobCancelledError:
             outcome, cancelled = JobOutcome("failed"), True
         except JobError as exc:
             outcome = JobOutcome("failed", error=str(exc)[:MAX_DETAIL])
+            diagnostic = job_diagnostic(exc, job.stage)
         except Exception as exc:
             outcome = JobOutcome("failed", error=f"Job failed unexpectedly ({type(exc).__name__})")
+            diagnostic = job_diagnostic(exc, job.stage)
+        if outcome.status == "failed" and not cancelled and diagnostic is None:
+            diagnostic = job_diagnostic(None, job.stage)
+        if diagnostic is not None:
+            LOGGER.warning(
+                "Job %s diagnostic: trace=%s code=%s stage=%s",
+                job.id,
+                diagnostic["trace_id"],
+                diagnostic["code"],
+                diagnostic["stage"],
+            )
         with self._lock:
             job.finished_wall = self._wall()
             job.finished_mono = self._clock()
@@ -279,6 +298,7 @@ class JobManager:
                 job.status = outcome.status
                 job.result = outcome.result
                 job.error = outcome.error
+                job.diagnostic = diagnostic
             job.stage = "done"
             self._close_steps(job)
             self._trim()
@@ -376,6 +396,7 @@ class JobManager:
             "cancel_requested": job.cancel.is_set(),
             "cancel_stage": job.cancel_stage,
             "result_available": job.result is not None or bool(job.step_outputs),
+            "diagnostic": job.diagnostic,
             "disclaimer": DISCLAIMER,
         }
         if detail:

@@ -2,6 +2,7 @@
 # Copyright (C) 2026 Marcel Petrick <mail@marcelpetrick.it>
 """Loopback-only FastAPI application sharing the CLI research engine."""
 
+import hashlib
 import ipaddress
 from collections.abc import Awaitable, Callable
 from pathlib import Path
@@ -22,6 +23,7 @@ from thoraxbench.adapters.base import ModelConfig, list_model_configs
 from thoraxbench.adapters.factory import load_model, require_local_endpoint
 from thoraxbench.analysis import DISCLAIMER, AnalysisResult, analyze_study
 from thoraxbench.api.abortable_http import abortable_client
+from thoraxbench.api.diagnostics import RECOVERY, failure_code, header_warning_diagnostic
 from thoraxbench.api.evaluation import Evaluation, EvaluationError
 from thoraxbench.api.jobs import (
     JobCancelledError,
@@ -32,6 +34,14 @@ from thoraxbench.api.jobs import (
     QueueFullError,
 )
 from thoraxbench.api.licenses import runtime_libraries
+from thoraxbench.api.local_studies import (
+    LocalStudies,
+    SourceChangedError,
+    absolute_folder,
+    browse_folders,
+    local_identity,
+    source_signature,
+)
 from thoraxbench.api.model_pulls import ModelPullJobs, PullBusyError
 from thoraxbench.api.presentation import finding_presentation
 from thoraxbench.config import Settings, get_settings
@@ -45,7 +55,7 @@ from thoraxbench.reports.html_report import (
 )
 from thoraxbench.splits import CaseGuard, Phase
 from thoraxbench.study import Study, load_study_dir
-from thoraxbench.study_access import guard_study_input
+from thoraxbench.study_access import guard_study_input, guard_study_path
 from thoraxbench.synthetic import PhantomSpec, make_phantom, write_dicom_series
 from thoraxbench.views import render_slice_png
 
@@ -73,6 +83,13 @@ def _service_available(model: ModelConfig, config: Settings) -> bool:
             return isinstance(body, dict) and body.get("status") == "ok"
     except httpx.HTTPError, ValueError, RuntimeError:
         return False
+
+
+class LocalStudyBody(BaseModel):
+    """A server-side folder path, never file bytes or a client filesystem upload."""
+
+    model_config = ConfigDict(extra="forbid")
+    path: str = Field(min_length=1, max_length=4096, strict=True)
 
 
 class PullBody(BaseModel):
@@ -173,6 +190,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:  # noqa: PLR0915 - 
     app.mount("/static", StaticFiles(directory=ASSETS / "static", check_dir=False), name="static")
     study_lock = RLock()
     cache: dict[tuple[str, str], Study] = {}
+    local_studies = LocalStudies(config)
     downloads: dict[UUID, dict[str, Path]] = {}
     jobs = JobManager()
     pulls = ModelPullJobs(config.ollama_url, jobs)
@@ -227,6 +245,24 @@ def create_app(settings: Settings | None = None) -> FastAPI:  # noqa: PLR0915 - 
                         cache[key] = load_study_dir(demo, dataset="demo", case_id="phantom")
                     except (OSError, ValueError, RuntimeError) as exc:
                         raise HTTPException(403, "Synthetic demo is unavailable") from exc
+            elif dataset == "local":
+                try:
+                    local_entry, identity, signature = local_studies.checked(
+                        case_id, require_headers=key not in cache
+                    )
+                    if key not in cache or local_entry.signature != signature:
+                        loaded = load_study_dir(
+                            local_entry.path, dataset=identity[0], case_id=identity[1]
+                        )
+                        local_identity(loaded, identity, case_id)
+                        guard_study_input(local_entry.path, config)
+                        if source_signature(local_entry.path, config) != signature:
+                            raise SourceChangedError("source changed while loading")
+                        local_studies.register(case_id, local_entry.path, loaded, signature)
+                        cache[key] = loaded
+                except (KeyError, OSError, ValueError, RuntimeError) as exc:
+                    cache.pop(key, None)
+                    raise HTTPException(403, "Local study is unavailable") from exc
             else:
                 guard, indexed = entries(dataset)
                 try:
@@ -287,13 +323,16 @@ def create_app(settings: Settings | None = None) -> FastAPI:  # noqa: PLR0915 - 
                             "qc_adequate": entry.qc_adequate,
                         }
                     )
+        local_entries = local_studies.summaries()
+        studies.extend(local_entries)
         synthetic = sum(study["dataset"] == "demo" for study in studies)
         return {
             "studies": studies,
             "libraries": libraries,
             "summary": {
                 "total_studies": len(studies),
-                "development_studies": len(studies) - synthetic,
+                "development_studies": len(studies) - synthetic - len(local_entries),
+                "local_studies": len(local_entries),
                 "synthetic_studies": synthetic,
             },
             "disclaimer": DISCLAIMER,
@@ -309,6 +348,80 @@ def create_app(settings: Settings | None = None) -> FastAPI:  # noqa: PLR0915 - 
             name="index.html",
             context={"active_page": request.url.path.strip("/") or "analysis"},
         )
+
+    @app.get("/api/local-folders")
+    def local_folders(path: str | None = None) -> dict[str, Any]:
+        try:
+            folder = absolute_folder(path) if path is not None else config.data_dir.absolute()
+            return browse_folders(folder, config) | {"disclaimer": DISCLAIMER}
+        except (OSError, ValueError, RuntimeError) as exc:
+            raise HTTPException(403, "Local folder is unavailable or not permitted") from exc
+
+    @app.post("/api/local-studies", status_code=202)
+    def register_local_study(body: LocalStudyBody) -> dict[str, Any]:
+        try:
+            folder = absolute_folder(body.path)
+            guard_study_path(folder, config)
+            if not folder.is_dir():
+                raise ValueError("not a directory")
+        except (OSError, ValueError, RuntimeError) as exc:
+            raise HTTPException(403, "Local folder is unavailable or not permitted") from exc
+        identifier = str(uuid4())
+
+        def work(context: JobContext) -> JobOutcome:
+            context.stage("folder_check")
+            try:
+                identity = guard_study_input(folder, config)
+                signature = source_signature(folder, config)
+                context.stage("study")
+                study = load_study_dir(folder, dataset=identity[0], case_id=identity[1])
+                # Recheck source/header access after loading, before retaining anything.
+                guard_study_input(folder, config)
+                if source_signature(folder, config) != signature:
+                    raise SourceChangedError("source changed while loading")
+                local_identity(study, identity, identifier)
+                context.stage("register")
+                with study_lock:
+                    local_studies.register(identifier, folder, study, signature)
+                    cache[("local", identifier)] = study
+                    if len(cache) > 2:
+                        del cache[next(iter(cache))]
+                summary = next(
+                    item for item in local_studies.summaries() if item["case_id"] == identifier
+                )
+                unreadable = study.selection.get("discovery", {}).get("headers_unreadable", 0)
+                warnings = (
+                    [{"code": "unreadable_dicom_headers", "count": unreadable}]
+                    if unreadable
+                    else []
+                )
+                return JobOutcome(
+                    "succeeded",
+                    diagnostic=(
+                        header_warning_diagnostic(
+                            study.selection.get("discovery", {}),
+                            study.selection.get("header_error_types", {}),
+                        )
+                        if warnings
+                        else None
+                    ),
+                    result={
+                        "study": summary,
+                        "warnings": warnings,
+                        "discovery": study.selection.get("discovery", {}),
+                        "disclaimer": DISCLAIMER,
+                    },
+                )
+            except (OSError, ValueError, RuntimeError, KeyError, TypeError) as exc:
+                raise JobError(RECOVERY[failure_code(exc)]) from exc
+
+        label = {"dataset": "local", "case_id": identifier, "models": []}
+        key = "study-import|" + hashlib.sha256(str(folder).encode()).hexdigest()
+        try:
+            snapshot, created = jobs.submit("study-import", key, label, work)
+        except QueueFullError as exc:
+            raise HTTPException(429, str(exc)) from exc
+        return {"job": snapshot, "created": created}
 
     @app.get("/api/studies")
     def studies() -> dict[str, Any]:
@@ -432,6 +545,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:  # noqa: PLR0915 - 
         if (dataset, case_id) == ("demo", "phantom"):
             if not demo.is_dir() or demo.resolve() != config.data_dir.resolve() / "demo" / "ui":
                 raise HTTPException(404, "Create the synthetic demo first")
+            return
+        if dataset == "local":
+            try:
+                local_studies.checked(case_id)
+            except (KeyError, OSError, ValueError, RuntimeError) as exc:
+                raise HTTPException(403, "Local study is unavailable") from exc
             return
         guard, indexed = entries(dataset)
         try:
@@ -683,6 +802,27 @@ def create_app(settings: Settings | None = None) -> FastAPI:  # noqa: PLR0915 - 
             "limits": {"max_queued": jobs.max_queued, "max_retained": jobs.max_retained},
             "disclaimer": DISCLAIMER,
         }
+
+    @app.get("/api/jobs/{identifier}/diagnostics")
+    def download_diagnostic(identifier: UUID) -> JSONResponse:
+        snapshot = jobs.get(identifier)
+        if snapshot is None or snapshot.get("diagnostic") is None:
+            raise HTTPException(404, "Diagnostic unavailable for this job")
+        diagnostic = snapshot["diagnostic"]
+        return JSONResponse(
+            {
+                "job_id": str(identifier),
+                "kind": snapshot["kind"],
+                "status": snapshot["status"],
+                "diagnostic": diagnostic,
+                "disclaimer": DISCLAIMER,
+            },
+            headers={
+                "Content-Disposition": (
+                    f"attachment; filename=thoraxbench-diagnostic-{diagnostic['trace_id']}.json"
+                )
+            },
+        )
 
     @app.get("/api/jobs/{identifier}")
     def job_status(identifier: UUID) -> dict[str, Any]:
