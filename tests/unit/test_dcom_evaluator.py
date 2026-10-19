@@ -364,6 +364,7 @@ def test_import_check_uses_app_loader_without_models_or_identifiers(
     assert result["selected_slices"] >= 20
     assert len(result["spacing_mm"]) == 3
     assert isinstance(result["qc_adequate"], bool)
+    assert isinstance(result["qc_warning_count"], int)
     assert "PHANTOM" not in json.dumps(result)
     assert str(phantom_dir) not in json.dumps(result)
     assert "selected_series" not in json.dumps(result)
@@ -446,3 +447,34 @@ def test_import_cli_requires_explicit_folder_mode_and_respects_scan_bounds(
     )
     assert process.returncode == 2
     assert "SECRET" not in process.stderr
+
+
+def test_scan_counts_mistyped_private_value_as_readable(
+    phantom_dir: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from pydicom.uid import ImplicitVRLittleEndian
+
+    from thoraxbench.config import Settings
+
+    monkeypatch.setattr(
+        module, "get_settings", lambda: Settings(repo_root=tmp_path, data_dir=tmp_path / "data")
+    )
+    folder = tmp_path / "vendor"
+    folder.mkdir()
+    dataset = pydicom.dcmread(next(phantom_dir.glob("*.dcm")))
+    dataset.file_meta.TransferSyntaxUID = ImplicitVRLittleEndian
+    dataset.add_new(0x01F10010, "LO", "ELSCINT1")
+    dataset.add_new(0x01F11026, "UN", b"0.984 ")
+    path = folder / "slice"
+    dataset.save_as(path, implicit_vr=True, little_endian=True, enforce_file_format=True)
+    result = module.scan_headers(folder)
+    assert result["counts"]["readable"] == 1
+    assert result["counts"]["header_errors"] == 0
+    assert result["counts"]["private_values_raw"] == 1
+    group = result["error_groups"][0]
+    assert group["tag"] == "(01F1,1026)"
+    assert group["exception_type"] == "BytesLengthException"
+    assert "ELSCINT1" not in json.dumps(result)
+    single = module.evaluate(path)
+    assert single["status"] == "header_readable"
+    assert single["header"]["private_errors"] == 1

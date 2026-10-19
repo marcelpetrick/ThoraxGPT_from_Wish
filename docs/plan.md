@@ -111,6 +111,31 @@ Status: ✅ done · 🔄 in progress · ⏳ open · ✖ dropped
 
 ## Current activity
 
+### Vendor private header values and UI red-team — 2026-10-19
+
+The user's operator scan (`dcom_evaluator.py --scan-headers --check-import`) located all
+317 rejected headers in one group: private tag `(01F1,1026)`, 6 declared/available bytes,
+`BytesLengthException`, implicit VR. pydicom's tag-specific ELSCINT1 entry types this
+*Pitch* as FD (8 bytes); the generic ELSCINT1 entry is DS. Strict full conversion therefore
+rejected whole valid slices (probably a complete series).
+
+- [x] Importer: `read_header` keeps undecodable **private** values as raw `UN` bytes and
+  counts them as `discovery.private_values_raw`; public tags stay strict. The privacy audit
+  still sees the private tag. Diagnostics allowlists include the new counter.
+- [x] Evaluator: private-only conversion errors stay in `error_groups` but count as
+  readable (`counts.private_values_raw`); single-file status follows the same rule. Import
+  results add `qc_warning_count` (previously only parser `warning_count` was shown next to
+  the `input_qc_warnings` limitation).
+- [x] Tests: synthetic implicit-VR ELSCINT1 series loads all 32 slices with no warnings;
+  public mistyped values are still rejected; evaluator scan/single-file regressions. Related
+  suites 40/40 passed. No private file was read by the agent.
+- [ ] Operator re-check: rerun the same `--scan-headers --check-import` command; expect
+  `header_errors: 0`, `private_values_raw: 317` and possibly a different selected series.
+- [ ] UI/UX red-team (isolated worktree worker): ranked findings, focused fixes, adapted
+  e2e/integration tests, record in `docs/review-ui-redteam-2026-10-19.md`; separate commit.
+- [ ] Release: v0.5.1 draft stays unpublished; publish one release after these atomic
+  commits pass the gate and exact-commit CI, replacing draft assets and checksums.
+
 ### Root cleanup and diagnostic scan handover — 2026-10-19
 
 Current task: finish the local-import diagnostics ticket and keep the repository root

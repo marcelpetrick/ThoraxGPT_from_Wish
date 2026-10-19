@@ -152,3 +152,14 @@ This runs the application's import/QC path only after a complete header scan. It
 run a model or create an image/report export. Inspect the `import` result and QC; readable
 headers alone do not prove that pixels decode or that the selected CT series is adequate.
 Keep the split guard enabled. Review JSON before sharing; this is not anonymization.
+`qc_warning_count` counts input-QC warnings; `warning_count` counts parser warnings.
+
+### Vendor private header values
+
+Some vendors write private values that pydicom's private dictionary types incorrectly, e.g.
+a 6-byte ELSCINT1 `(01F1,1026)` *Pitch* decimal string read as an 8-byte float. Since
+v0.5.2 the importer keeps such undecodable **private** values as raw `UN` bytes instead of
+rejecting the slice; public tags stay strict. The import's `discovery.private_values_raw`
+and the scan's `counts.private_values_raw` report how many values were kept raw. The scan
+still lists them in `error_groups`, but those files count as readable. Private values are
+never used for geometry or pixels, and the privacy audit still sees the raw private tag.

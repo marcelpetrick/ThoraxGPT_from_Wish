@@ -13,6 +13,16 @@ from thoraxbench.provenance import git_state
 from thoraxbench.splits import SealedAccessError
 from thoraxbench.study import StudyLoadError
 
+DISCOVERY_COUNTERS = frozenset(
+    {
+        "files_scanned",
+        "headers_readable",
+        "headers_unreadable",
+        "non_dicom_files",
+        "private_values_raw",
+    }
+)
+
 RECOVERY: dict[str, str] = {
     "no_eligible_ct": (
         "Choose a DICOM CT study folder with at least 20 axial images; scouts are "
@@ -125,10 +135,7 @@ def job_diagnostic(error: BaseException | None, stage: str) -> dict[str, Any]:
             diagnostic["discovery"] = {
                 key: value
                 for key, value in counts.items()
-                if key
-                in {"files_scanned", "headers_readable", "headers_unreadable", "non_dicom_files"}
-                and type(value) is int
-                and value >= 0
+                if key in DISCOVERY_COUNTERS and type(value) is int and value >= 0
             }
             break
     for item in reversed(chain):
@@ -152,9 +159,7 @@ def header_warning_diagnostic(
         discovery={
             key: value
             for key, value in discovery.items()
-            if key in {"files_scanned", "headers_readable", "headers_unreadable", "non_dicom_files"}
-            and type(value) is int
-            and value >= 0
+            if key in DISCOVERY_COUNTERS and type(value) is int and value >= 0
         },
         header_error_types=safe_header_error_types(error_types),
     )

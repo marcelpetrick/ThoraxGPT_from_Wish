@@ -132,7 +132,7 @@ def raw_context(header: Dataset, tag: BaseTag) -> dict[str, Any]:
 def inspect_header(dataset: Dataset) -> dict[str, Any]:
     """Convert elements individually, retaining tag/VR/length rather than bad values."""
     errors: list[dict[str, Any]] = []
-    counts = {"elements_checked": 0, "private_elements": 0, "errors": 0}
+    counts = {"elements_checked": 0, "private_elements": 0, "errors": 0, "private_errors": 0}
     truncated = False
 
     def walk(header: Dataset, depth: int) -> None:
@@ -156,6 +156,8 @@ def inspect_header(dataset: Dataset) -> dict[str, Any]:
                         walk(item, depth + 1)
             except Exception as error:
                 counts["errors"] += 1
+                # The importer keeps undecodable private values as raw bytes.
+                counts["private_errors"] += int(tag.is_private)
                 if len(errors) < 100:
                     errors.append(context | {"exception_type": type(error).__name__})
 
@@ -257,7 +259,7 @@ def evaluate(path: Path, *, check_pixels: bool = False) -> dict[str, Any]:
             result["technical"] = technical_metadata(dataset)
             result["status"] = (
                 "header_errors"
-                if result["header"]["errors"]
+                if result["header"]["errors"] > result["header"]["private_errors"]
                 else "header_incomplete"
                 if result["header"]["truncated"]
                 else "header_readable"
@@ -323,6 +325,7 @@ def scan_headers(  # noqa: PLR0912, PLR0915 - bounded guarded traversal owns one
         "non_dicom": 0,
         "symlinks_skipped": 0,
         "protected_paths": 0,
+        "private_values_raw": 0,
     }
     groups: Counter[str] = Counter()
     series: dict[tuple[str, str, str], dict[str, Any]] = {}
@@ -381,14 +384,17 @@ def scan_headers(  # noqa: PLR0912, PLR0915 - bounded guarded traversal owns one
                             if patient is not None:
                                 guard_patient_identity(patient, identity, manifests)
                             header = inspect_header(dataset)
-                            if header["errors"] or header["truncated"]:
-                                counts["header_errors"] += 1
+                            public_errors = header["errors"] - header["private_errors"]
+                            counts["private_values_raw"] += header["private_errors"]
+                            if header["errors"]:
                                 for error in header["conversion_errors"]:
                                     group_key = json.dumps(error, sort_keys=True)
                                     if group_key in groups or len(groups) < 1000:
                                         groups[group_key] += 1
                                     else:
                                         other_errors["ErrorGroupLimit"] += 1
+                            if public_errors or header["truncated"]:
+                                counts["header_errors"] += 1
                                 if header["truncated"]:
                                     other_errors["HeaderInspectionLimit"] += 1
                             else:
@@ -497,6 +503,8 @@ def evaluate_import(folder: Path, *, progress: bool = False) -> dict[str, Any]:
                 spacing_mm=numeric(study.volume.spacing_mm),
                 qc_adequate=qc.adequate,
                 limitations=limitations,
+                # QC warnings are engine findings; warning_count counts Python warnings.
+                qc_warning_count=len(qc.warnings),
                 discovery={
                     key: value
                     for key, value in study.selection.get("discovery", {}).items()
@@ -506,6 +514,7 @@ def evaluate_import(folder: Path, *, progress: bool = False) -> dict[str, Any]:
                         "headers_readable",
                         "headers_unreadable",
                         "non_dicom_files",
+                        "private_values_raw",
                     }
                     and type(value) is int
                     and value >= 0

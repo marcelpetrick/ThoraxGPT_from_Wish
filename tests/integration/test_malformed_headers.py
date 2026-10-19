@@ -10,7 +10,12 @@ import pydicom
 import pytest
 from pydicom.dataset import FileDataset, FileMetaDataset
 from pydicom.errors import BytesLengthException
-from pydicom.uid import CTImageStorage, ExplicitVRLittleEndian, generate_uid
+from pydicom.uid import (
+    CTImageStorage,
+    ExplicitVRLittleEndian,
+    ImplicitVRLittleEndian,
+    generate_uid,
+)
 
 from thoraxbench.config import Settings
 from thoraxbench.dicom.discovery import discover_series
@@ -45,6 +50,60 @@ def phantom(path: Path, patient: str = "SYNTHETIC-ONLY") -> Path:
     for file in path.glob("*.dcm"):
         file.rename(file.with_suffix(""))
     return path
+
+
+def vendor_private_pitch(path: Path) -> Path:
+    """Add a 6-byte ELSCINT1 DS Pitch that pydicom's private dictionary types as FD."""
+    dataset = pydicom.dcmread(path)
+    dataset.file_meta.TransferSyntaxUID = ImplicitVRLittleEndian
+    dataset.add_new(0x01F10010, "LO", "ELSCINT1")
+    dataset.add_new(0x01F11026, "UN", b"0.984 ")
+    dataset.save_as(path, implicit_vr=True, little_endian=True, enforce_file_format=True)
+    return path
+
+
+def test_mistyped_vendor_private_value_keeps_slice_readable(tmp_path: Path) -> None:
+    folder = phantom(tmp_path / "study")
+    for file in folder.iterdir():
+        vendor_private_pitch(file)
+    sample = next(folder.iterdir())
+    with pytest.raises(BytesLengthException):
+        pydicom.dcmread(sample, stop_before_pixels=True)[0x01F11026]
+    header = read_header(sample)
+    assert header is not None
+    assert header[0x01F11026].VR == "UN"
+    assert header[0x01F11026].value == b"0.984 "
+    study = load_study_dir(folder)
+    assert study.volume.shape[0] == 32
+    assert study.selection["discovery"] == {
+        "files_scanned": 32,
+        "headers_readable": 32,
+        "headers_unreadable": 0,
+        "non_dicom_files": 0,
+        "private_values_raw": 32,
+    }
+    assert study.selection["header_error_types"] == {}
+    assert study.selection["warnings"] == []
+    # The raw private value stays visible to the de-identification audit.
+    audit = audit_files([sample])
+    assert audit.files_scanned == 1
+    assert audit.private_tags >= 1
+
+
+def test_mistyped_public_value_still_rejects_header(tmp_path: Path) -> None:
+    path = tmp_path / "public-and-private"
+    meta = FileMetaDataset()
+    meta.TransferSyntaxUID = ImplicitVRLittleEndian
+    meta.MediaStorageSOPClassUID = CTImageStorage
+    meta.MediaStorageSOPInstanceUID = generate_uid()
+    dataset = FileDataset(str(path), {}, file_meta=meta, preamble=b"\0" * 128)
+    dataset.add_new(0x01F10010, "LO", "ELSCINT1")
+    dataset.add_new(0x01F11026, "UN", b"0.984 ")
+    dataset.save_as(path, implicit_vr=True, little_endian=True, enforce_file_format=True)
+    with path.open("ab") as stream:
+        # Public Rows (US) with an illegal one-byte length stays a rejected header.
+        stream.write(struct.pack("<HHI", 0x0028, 0x0010, 1) + b"\x01")
+    assert read_header(path) is None
 
 
 def test_real_lazy_bytes_length_exception_is_contained(tmp_path: Path) -> None:

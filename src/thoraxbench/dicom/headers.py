@@ -6,6 +6,7 @@ import struct
 from pathlib import Path
 
 import pydicom
+from pydicom.dataelem import DataElement
 from pydicom.dataset import Dataset
 from pydicom.errors import BytesLengthException, InvalidDicomError
 
@@ -30,16 +31,41 @@ def record_header_error(error: BaseException, issue_types: dict[str, int] | None
         issue_types[category] = issue_types.get(category, 0) + 1
 
 
+def _convert_all(header: Dataset) -> int:
+    """Convert every element now; keep undecodable private values as raw ``UN`` bytes.
+
+    Public elements stay strict. Private dictionaries can mistype vendor values (e.g. a
+    6-byte ELSCINT1 DS read as FD), which must not reject an otherwise valid slice.
+    Returns the number of private values kept raw.
+    """
+    kept_raw = 0
+    for tag in list(header.keys()):
+        try:
+            element = header[tag]
+        except HEADER_ERRORS:
+            if not tag.is_private:
+                raise
+            raw = header.get_item(tag)
+            header[tag] = DataElement(tag, "UN", raw.value if raw is not None else b"")
+            kept_raw += 1
+            continue
+        if element.VR == "SQ":
+            for item in element.value:
+                kept_raw += _convert_all(item)
+    return kept_raw
+
+
 def read_header(
     path: Path, stats: dict[str, int] | None = None, issue_types: dict[str, int] | None = None
 ) -> Dataset | None:
     """Return a fully converted header or None; never force-read or load pixel bytes."""
     try:
         header = pydicom.dcmread(path, stop_before_pixels=True)
-        # dcmread stores raw elements. Iteration converts nested values now, inside
-        # the failure boundary, instead of raising later during ds.get/iterall.
-        for _element in header.iterall():
-            pass
+        # dcmread stores raw elements. Converting nested values now, inside the failure
+        # boundary, prevents raising later during ds.get/iterall.
+        kept_raw = _convert_all(header)
+        if kept_raw and stats is not None:
+            stats["private_values_raw"] = stats.get("private_values_raw", 0) + kept_raw
         return header
     except InvalidDicomError:
         if stats is not None:
