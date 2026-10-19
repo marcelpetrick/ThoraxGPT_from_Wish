@@ -59,8 +59,9 @@ stage_format()   { "${PY}" -m ruff format --check .; }
 stage_lint()     { "${PY}" -m ruff check .; }
 stage_types()    { "${PY}" -m mypy; }
 stage_tests() {
-    "${PY}" -m pytest -m "not live" \
-        --cov --cov-report=term-missing --cov-report=html --cov-report=xml
+    COVERAGE_FILE="${LOG_DIR}/.coverage" "${PY}" -m pytest -m "not live" \
+        --cov --cov-report=term-missing \
+        --cov-report="html:${LOG_DIR}/htmlcov" --cov-report="xml:${LOG_DIR}/coverage.xml"
 }
 stage_build() { rm -rf dist && uv build -q; }
 stage_wheel() {

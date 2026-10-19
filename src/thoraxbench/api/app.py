@@ -371,12 +371,20 @@ def create_app(settings: Settings | None = None) -> FastAPI:  # noqa: PLR0915 - 
         def work(context: JobContext) -> JobOutcome:
             context.stage("folder_check")
             try:
-                identity = guard_study_input(folder, config)
+                identity = guard_study_input(folder, config, progress=context.progress)
                 signature = source_signature(folder, config)
                 context.stage("study")
-                study = load_study_dir(folder, dataset=identity[0], case_id=identity[1])
+                study = load_study_dir(
+                    folder, dataset=identity[0], case_id=identity[1], progress=context.progress
+                )
                 # Recheck source/header access after loading, before retaining anything.
-                guard_study_input(folder, config)
+                guard_study_input(
+                    folder,
+                    config,
+                    progress=lambda _operation, completed, total: context.progress(
+                        "source_recheck", completed, total
+                    ),
+                )
                 if source_signature(folder, config) != signature:
                     raise SourceChangedError("source changed while loading")
                 local_identity(study, identity, identifier)

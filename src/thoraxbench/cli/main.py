@@ -242,6 +242,12 @@ def serve(
     import uvicorn  # noqa: PLC0415 - web dependencies are loaded only for serve
 
     from thoraxbench.api.app import create_app  # noqa: PLC0415 - web startup only
+    from thoraxbench.api.job_logging import configure_job_logging  # noqa: PLC0415
 
+    config = get_settings()
+    log_path = configure_job_logging(config.data_path("logs"))
+    typer.echo(f"Job event log: {log_path}")
     typer.echo(f"ThoraxBench Local: http://127.0.0.1:{port}\n{DISCLAIMER}")
-    uvicorn.run(create_app(), host="127.0.0.1", port=port, proxy_headers=False)
+    uvicorn.run(
+        create_app(config), host="127.0.0.1", port=port, proxy_headers=False, access_log=False
+    )

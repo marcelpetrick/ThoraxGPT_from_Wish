@@ -9,7 +9,7 @@ regression in this follow-up. Historical measurements retain their recorded vers
 
 ## Purpose
 
-This table maps every numbered section of [`Vision.md`](../Vision.md) (§1–§36) to the
+This table maps every numbered section of [`Vision.md`](Vision.md) (§1–§36) to the
 current repository. Each status is based on code and tests, not on claims in other
 documents. Use it for the WP12 self-review gate in [`docs/plan.md`](plan.md).
 

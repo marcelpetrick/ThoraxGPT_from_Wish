@@ -160,3 +160,52 @@ with persistent disclosures, captions, five-second URL/credit end cards, SRT and
 checks. Inspect every final frame/crop; local recording does not authorize publication.
 
 Synthetic metadata/guard tests: `uv run --extra detector pytest tests/unit/test_linkedin_video.py -q --no-cov`.
+
+## Inspect one DICOM header locally
+
+Run from the repository root. Choose one file, including a file without a suffix:
+
+```bash
+uv run --no-sync python scripts/dcom_evaluator.py "/absolute/path/to/one/file"
+```
+
+The helper in `scripts/` prints JSON to stdout. It reads that file's header without decoding
+pixels or traversing its folder. It reports technical metadata, decoder-package versions,
+and malformed tag numbers, VRs and byte lengths. It omits input paths, identifying values,
+raw bytes and exception/warning messages. Review output before sharing; this is not an
+anonymization guarantee. Exit 0 means the inspected header converted without errors;
+exit 2 means the JSON describes a read/conversion failure. Neither establishes clinical
+usability. Research use only; this self-made helper is not medical advice.
+
+For an explicit local pixel-decoder check, append `--check-pixels`. It reads pixels only
+on your computer and prints shape/type or an exception class, never pixel values or an
+image. The helper never uploads data or writes an output file unless you redirect stdout.
+
+## Scan a folder before a full import
+
+Run from the repository root. Choose the folder on your own workstation:
+
+```bash
+uv run --no-sync python scripts/dcom_evaluator.py --scan-headers "/absolute/path/to/folder"
+```
+
+This scans headers only. It reports aggregate error groups, counts and opaque series
+summaries. It does not decode pixels, start a model or export images. The default bounds
+are 10,000 files and 300 seconds; use `--help` for explicit limits and `--progress` for
+aggregate counters on stderr. Paths and identifying values are omitted from JSON.
+
+**Checkpoint:** inspect `status`, file counts, error groups and series eligibility. Exit 0
+means the scan completed, even when some headers were unreadable; it does not mean every
+file was usable. Exit 2 includes failure or a truncated scan. Correct the source or choose
+explicit bounds before retrying. Never treat a partial scan as a full import check.
+
+For an explicit local pixel-loading and input-QC check:
+
+```bash
+uv run --no-sync python scripts/dcom_evaluator.py --scan-headers --check-import "/absolute/path/to/folder"
+```
+
+This runs the application's import/QC path only after a complete header scan. It does not
+run a model or create an image/report export. Inspect the `import` result and QC; readable
+headers alone do not prove that pixels decode or that the selected CT series is adequate.
+Keep the split guard enabled. Review JSON before sharing; this is not anonymization.

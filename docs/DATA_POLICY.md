@@ -6,7 +6,7 @@ may be incorrect, incomplete or misleading. Do not use them for diagnosis or tre
 This policy states how ThoraxBench Local handles medical image data. It applies to every
 human and AI agent that changes this repository. The rationale is in
 [`Vision.md`](Vision.md) §2.4, §6, §7, §15–§16, §23, §29 and §30. The working rules are
-in [`AGENTS.md`](AGENTS.md) §1.
+in [`AGENTS.md`](../AGENTS.md) §1.
 
 ## 1. No medical data in Git
 
@@ -17,7 +17,7 @@ dataset archives, model weights, credentials or tokens.
 `media/pilot-A.mp4` and `media/pilot-B.mp4` may be committed and pushed with their
 attribution, captions and checksums. This authorizes only those cuts, not raw data,
 other real-study renders, reports, full takes, new recordings or LinkedIn uploads.
-See [the media record](media/README.md). All other restrictions remain in force.
+See [the media record](../media/README.md). All other restrictions remain in force.
 
 Two controls enforce file-type, size and secret restrictions (they do not inspect pixels):
 
@@ -122,7 +122,7 @@ Rules:
 * Verify each source's own current terms. Never inherit a license from another
   collection on the same host.
 * Record the decision in the registry entry before any download.
-* Details per source are in [`docs/datasets.md`](docs/datasets.md).
+* Details per source are in [`docs/datasets.md`](datasets.md).
 
 Check the registry from the repository root:
 
@@ -135,7 +135,7 @@ uv run thoraxbench datasets
 `thoraxbench acquire` downloads an approved TCIA collection. It also refuses any series
 whose license URI or collection differs from the registry entry. The pilot cohorts were
 first downloaded manually; their frozen selections and acquisition manifests are in
-`data/raw/<id>/` and `manifests/datasets/`. Procedure: [`docs/datasets.md`](docs/datasets.md#acquire-an-approved-dataset).
+`data/raw/<id>/` and `manifests/datasets/`. Procedure: [`docs/datasets.md`](datasets.md#acquire-an-approved-dataset).
 
 ## 4. Sealed holdout
 
@@ -236,7 +236,7 @@ Screenshot timings are illustrative fixed values, not benchmark measurements.
 | acquisition manifests with counts, checksums and license snapshots | `manifests/datasets/*.json` |
 | split manifests with counts and salted hashes only | `manifests/splits/*.json` |
 | synthetic or schematic documentation images | `docs/assets/mvp-walkthrough.svg`, `docs/assets/ui-about.png` |
-| aggregate results without images or case-level data | [`docs/results.md`](docs/results.md) |
+| aggregate results without images or case-level data | [`docs/results.md`](results.md) |
 | documentation | `docs/`, `README.md`, manuals |
 
 Never commit:

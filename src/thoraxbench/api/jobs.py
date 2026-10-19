@@ -24,6 +24,7 @@ from uuid import UUID, uuid4
 
 from thoraxbench.analysis import DISCLAIMER
 from thoraxbench.api.diagnostics import job_diagnostic
+from thoraxbench.api.job_logging import OPERATIONS, job_event
 
 JobStatus = Literal[
     "queued", "running", "cancelling", "succeeded", "failed", "abstained", "cancelled"
@@ -84,6 +85,7 @@ class _Job:
     result: dict[str, Any] | None = None
     error: str | None = None
     diagnostic: dict[str, Any] | None = None
+    progress: dict[str, Any] | None = None
     cancel: Event = field(default_factory=Event)
     cancel_stage: str | None = None
     aborters: list[Callable[[], None]] = field(default_factory=list)
@@ -116,6 +118,11 @@ class JobContext:
         """Record the next engine stage; this is a cooperative cancellation boundary."""
         self.check()
         self._manager._set_stage(self._job, name)
+
+    def progress(self, operation: str, completed: int, total: int | None = None) -> None:
+        """Record measured local-loading counters and allow cooperative cancellation."""
+        self.check()
+        self._manager._set_progress(self._job, operation, completed, total)
 
     def step(self, index: int, **fields: Any) -> None:
         """Update one sub-step (comparison model) and time it on the server clock."""
@@ -177,6 +184,7 @@ class JobManager:
                 steps=[dict(step) for step in steps or []],
             )
             self._jobs[job.id] = job
+            self._event(job, "queued")
             if self._worker is None or not self._worker.is_alive():
                 self._worker = Thread(target=self._run_forever, name="thoraxbench-jobs")
                 self._worker.daemon = True
@@ -215,6 +223,7 @@ class JobManager:
                 job.cancel_stage = job.stage
                 aborters = list(job.aborters)
                 self._changed.notify_all()
+            self._event(job, "cancel_requested")
             snapshot = self._snapshot(job, detail=True)
         for abort in aborters:
             self._safe_abort(abort)
@@ -252,6 +261,7 @@ class JobManager:
                     job.stage = "starting"
                     job.started_wall = self._wall()
                     job.started_mono = self._clock()
+                    self._event(job, "started")
                     self._changed.notify_all()
                     return job
                 self._changed.wait()
@@ -299,6 +309,8 @@ class JobManager:
                 job.result = outcome.result
                 job.error = outcome.error
                 job.diagnostic = diagnostic
+            self._event(job, "finished")
+            job.progress = None
             job.stage = "done"
             self._close_steps(job)
             self._trim()
@@ -308,6 +320,38 @@ class JobManager:
     def _set_stage(self, job: _Job, name: str) -> None:
         with self._lock:
             job.stage = name
+            job.progress = None
+            self._event(job, "stage")
+            self._changed.notify_all()
+
+    def _event(self, job: _Job, event: str) -> None:
+        elapsed = (
+            None
+            if job.started_mono is None
+            else (
+                (job.finished_mono if job.finished_mono is not None else self._clock())
+                - job.started_mono
+            )
+        )
+        job_event(
+            event,
+            job.id,
+            kind=job.kind,
+            stage=job.stage,
+            status=job.status,
+            progress=job.progress,
+            elapsed_s=elapsed,
+            diagnostic=job.diagnostic,
+        )
+
+    def _set_progress(self, job: _Job, operation: str, completed: int, total: int | None) -> None:
+        if operation not in OPERATIONS or type(completed) is not int or completed < 0:
+            raise ValueError("Invalid progress operation or completed count")
+        if total is not None and (type(total) is not int or total < completed):
+            raise ValueError("Invalid progress total")
+        with self._lock:
+            job.progress = {"operation": operation, "completed": completed, "total": total}
+            self._event(job, "progress")
             self._changed.notify_all()
 
     def _steps(self, job: _Job) -> list[dict[str, Any]]:
@@ -397,6 +441,7 @@ class JobManager:
             "cancel_stage": job.cancel_stage,
             "result_available": job.result is not None or bool(job.step_outputs),
             "diagnostic": job.diagnostic,
+            "progress": dict(job.progress) if job.progress else None,
             "disclaimer": DISCLAIMER,
         }
         if detail:

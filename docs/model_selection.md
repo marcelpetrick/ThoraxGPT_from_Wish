@@ -18,7 +18,7 @@ model and Ollama supplies the package/runtime. [Google model card](https://huggi
 ## Which models, and why?
 
 Installed status below was checked against the local Ollama `/api/tags` endpoint.
-Configuration files live in [`configs/models/`](../configs/models/).
+Configuration files live in [`configs/models/`](../configs/models).
 
 | Model / configuration ID | Why include it? | Installed or available locally? | Evidence so far |
 |---|---|---|---|
@@ -62,7 +62,7 @@ Start in the repository root with the locked environment installed.
    require publisher access, compatible weights/hardware and a configured loopback service.
 2. Run `uv run thoraxbench models`.
 3. Confirm that the intended configuration is available locally.
-4. Follow the synthetic run in [the manual](../manual.html#commands).
+4. Follow the synthetic run in [the manual](manual.html#commands).
 5. Inspect the output status, QC and structured findings.
 6. Save the JSON, Markdown and HTML.
 

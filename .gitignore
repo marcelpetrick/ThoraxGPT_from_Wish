@@ -41,3 +41,6 @@ build/
 
 # agent worktrees / local tool state
 /.claude/
+
+# Local editor recovery files
+*.kate-swp

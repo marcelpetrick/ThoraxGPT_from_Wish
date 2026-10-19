@@ -11,7 +11,7 @@
 
 This document defines research goals. It is not the current operator runbook.
 Use [the HTML manual](manual.html) for supported commands and
-[the plan](docs/plan.md) for implementation status.
+[the plan](plan.md) for implementation status.
 
 Adopted implementation decisions (2026-10-15) clarify the original proposals below:
 
@@ -478,11 +478,9 @@ Initially private.
 
 ```text
 thoraxbench-local/
-├── Vision.md
 ├── README.md
 ├── LICENSE
 ├── SECURITY.md
-├── DATA_POLICY.md
 ├── pyproject.toml
 ├── uv.lock / requirements.lock
 ├── docker-compose.yml
@@ -529,6 +527,10 @@ thoraxbench-local/
 │   └── README.md
 │
 └── docs/
+    ├── Vision.md
+    ├── DATA_POLICY.md
+    ├── agent-environment.md
+    ├── manual.html / manual.pdf
     ├── architecture.md
     ├── datasets.md
     ├── model_cards.md

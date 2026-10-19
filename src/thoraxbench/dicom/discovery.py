@@ -9,6 +9,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from thoraxbench.dicom.headers import HEADER_ERRORS, read_header, record_header_error
+from thoraxbench.dicom.progress import Progress, emit_progress
 
 AXIAL_TOLERANCE = 0.1
 MIN_SERIES_SLICES = 20
@@ -61,7 +62,11 @@ def _text(value: object) -> str:
 
 
 def discover_series(
-    root: Path, stats: dict[str, int] | None = None, issue_types: dict[str, int] | None = None
+    root: Path,
+    stats: dict[str, int] | None = None,
+    issue_types: dict[str, int] | None = None,
+    *,
+    progress: Progress | None = None,
 ) -> list[SeriesInfo]:
     """Read DICOM headers below *root* and group files by series.
 
@@ -72,7 +77,11 @@ def discover_series(
     files_by_series: dict[str, list[Path]] = defaultdict(list)
     counts = stats if stats is not None else {}
     counts.update(files_scanned=0, headers_readable=0, headers_unreadable=0, non_dicom_files=0)
-    for path in sorted(p for p in root.rglob("*") if p.is_file()):
+    emit_progress(progress, "discovery", 0, None)
+    files = sorted(p for p in root.rglob("*") if p.is_file())
+    emit_progress(progress, "discovery", 0, len(files))
+    for completed, path in enumerate(files, 1):
+        emit_progress(progress, "discovery", completed - 1, len(files))
         counts["files_scanned"] += 1
         ds = read_header(path, counts, issue_types)
         if ds is None:
@@ -103,6 +112,7 @@ def discover_series(
             continue
         files_by_series[series_uid].append(path)
         groups.setdefault(series_uid, info)
+    emit_progress(progress, "discovery", len(files), len(files))
     for uid, info in groups.items():
         info.files = files_by_series[uid]
     return sorted(groups.values(), key=lambda s: (s.study_uid, s.series_uid))

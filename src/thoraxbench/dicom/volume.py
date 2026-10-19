@@ -22,6 +22,7 @@ import pydicom
 
 from thoraxbench.dicom.discovery import SeriesInfo, discover_series, select_series
 from thoraxbench.dicom.headers import HEADER_ERRORS
+from thoraxbench.dicom.progress import Progress, emit_progress
 
 HU_MIN = -1024
 HU_MAX = 3071
@@ -143,13 +144,36 @@ def lung_voxel_fraction(hu: HUArray) -> float:
     return float(np.count_nonzero((hu >= -950) & (hu <= -500)) / hu.size)
 
 
-def load_volume(series: SeriesInfo, selection_reason: str = "") -> Volume:
+def _read_pixel_datasets(series: SeriesInfo, progress: Progress | None) -> list[pydicom.Dataset]:
+    emit_progress(progress, "pixel_decode", 0, None)
+    datasets: list[pydicom.Dataset] = []
+    for index, path in enumerate(series.files):
+        if progress is not None and index and index % 25 == 0:
+            progress("pixel_decode", 0, None)
+        datasets.append(pydicom.dcmread(path))
+    return datasets
+
+
+def _decode_slices(
+    slices: list[tuple[float, pydicom.Dataset]], progress: Progress | None
+) -> list[npt.NDArray[np.float64]]:
+    emit_progress(progress, "pixel_decode", 0, len(slices))
+    decoded = []
+    for completed, (_, dataset) in enumerate(slices, 1):
+        decoded.append(_to_hu(dataset))
+        emit_progress(progress, "pixel_decode", completed, len(slices))
+    return decoded
+
+
+def load_volume(
+    series: SeriesInfo, selection_reason: str = "", *, progress: Progress | None = None
+) -> Volume:
     """Load pixel data of *series*, normalise geometry and convert to HU.
 
     Slices are ordered along the slice normal, duplicates (same position) are removed,
     gaps and non-uniform spacing are recorded as QC warnings instead of being hidden.
     """
-    datasets = [pydicom.dcmread(p) for p in series.files]
+    datasets = _read_pixel_datasets(series, progress)
     warnings: list[str] = []
     orientation = series.orientation or (1.0, 0.0, 0.0, 0.0, 1.0, 0.0)
     normal = _slice_normal(orientation)
@@ -193,7 +217,9 @@ def load_volume(series: SeriesInfo, selection_reason: str = "") -> Volume:
         if tilt:
             warnings.append("in-plane drift of slice origins: gantry tilt suspected")
 
-    stacked = np.stack([_to_hu(ds) for _, ds in unique])
+    decoded = _decode_slices(unique, progress)
+    emit_progress(progress, "input_qc", 0, 1)
+    stacked = np.stack(decoded)
     hu = np.clip(np.rint(stacked), HU_MIN, HU_MAX).astype(np.int16)
     row_mm, col_mm = (float(v) for v in first.get("PixelSpacing", (1.0, 1.0)))
     spacing = (dz, row_mm, col_mm)
@@ -220,6 +246,7 @@ def load_volume(series: SeriesInfo, selection_reason: str = "") -> Volume:
         selected_series_reason=selection_reason,
         warnings=sorted(set(warnings)),
     )
+    emit_progress(progress, "input_qc", 1, 1)
     return Volume(
         hu=hu,
         spacing_mm=spacing,
@@ -231,14 +258,16 @@ def load_volume(series: SeriesInfo, selection_reason: str = "") -> Volume:
     )
 
 
-def load_study(root: Path) -> tuple[Volume | None, dict[str, Any]]:
+def load_study(
+    root: Path, *, progress: Progress | None = None
+) -> tuple[Volume | None, dict[str, Any]]:
     """Discover, select and load the chest CT series below *root*.
 
     Returns the volume (or ``None``) and a metadata dict with all selection decisions.
     """
     discovery: dict[str, int] = {}
     header_error_types: dict[str, int] = {}
-    series = discover_series(root, discovery, header_error_types)
+    series = discover_series(root, discovery, header_error_types, progress=progress)
     selection = select_series(series)
     meta: dict[str, Any] = {
         "n_series": len(series),
@@ -256,7 +285,7 @@ def load_study(root: Path) -> tuple[Volume | None, dict[str, Any]]:
     if selection.series is None:
         return None, meta
     try:
-        volume = load_volume(selection.series, selection.reason)
+        volume = load_volume(selection.series, selection.reason, progress=progress)
     except (*HEADER_ERRORS, RuntimeError) as error:
         raise DicomPixelError(discovery, header_error_types) from error
     volume.qc.warnings.extend(meta["warnings"])

@@ -47,3 +47,25 @@ same gate. Passing these checks establishes software behavior, not model accurac
 
 **Verdict:** the confirmed review findings are addressed. Release only with the full gate
 passing; preserve explicit model limitations and the sealed holdout.
+
+## Follow-up diagnostics review
+
+The operator helper and live loading/logging follow-up received another independent review.
+The following confirmed findings were fixed before release:
+
+- The header helper's default argument errors could echo an unquoted identifying filename.
+  Its parser now emits fixed text, verified by a subprocess test with a synthetic secret.
+- Optional pixel decoding initially lacked copied-sealed-patient identity validation.
+  The helper now shares the single-header policy with the folder guard; synthetic copied
+  sealed inputs and known sealed paths are refused before pixel reads. Corrupt or bounded
+  incomplete headers cannot enable pixel decoding.
+- Default HTTP access logs could retain folder-query paths in the user journal. CLI serving
+  now disables access logs while retaining sanitized structured job events.
+- Directory traversal counters labelled entries as files. Path/source counters now use
+  entries; header/pixel passes use files and QC uses checks.
+
+Nineteen helper tests, eight log/progress tests and the focused integration/browser checks use
+synthetic data only. Actual systemd-user journal verification recorded all six operations
+for a synthetic import, with private rotating JSON logs. Current journal retention remains
+a host setting. No private user image was accessed. The complete local/CI gate remains the
+release condition; none of these execution checks establishes diagnostic accuracy.

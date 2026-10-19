@@ -74,14 +74,14 @@ Keep the patterns narrow. They still pass through the normal permission prompts.
 ## Current operator status (2026-10-16)
 
 The publication handover is resolved. At resumption, GitHub main was v0.3.6 at 03754d1.
-The unrestricted session subsequently pushed through v0.3.9; see docs/plan.md for current
+The unrestricted session subsequently pushed through v0.3.9; see [the current plan](plan.md) for current
 work. This paragraph is an environment handover record, not a fixed latest-version claim.
 The public v0.2.0 release points to 083971a and includes both operator manuals.
 Do not repeat the historical tag/release commands.
 
 This unrestricted session can reach Ollama and launch Chromium. Code-generated synthetic
-phantom screenshots are approved; real study renders remain forbidden. See AGENTS.md and
-DATA_POLICY.md. Screenshot timings and mocked model states are illustrative.
+phantom screenshots are approved; real study renders remain forbidden. See [AGENTS.md](../AGENTS.md) and
+[the data policy](DATA_POLICY.md). Screenshot timings and mocked model states are illustrative.
 
 The remaining environment obstacle is a full shared /tmp tmpfs. Start in the repository
 root and use disk-backed task storage without deleting unrelated temporary files:

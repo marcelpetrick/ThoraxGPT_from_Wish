@@ -4,10 +4,12 @@
 
 import hashlib
 import os
+from collections.abc import Iterable
 from pathlib import Path
 
 from thoraxbench.config import Settings
 from thoraxbench.dicom.headers import read_header
+from thoraxbench.dicom.progress import Progress, emit_progress
 from thoraxbench.splits import CaseGuard, Phase, SealedAccessError
 from thoraxbench.splits.split import SplitManifest
 
@@ -67,12 +69,15 @@ def guard_study_path(
     return StudyPathGuard(settings).check(path, allow_ancestors=allow_ancestors)
 
 
-def guard_study_input(path: Path, settings: Settings) -> tuple[str, str]:
+def guard_study_input(
+    path: Path, settings: Settings, *, progress: Progress | None = None
+) -> tuple[str, str]:
     """Check every path and header identity before any pixels are loaded.
 
     Check directories before descending, including aliases, so neither sealed folders
     nor unapproved raw-dataset branches are traversed while selecting ad hoc inputs.
     """
+    emit_progress(progress, "path_check", 0, None)
     access = StudyPathGuard(settings)
     identity = access.check(path)
     resolved = path.resolve()
@@ -81,6 +86,7 @@ def guard_study_input(path: Path, settings: Settings) -> tuple[str, str]:
     files: list[Path] = []
     pending = [resolved]
     visited: set[Path] = set()
+    checked = 0
     while pending:
         directory = pending.pop()
         access.check(directory)
@@ -90,24 +96,42 @@ def guard_study_input(path: Path, settings: Settings) -> tuple[str, str]:
         visited.add(target)
         for candidate in directory.iterdir():
             access.check(candidate)
+            checked += 1
+            emit_progress(progress, "path_check", checked, None)
             if candidate.is_dir():
                 pending.append(candidate)
             elif candidate.is_file():
                 files.append(candidate)
-    manifests = [
-        SplitManifest.model_validate_json(candidate.read_text(encoding="utf-8"))
-        for candidate in sorted((settings.manifests_dir / "splits").glob("*.json"))
-    ]
-    for candidate in sorted(files):
+    emit_progress(progress, "path_check", checked, checked)
+    manifests = public_split_manifests(settings)
+    emit_progress(progress, "header_check", 0, len(files))
+    for completed, candidate in enumerate(sorted(files), 1):
+        emit_progress(progress, "header_check", completed - 1, len(files))
         header = read_header(candidate)
         if header is None:
             continue
         patient = str(header.get("PatientID", ""))
         candidate_identity = access.check(candidate)
-        if candidate_identity is not None and patient != candidate_identity[1]:
-            raise SealedAccessError("DICOM patient identity does not match development folder")
-        for manifest in manifests:
-            digest = hashlib.sha256(f"{manifest.salt}:{patient}".encode()).hexdigest()
-            if digest in manifest.patient_hashes.get(Phase.SEALED.value, []):
-                raise SealedAccessError("DICOM patient belongs to sealed validation")
+        guard_patient_identity(patient, candidate_identity, manifests)
+    emit_progress(progress, "header_check", len(files), len(files))
     return identity or ("adhoc", resolved.name)
+
+
+def public_split_manifests(settings: Settings) -> list[SplitManifest]:
+    """Read public hash manifests only; never inspect sealed patient files."""
+    return [
+        SplitManifest.model_validate_json(candidate.read_text(encoding="utf-8"))
+        for candidate in sorted((settings.manifests_dir / "splits").glob("*.json"))
+    ]
+
+
+def guard_patient_identity(
+    patient: str, identity: tuple[str, str] | None, manifests: Iterable[SplitManifest]
+) -> None:
+    """Apply the shared copied-sealed/header identity policy to one already-read header."""
+    if identity is not None and patient != identity[1]:
+        raise SealedAccessError("DICOM patient identity does not match development folder")
+    for manifest in manifests:
+        digest = hashlib.sha256(f"{manifest.salt}:{patient}".encode()).hexdigest()
+        if digest in manifest.patient_hashes.get(Phase.SEALED.value, []):
+            raise SealedAccessError("DICOM patient belongs to sealed validation")

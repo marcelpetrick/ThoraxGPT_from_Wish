@@ -30,6 +30,7 @@
 <li><a href="#preflight">Preflight: install and start</a></li>
 <li><a href="#workbench">The browser workflow: input to offline report</a></li>
 <li><a href="#local-folders">Open a local DICOM folder</a></li>
+<li><a href="#local-diagnostics">Inspect one file and keep logs</a></li>
 <li><a href="#review">Read findings, severity and review context</a></li>
 <li><a href="#commands">Repeat the workflow from the command line</a></li>
 <li><a href="#configuration">Configure paths and local models</a></li>
@@ -43,7 +44,7 @@
 <li><a href="#detector">Set up the supervised reference detector</a></li>
 </ol>
 <p class="small">Author: Marcel Petrick · GPL-3.0-or-later · Project generated with AI assistance.<br>Written in a flight-manual style with short actions and explicit checkpoints; no formal technical-English compliance claim. This manual describes the current commands. Sealed-holdout evaluation and the LAN runner are not implemented.</p>
-<footer><span>ThoraxBench Local · Experimental research · Not medical advice</span><span>01 / 17</span></footer>
+<footer><span>ThoraxBench Local · Experimental research · Not medical advice</span><span>01 / 19</span></footer>
 </section>
 <section class="sheet" id="preflight">
 <span class="section-number">01 / PREFLIGHT</span><h2>Install. Verify. Start locally.</h2>
@@ -60,7 +61,7 @@ uv run thoraxbench --help</code></pre><p>Expect a version, the research disclaim
 <h3>Port 8000 is already in use</h3>
 <pre><code>uv run thoraxbench serve --port 8001</code></pre>
 <p>Open <code>http://127.0.0.1:8001</code>. The server binds to loopback. LAN access and remote inference are not supported in this MVP.</p>
-<footer><span>Research use only · Self-made tool · Findings can be wrong</span><span>02 / 17</span></footer>
+<footer><span>Research use only · Self-made tool · Findings can be wrong</span><span>02 / 19</span></footer>
 </section>
 <section class="sheet" id="workbench">
 <span class="section-number">02 / NORMAL PROCEDURE</span><h2>Complete your first browser run.</h2>
@@ -80,7 +81,7 @@ uv run thoraxbench --help</code></pre><p>Expect a version, the research disclaim
 <p>Use Tab to reach controls and help-bearing fields. Focus or hover shows translated help after a short delay; you can move the pointer onto it. Escape dismisses it until you move to another control. The language switch selects English or German. The theme switch selects light or dark. Both choices persist in this browser. Reports and prompts remain English. About lists attribution and licenses, plus GitHub access for forks and contributions.</p>
 
 <div class="notice"><strong>Privacy checkpoint:</strong> A downloaded report contains images and research identifiers. Keep real-study exports in controlled local storage. The browser may save downloads outside the repository; manage those copies as sensitive data.</div>
-<footer><span>Research use only · No diagnosis or treatment decisions</span><span>03 / 17</span></footer>
+<footer><span>Research use only · No diagnosis or treatment decisions</span><span>03 / 19</span></footer>
 </section>
 <section class="sheet" id="local-folders">
 <span class="section-number">03 / LOCAL INPUT</span><h2>Open a DICOM folder on this computer.</h2>
@@ -97,8 +98,8 @@ uv run thoraxbench --help</code></pre><p>Expect a version, the research disclaim
 <h3>Know what is retained</h3>
 <p>Source files stay in place. Local registrations and jobs live in server memory and disappear on restart. Absolute paths are not saved in browser storage or job snapshots. Directory browsing displays the current path locally; this is not an anonymity guarantee. Inspect outputs before sharing.</p>
 <div class="notice"><strong>Research use only.</strong> This self-made experimental tool can produce incorrect, incomplete or misleading findings. It is not professional medical advice, a diagnosis or a basis for treatment decisions.</div>
-<p class="small">See <a href="docs/local-folders.md">the folder procedure</a> for browser limitations and access checks. Browser folder APIs may expose only relative names, so the app does not guess full paths or upload file bytes.</p>
-<footer><span>Research use only · Source folders remain local</span><span>04 / 17</span></footer>
+<p class="small">See <a href="local-folders.md">the folder procedure</a> for browser limitations and access checks. Browser folder APIs may expose only relative names, so the app does not guess full paths or upload file bytes.</p>
+<footer><span>Research use only · Source folders remain local</span><span>04 / 19</span></footer>
 </section>
 <section class="sheet" id="review">
 <span class="section-number">04 / RESULT REVIEW</span><h2>Inspect claims before conclusions.</h2>
@@ -123,7 +124,7 @@ uv run thoraxbench --help</code></pre><p>Expect a version, the research disclaim
 <p>Compare each model column by finding, status and uncalibrated score. Keep abstentions, failures and skipped models visible. Agreement is not validation; disagreement is not an accuracy ranking. Use each model’s downloads to inspect its own images and provenance. A combined offline HTML report preserves the comparison and individual evidence reports.</p>
 <h3>Check reproducibility</h3>
 <p>Save JSON for original responses, QC, hashes and provenance. “Job elapsed (server clock)” covers processing time for the job; “Current model elapsed” times the active model. “Engine stages” exclude loading and reporting. Timers do not measure inference progress. Synthetic runs and transport tests do not establish patient accuracy.</p>
-<footer><span>Research use only · Incorrect, incomplete or misleading findings are possible</span><span>05 / 17</span></footer>
+<footer><span>Research use only · Incorrect, incomplete or misleading findings are possible</span><span>05 / 19</span></footer>
 </section>
 <section class="sheet" id="commands">
 <span class="section-number">05 / COMMAND-LINE PROCEDURE</span><h2>Repeat a run and save its artifacts.</h2>
@@ -151,7 +152,7 @@ uv run thoraxbench analyze data/demo/manual \
 <h3>Available overrides</h3>
 <p class="small"><code>--model</code> selects a configured model. <code>--prompt</code> selects P0–P5; P5 uses a bounded schema, <code>IMAGE k</code> captions and no heuristic context. Repeat <code>--label</code> for focused labels. <code>--strategy</code> and <code>--n</code> override slice sampling. The browser permits 1–16 slices. <code>thoraxbench coverage</code> checks calibration reference coverage. Read <code>uv run thoraxbench analyze --help</code> for all options.</p>
 <p class="small">HTML output must be inside the configured data directory's <code>results/</code> folder. Destinations or symlinks that escape that folder are rejected before inference. JSON and Markdown examples also stay inside ignored results storage.</p>
-<footer><span>Research use only · Synthetic demonstrations do not measure accuracy</span><span>06 / 17</span></footer>
+<footer><span>Research use only · Synthetic demonstrations do not measure accuracy</span><span>06 / 19</span></footer>
 </section>
 <section class="sheet" id="configuration">
 <span class="section-number">06 / CONFIGURATION</span><h2>Keep paths explicit and inference local.</h2>
@@ -174,7 +175,7 @@ uv run thoraxbench analyze data/demo/manual \
 uv run thoraxbench models</code></pre></li>
 </ol>
 <p class="small">Configuration files, prompts, preprocessing and sampling affect results. Preserve version control and the recorded hashes. Remote/LAN inference is a design proposal only; do not bypass the loopback guard.</p>
-<footer><span>Research use only · Local inference · No telemetry</span><span>07 / 17</span></footer>
+<footer><span>Research use only · Local inference · No telemetry</span><span>07 / 19</span></footer>
 </section>
 <section class="sheet" id="model-setup">
 <span class="section-number">07 / MODEL SETUP &amp; WAIT ESTIMATES</span><h2>Install explicitly. Expect variable waits.</h2>
@@ -199,7 +200,7 @@ uv run thoraxbench models</code></pre></li>
 <h3>Read the rough remaining estimate</h3>
 <p><strong>Rough remaining estimate</strong> starts with workstation guesses: <strong>1–60 seconds</strong> for the HU baseline and <strong>1–15+ minutes</strong> for vision models. Later estimates use recent local request durations for the same model and requested image count. Only numeric duration history is saved in this browser; no study identifiers are stored with it.</p>
 <p>A batch adds estimates for remaining available models. If the upper estimate is exceeded, the UI says <strong>Taking longer than estimated; still running</strong>. Hardware, input size, cold loading and generation can extend the wait. These are guesses, not measured benchmarks, guaranteed deadlines or inference-progress percentages.</p>
-<footer><span>Research use only · Terms acknowledgement does not validate model findings</span><span>08 / 17</span></footer>
+<footer><span>Research use only · Terms acknowledgement does not validate model findings</span><span>08 / 19</span></footer>
 </section>
 <section class="sheet" id="cohort">
 <span class="section-number">08 / RESEARCH COHORT</span><h2>Acquire under the gates. Audit the headers.</h2>
@@ -221,7 +222,7 @@ uv run thoraxbench models</code></pre></li>
 <pre><code>uv run thoraxbench privacy audit data/demo/manual</code></pre>
 <p>The audit prints tag keywords and file counts, never values. Add <code>--json</code> for structured output. Add <code>--strict</code> to exit with status 1 on a <code>fail</code> item.</p>
 <div class="check"><strong>Checkpoint:</strong> the phantom reports <code>FAIL</code> for its synthetic <code>PatientName</code> and three review items. <strong>Recovery:</strong> resolve real-study identifier findings before analysis/sharing. The audit checks no pixels and does not prove anonymity.</div>
-<footer><span>Research use only · Respect each dataset license</span><span>09 / 17</span></footer>
+<footer><span>Research use only · Respect each dataset license</span><span>09 / 19</span></footer>
 </section>
 <section class="sheet" id="benchmark">
 <span class="section-number">09 / DEVELOPMENT BENCHMARK</span><h2>Score development cases. Keep the holdout sealed.</h2>
@@ -243,7 +244,7 @@ uv run thoraxbench models</code></pre></li>
 </tbody></table>
 <div class="check small"><strong>Check MedGemma readiness before larger sweeps.</strong> From the repository root, run <code>uv run thoraxbench benchmark configs/experiments/E001_calibration_smoke.yaml --limit 1</code>. This separate smoke uses one calibration case per dataset, Q4/Q8, four 256-pixel axial inputs and two labels; no BF16 or bootstrap. It is not the full E001 experiment. If predictions are empty or truncated, inspect the calibration pipeline before expanding the run.</div>
 <div class="notice"><strong>Read results with their limits:</strong> E000 measures the pipeline of a non-learned control, not model accuracy. Scores are uncalibrated. A <code>--limit</code> run is partial. No result here is a sealed-holdout evaluation or clinical validation.</div>
-<footer><span>Research use only · Development scores are not clinical accuracy</span><span>10 / 17</span></footer>
+<footer><span>Research use only · Development scores are not clinical accuracy</span><span>10 / 19</span></footer>
 </section>
 <section class="sheet" id="resume">
 <span class="section-number">10 / DURABLE BENCHMARK EVIDENCE</span><h2>Preserve the record. Resume pending work.</h2>
@@ -267,7 +268,7 @@ uv run thoraxbench models</code></pre></li>
 <p><strong>Recovery:</strong> changed identity, invalid checksums, an unknown model digest, a symlink escape or an active writer refuses resume. Preserve the evidence. Resolve the cause or start a new invocation; never edit checksums to force reuse. Legacy runs without checkpoints cannot resume.</p>
 <p><strong>Compare methods before metrics.</strong> Missing presence/confidence remains unavailable. Zero available requested-label predictions abstain; partial coverage never invents negatives. Task E reports omissions and coverage. Task G excludes abstained/unknown decisions and exposes its eligible reassurance denominator. Current prompts use one-based image captions. Historical results were not recomputed under these changes.</p>
 <p class="small">Available dataset/split/reference hashes, scoring/schema source and input hashes (HU bytes/geometry plus prepared input) identify the setup. Missing sources remain unavailable; hashes do not validate labels. Selected direct header values and paths are redacted from output text/metadata, including cached-study analysis. This is not OCR or anonymity; source-unavailable caches cannot recover identifying header values.</p>
-<footer><span>Research use only · Checkpoints preserve failures; they do not validate findings</span><span>11 / 17</span></footer>
+<footer><span>Research use only · Checkpoints preserve failures; they do not validate findings</span><span>11 / 19</span></footer>
 </section>
 <section class="sheet" id="evaluation">
 <span class="section-number">11 / STORED RUN REVIEW</span><h2>Review stored runs. Start nothing.</h2>
@@ -286,7 +287,7 @@ uv run thoraxbench models</code></pre></li>
 <tr><td>Refused</td><td>The stored selection fails the current development split guard. Do not edit split files to open it.</td></tr>
 </tbody></table>
 <div class="notice"><strong>Read with limits:</strong> scores are uncalibrated development measurements, not clinical accuracy. “Unavailable” predictions are not negatives. In-range evidence numbers are bounds-checked references, not proof of visual correctness. Heuristic-baseline references are zero-based source slices.</div>
-<footer><span>Research use only · Stored results; no inference</span><span>12 / 17</span></footer>
+<footer><span>Research use only · Stored results; no inference</span><span>12 / 19</span></footer>
 </section>
 <section class="sheet" id="recovery">
 <span class="section-number">12 / ABNORMAL PROCEDURES &amp; SHUTDOWN</span><h2>Stop safely. Keep the holdout sealed.</h2>
@@ -306,8 +307,8 @@ uv run thoraxbench models</code></pre></li>
 </tbody></table>
 <h3>Shutdown and handover</h3>
 <p>Press <strong>Ctrl+C</strong> in the server terminal. Completed result files remain on disk. Record the model, settings, version, result paths, warnings and next action before you hand work to another researcher. Never commit patient images, rendered CT slices, model weights or secrets.</p>
-<p class="small"><strong>Maintain this manual:</strong> edit <code>manual.html</code>, then regenerate the PDF from the repository root with <code>uv run --no-sync python -m playwright pdf --paper-format A4 file://"$PWD"/manual.html manual.pdf</code>. Install Chromium with <code>uv run playwright install chromium</code> if needed. Check <code>docs/plan.md</code> for current scope; this manual contains no patient images.</p>
-<footer><span>Self-made experimental tool · Not professional medical advice · Errors possible</span><span>13 / 17</span></footer>
+<p class="small"><strong>Maintain this manual:</strong> edit <code>docs/manual.html</code>, then regenerate the PDF from the repository root with <code>uv run --no-sync python -m playwright pdf --paper-format A4 file://"$PWD"/docs/manual.html docs/manual.pdf</code>. Install Chromium with <code>uv run playwright install chromium</code> if needed. Check <code>docs/plan.md</code> for current scope; this manual contains no patient images.</p>
+<footer><span>Self-made experimental tool · Not professional medical advice · Errors possible</span><span>13 / 19</span></footer>
 </section>
 
 <section class="sheet" id="evidence-check">
@@ -330,7 +331,7 @@ uv run thoraxbench models</code></pre></li>
 </ol>
 <div class="check"><strong>Checkpoint:</strong> both context variants retain inspectable outcomes with the same prepared images. This checks output behavior, not clinical accuracy.</div>
 <div class="check"><strong>Recovery:</strong> preserve failures and unavailable predictions. Check raw output, valid image bounds and label coverage. Start a new invocation for changed configuration. Do not tune on internal-test or sealed data or expand to full sweeps merely because JSON parses.</div>
-<footer><span>Self-made research tool · Not professional medical advice · Findings may be wrong</span><span>14 / 17</span></footer>
+<footer><span>Self-made research tool · Not professional medical advice · Findings may be wrong</span><span>14 / 19</span></footer>
 </section>
 
 <section class="sheet" id="processing-jobs">
@@ -347,7 +348,7 @@ uv run thoraxbench models</code></pre></li>
 <p>Job elapsed uses the server monotonic clock since worker start. It freezes at completion. It differs from engine stages, queue waiting and rough estimates. The queue permits eight waiting jobs and retains 32 terminal jobs. Identical active analyses follow the existing job.</p>
 <div class="check"><strong>Checkpoint:</strong> start the synthetic demo, open About, reload, then open Jobs. The same job remains visible. Cancel a queued job or open a completed report.</div>
 <div class="check"><strong>Recovery:</strong> server restart loses in-memory jobs and registered download links. Saved report files remain in <code>data/results/ui/</code>. Open those files directly or submit a new job. Do not start several server workers against one GPU.</div>
-<footer><span>Self-made research tool · Not professional medical advice · Errors possible</span><span>15 / 17</span></footer>
+<footer><span>Self-made research tool · Not professional medical advice · Errors possible</span><span>15 / 19</span></footer>
 </section>
 <section class="sheet" id="detector">
 <span class="section-number">15 / REFERENCE DETECTOR</span><h2>Detect candidates. Preserve the limits.</h2>
@@ -368,10 +369,10 @@ uv run thoraxbench models</code></pre></li>
   configs/experiments/E013_luna16_bundle.yaml --limit 1</code></pre>
 <p>Keep raw output, provenance, failures and checkpoints. LUNA16 contains LIDC scans: every LIDC row is training-overlap flagged and cannot establish unbiased accuracy. NSCLC has sparse nodule references. The project FROC rules approximate LUNA16 style; they are not the official challenge scorer.</p>
 <p>The default ROI is 256 × 256 × 128. Auto uses CUDA when at least 3000 MiB is free and otherwise CPU. Override with <code>THORAXBENCH_DETECTOR_DEVICE=cpu</code> or <code>cuda</code>. A reduced synthetic CPU API smoke passed; the positive calibration pair took 77.31 s total and the negative control 27.92 s. These are local checks, not accuracy estimates. The adapted SciPy resampling and smaller ROI are not upstream benchmark parity.</p>
-<p>Start <code>uv run --extra detector thoraxbench serve</code>. Select <code>monai-lung-nodule</code> and run through the shared job queue. The candidate table labels the source, uncalibrated score, canonical centre and approximate box size. “Show source slice” navigates to the result’s study without inference or a verified overlay. UI and offline HTML show axial/coronal illustrations for the first 12 candidates; all remain in JSON/Markdown/table. These crops illustrate detector output; they are not VLM verification. Invalid boxes/scores fail explicitly. See <a href="docs/detector-baseline.md">the detector guide</a> for synthetic commands, geometry limits and provenance.</p>
-<p><strong>Latest evidence:</strong> at the existing 0.5 cutoff, three calibration studies produced eleven proposals: eight reference matches and three unmatched. LIDC overlaps training data; unmatched proposals are not adjudicated false positives. MedGemma P6 single-image checks failed readiness, so no VLM filtering is enabled. See <a href="docs/model-usage-review-2026-10-17.md">the model-usage review</a> and <a href="docs/linkedin-video-plan.md">the authorized local recording procedure</a>.</p>
+<p>Start <code>uv run --extra detector thoraxbench serve</code>. Select <code>monai-lung-nodule</code> and run through the shared job queue. The candidate table labels the source, uncalibrated score, canonical centre and approximate box size. “Show source slice” navigates to the result’s study without inference or a verified overlay. UI and offline HTML show axial/coronal illustrations for the first 12 candidates; all remain in JSON/Markdown/table. These crops illustrate detector output; they are not VLM verification. Invalid boxes/scores fail explicitly. See <a href="detector-baseline.md">the detector guide</a> for synthetic commands, geometry limits and provenance.</p>
+<p><strong>Latest evidence:</strong> at the existing 0.5 cutoff, three calibration studies produced eleven proposals: eight reference matches and three unmatched. LIDC overlaps training data; unmatched proposals are not adjudicated false positives. MedGemma P6 single-image checks failed readiness, so no VLM filtering is enabled. See <a href="model-usage-review-2026-10-17.md">the model-usage review</a> and <a href="linkedin-video-plan.md">the authorized local recording procedure</a>.</p>
 <div class="check"><strong>Recovery:</strong> preserve the error. Check dependencies, free space and pinned checksums. Do not bypass a guard, invent image links or treat no candidate as evidence of health.</div>
-<footer><span>Self-made research tool · Not medical advice · Training overlap remains visible</span><span>16 / 17</span></footer>
+<footer><span>Self-made research tool · Not medical advice · Training overlap remains visible</span><span>16 / 19</span></footer>
 </section>
 <section class="sheet" id="calibration-fitting">
 <span class="section-number">16 / OPTIONAL CALIBRATION</span><h2>Fit on calibration. Keep raw metrics.</h2>
@@ -392,7 +393,41 @@ uv run thoraxbench models</code></pre></li>
 <p>HTML/CSV exports and export manifests carry recorded training-overlap flags. Historical missing flags remain unknown. LUNA16-trained detector results on LIDC are overlap-flagged. E005–E008 are blocked planning configurations; the runner refuses them before study access.</p>
 <div class="check"><strong>Checkpoint:</strong> from the repository root, run <code>uv run pytest tests/unit/test_benchmark_calibration.py</code>. These use synthetic records only. See <code>docs/calibration.md</code> for the current limits.</div>
 <div class="check"><strong>Recovery:</strong> keep undefined fits and missing scores visible. Preserve raw metrics. Do not remove a planning block until its model, access and frozen-setup prerequisites are resolved.</div>
-<footer><span>Self-made research tool · Not professional medical advice · Errors possible</span><span>17 / 17</span></footer>
+<footer><span>Self-made research tool · Not professional medical advice · Errors possible</span><span>17 / 19</span></footer>
+</section>
+
+<section class="sheet" id="local-diagnostics">
+<span class="section-number">17 / LOCAL DIAGNOSTICS</span><h2>See the work. Inspect a header. Keep a trace.</h2>
+<p>Research use only. This self-made experimental tool can be incorrect or incomplete. It is not medical advice or a diagnosis.</p>
+<h3>Follow loading</h3>
+<p>Jobs show path/header checks, DICOM discovery, pixel decoding, input QC and source recheck. Counters report actual work in that operation. Path checks count entries; image/header passes count files; QC counts checks. Totals can be unknown. Counters restart between passes and are not an overall percentage or remaining-time promise.</p>
+<h3>Inspect exactly one file</h3>
+<p>Run from the repository root. Replace the quoted path with one file on your computer. No suffix is required.</p>
+<pre><code>uv run --no-sync python scripts/dcom_evaluator.py "/absolute/path/to/one/file"</code></pre>
+<p>The default reads headers only. JSON includes technical metadata and unreadable tag numbers, VRs and byte lengths. It omits identifying values, paths, raw bytes and raw error text. Exit 0 means header conversion succeeded; exit 2 means the report found a problem. Inspect output before sharing; this is not an anonymization guarantee.</p>
+<p>Append <code>--check-pixels</code> only for an explicit local decoder test. It prints shape/type, never pixels. Sealed inputs and corrupt headers cannot enable pixel decoding. No sibling files are scanned.</p>
+<h3>Scan a folder; then request a full import check</h3>
+<p>Run from the repository root. This default folder scan reads headers only, groups errors and reports opaque series summaries. It does not decode pixels, run models or export images.</p>
+<pre><code>uv run --no-sync python scripts/dcom_evaluator.py --scan-headers "/absolute/path/to/folder"</code></pre>
+<p>Bounds default to 10,000 files and 300 seconds; use <code>--help</code> for limits and <code>--progress</code> for aggregate stderr counters. Exit 0 means a complete scan, even with unreadable headers. Inspect counts, error groups and eligibility. Exit 2 includes truncated or failed scans; correct the input or choose explicit bounds before retrying.</p>
+<p>For explicit local pixel loading and application input QC, run:</p>
+<pre><code>uv run --no-sync python scripts/dcom_evaluator.py --scan-headers --check-import "/absolute/path/to/folder"</code></pre>
+<p>Full import runs only after a complete scan. It starts no model and creates no image/report export. Inspect the <code>import</code> result and QC. Readable headers do not prove usable pixels or model accuracy. Review JSON before sharing; this is not anonymization.</p>
+<footer><span>Self-made research tool · Review diagnostic JSON before sharing</span><span>18 / 19</span></footer>
+</section>
+<section class="sheet" id="job-logs">
+<span class="section-number">18 / DURABLE LOGS</span><h2>Keep a trace across restarts.</h2>
+<p>Research use only. This self-made experimental tool is not medical advice or a diagnosis.</p>
+<h3>Retain job logs</h3>
+<p>Normal CLI serving writes <code>data/logs/jobs.jsonl</code> (or the configured data root). Four owner-only rotating files, up to 2 MiB each, retain stages, counters, durations, trace IDs and software identity. Structured events exclude input paths and header values.</p>
+<pre><code>tail -f data/logs/jobs.jsonl</code></pre>
+<h3>Use the systemd user journal</h3>
+<p>Prerequisites: Linux user manager available, locked dependencies installed and port free. Stop an old server only after its jobs finish. Run from the repository root:</p>
+<pre><code>scripts/run_ui_journal.sh 8000
+journalctl --user -u thoraxbench-local -f</code></pre>
+<p>Stop with <code>systemctl --user stop thoraxbench-local</code>. No sudo or boot-time enablement is needed. Journal retention follows host policy. HTTP access logging is disabled; inspect general dependency warnings before sharing journal output.</p>
+<div class="check"><strong>Checkpoint:</strong> the current job reports operations; JSON events remain after server restart. If the user manager is unavailable, use normal CLI serving and the rotating JSON log.</div>
+<footer><span>Self-made research tool · No identifying header values intentionally printed</span><span>19 / 19</span></footer>
 </section>
 </main>
 </body>

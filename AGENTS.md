@@ -1,16 +1,43 @@
 # AGENTS.md — working rules for humans and AI agents
 
 This file is the operational contract for anyone (human or AI coding agent) changing
-ThoraxBench Local. The *why* lives in [`Vision.md`](Vision.md); the *how/when* lives in
-[`docs/plan.md`](docs/plan.md). If anything here conflicts with Vision.md, Vision.md wins
+ThoraxBench Local. The *why* lives in [`docs/Vision.md`](docs/Vision.md); the *how/when* lives in
+[`docs/plan.md`](docs/plan.md). If anything here conflicts with docs/Vision.md, docs/Vision.md wins
 and this file must be fixed.
+
+## Current handover — 2026-10-19
+
+The current ticket is root-folder cleanup and completion of local import diagnostics.
+The last committed checkpoint is `cff030d` v0.5.0; its exact-commit GitHub CI passed.
+The v0.5.1 follow-up adds measured import counters, bounded sanitized JSON/journal
+logs and the operator-run single-file/folder helper in `scripts/dcom_evaluator.py`.
+Nineteen synthetic helper checks passed. The commit script requires the complete gate
+before creating this commit. Check `git log -1` and `.pipeline/diagnostics-final-commit.log`
+for the result. Public CI, preview refresh and release publication remain separate checks;
+do not infer them from a local commit.
+
+Documentation now lives in `docs/`: [vision](docs/Vision.md),
+[data policy](docs/DATA_POLICY.md), [agent environment](docs/agent-environment.md), and
+[HTML](docs/manual.html)/[PDF](docs/manual.pdf) manuals. Keep this root `AGENTS.md` as the
+entry point. Run helper commands from the repository root; see
+[the folder procedure](docs/local-folders.md). Header scans are the default; full import
+checks require explicit `--scan-headers --check-import` and load pixels locally without
+models or exports. Agents must not inspect the user's private source files.
+
+The relocated 19-page PDF has been regenerated and its final pages visually reviewed.
+Update `docs/plan.md` in every commit with validation evidence and remaining work.
+The lead must check links, run the full gate through
+`scripts/commit.sh`, then push and verify exact-commit CI before publishing the release.
+Check live jobs before refreshing the preview. Preserve saved reports, recovery stashes,
+the sealed holdout and all failed or partial results. Model recognition readiness remains
+open; import success is not diagnostic accuracy.
 
 ## 0. Resuming work
 
 1. Read `docs/plan.md`, especially *Current activity* and *Next steps*.
 2. Run `git log --oneline -20`.
 3. Run `git status`.
-4. Read `Vision.md` and `docs/architecture.md` before changing the design.
+4. Read `docs/Vision.md` and `docs/architecture.md` before changing the design.
 
 **Checkpoint:** identify the current task, completed work and uncommitted changes before
 editing. Preserve existing work. Record decisions and handover details in the repository;
@@ -129,7 +156,7 @@ and supplied out-of-range image references. Anatomy sampling retains landmarks b
 use uniform sampling for a strict small-image diagnostic and inspect actual image counts. Follow
 the ranked gaps in
 `docs/vision_traceability.md`. See `docs/plan.md` → *Priority* and *Next steps*.
-Keep `manual.html` and `manual.pdf` synchronized with user-facing configuration and commands.
+Keep `docs/manual.html` and `docs/manual.pdf` synchronized with user-facing configuration and commands.
 
 Local folder opening (2026-10-19 user request) accepts explicit absolute path/file-URI
 drops and paste, with an in-app directory-browser fallback when browsers hide paths.
@@ -152,6 +179,21 @@ re-reading every header for every PNG; check paths/signatures before cache acces
 the full header guard before a new pixel load. Do not inspect private inputs forbidden by
 the user. The current private Downloads study is excluded from agent inspection; use
 synthetic fixtures and never commit its path or identifying names.
+Local import progress must report actual phase counts, including unknown totals, without
+an invented overall percentage. Distinguish path entries, file reads and QC checks. Keep
+cancellation cooperative at file/stage boundaries. CLI `serve` writes bounded owner-only
+structured job logs under the configured data directory; never log work labels, source
+paths, header values or raw exception strings. Disable Uvicorn access logging to prevent
+folder query paths entering the journal. `scripts/run_ui_journal.sh` starts a user service;
+never restart an active user job just to change logging. Journal retention follows host
+policy; structured JSON logs have their own rotation limit.
+The operator runs `scripts/dcom_evaluator.py` on one chosen file by default. Read headers
+only, omit identifying values/raw errors and preserve sealed path/header guards before
+optional pixel decoding. An explicit `--scan-headers` request scans one chosen folder
+within configured limits; `--check-import` additionally loads pixels and input QC only
+after a complete scan, without models or exports. Agents must not inspect private inputs.
+Never use force-read, automatic repair or an incomplete scan as a full-import result.
+
 
 
 UI defaults are **English and light mode**, independent of browser preferences. Offer
@@ -165,7 +207,7 @@ reports remain English until separately specified.
 Use synthetic studies for browser tests and screenshots. Never commit patient images or
 rendered slices of real CT studies. Screenshots of the code-generated synthetic phantom
 (`scripts/capture_screenshots.py` → `docs/assets/`) are allowed (2026-10-16, consistent
-with DATA_POLICY.md, which bans renders and screenshots of real studies). Test the complete
+with docs/DATA_POLICY.md, which bans renders and screenshots of real studies). Test the complete
 demo → viewer → analysis → result/download flow,
 keyboard help, preference persistence and both UI languages/themes with Playwright.
 Show live elapsed request time separately from recorded engine-stage timings. Recommended-
@@ -227,10 +269,10 @@ follow the proposed design in `docs/lan-runner.md` when resumed.
 1. Work directly on `main`.
 2. Make one logical change.
 3. Update `README.md`, `AGENTS.md` and `docs/plan.md` in the same change when their content
-   is affected. Keep `manual.html` and `manual.pdf` synchronized with user-facing behavior.
+   is affected. Keep `docs/manual.html` and `docs/manual.pdf` synchronized with user-facing behavior.
 4. Update *Current activity* and the work-package status in `docs/plan.md`.
 5. Re-read the complete diff.
-6. Check the design against `Vision.md` and `docs/architecture.md`.
+6. Check the design against `docs/Vision.md` and `docs/architecture.md`.
 7. Check edge cases and tests. Refine the change where needed.
 8. Commit only through `scripts/commit.sh "<type>(<scope>): <message>"`.
 
@@ -307,7 +349,7 @@ Apply the flight-manual writing style throughout repository documentation:
 | `manifests/` | acquisition manifests, split manifests (IDs/hashes only), model manifests |
 | `scripts/` | small documented helper scripts (see `scripts/README.md`) |
 | `docs/` | architecture, datasets, model cards, results, reproducibility, plan, traceability |
-| `SECURITY.md`, `DATA_POLICY.md` | security controls and medical-data rules |
+| `SECURITY.md`, `docs/DATA_POLICY.md` | security controls and medical-data rules |
 | `data/` | **git-ignored** raw/normalized/cache/rendered/results data |
 
 ## 5. Useful commands

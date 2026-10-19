@@ -41,5 +41,6 @@ jobs:
         uses: actions/upload-artifact@v7.0.2
         with:
           name: coverage-html
-          path: htmlcov/
+          path: .pipeline/htmlcov/
+          include-hidden-files: true
           if-no-files-found: ignore

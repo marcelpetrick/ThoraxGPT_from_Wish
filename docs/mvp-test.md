@@ -60,7 +60,7 @@ v0.0.29 run below; use the current version to reproduce it.
 1. Start `uv run thoraxbench serve` from the repository root.
 2. Open `http://127.0.0.1:8000`.
 3. Follow the demo, viewer, analysis and download checklist in
-   [the operator manual](../manual.html#workbench).
+   [the operator manual](manual.html#workbench).
 4. Check the research disclaimer in the UI and downloaded HTML.
 5. Stop the server with Ctrl+C.
 6. Open the downloaded HTML again.
@@ -147,7 +147,7 @@ Integrated non-live verification after these changes: **272 tests passed, 98.98%
 formatting, lint and strict typing passed. The final release uses the full commit-script gate,
 including package build, clean-wheel installation and locked-dependency audit.
 
-See the [HTML operator manual](../manual.html) or [matching PDF](../manual.pdf) for the complete
+See the [HTML operator manual](manual.html) or [matching PDF](manual.pdf) for the complete
 setup and run procedure. The manual was checked at desktop/mobile widths, all navigation
 anchors resolved, and that historical eight-page A4 PDF was checked by text extraction
 and rendered-page inspection. The current manual has expanded CLI/benchmark coverage. Neither manual contains patient images.

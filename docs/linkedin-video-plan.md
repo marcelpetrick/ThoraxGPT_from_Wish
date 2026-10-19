@@ -106,7 +106,7 @@ ran. It can help developers spot missing predictions, inspect disagreements and 
 a setup. Agreement, severity labels and confidence scores do not establish correctness.
 
 Project: <https://github.com/marcelpetrick/ThoraxGPT_from_Wish>.
-Start with [README](../README.md) and the [flight manual](../manual.html).
+Start with [README](../README.md) and the [flight manual](manual.html).
 
 ## Delivery format
 

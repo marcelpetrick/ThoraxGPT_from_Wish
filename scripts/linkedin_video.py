@@ -430,7 +430,7 @@ def capture(args: argparse.Namespace) -> Path:  # noqa: PLR0912, PLR0915 - linea
                 page.locator("#theme-toggle").click()
             with shot("manual"):
                 manual = context.new_page()
-                manual.goto((repo / "manual.html").as_uri())
+                manual.goto((repo / "docs" / "manual.html").as_uri())
                 manual.wait_for_timeout(6000)
             manual.close()
             result = job.get("result", {})

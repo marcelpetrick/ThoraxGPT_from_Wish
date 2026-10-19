@@ -4,7 +4,7 @@ This document describes ThoraxBench Local with the [C4 model](https://c4model.co
 (Context → Containers → Components → Code) plus flowcharts for the main workflows.
 Diagrams are Mermaid, so GitHub renders them directly.
 
-Source of requirements: [`Vision.md`](../Vision.md). Section references (§) point there.
+Source of requirements: [`Vision.md`](Vision.md). Section references (§) point there.
 
 > Research use only. This self-made experimental tool is not professional medical advice.
 > Findings may be incorrect, incomplete or misleading. Do not use outputs for diagnosis or
@@ -40,7 +40,11 @@ opaque registration. Viewer and analysis access recheck paths, source signatures
 policy. Unchanged cached pixels avoid repeated DICOM header scans; cache misses and changed
 inputs require full header validation. Strict header reads contain deferred value conversion
 errors and expose only aggregate error categories. Failed jobs and successful header warnings
-retain session-only diagnostic traces with software identity and no raw exception values. No upload, file copy,
+retain session-only diagnostic traces with software identity and no raw exception values. Job snapshots also carry bounded actual progress callbacks from the shared guard,
+discovery, pixel and QC stages. The CLI configures rotating structured event logs, separate
+from session-only job history. The optional user service forwards these to journald;
+HTTP access logs are disabled. The single-file operator helper reuses path/patient guards
+without traversing sibling files. No upload, file copy,
 model download or automatic inference occurs. See [the folder procedure](local-folders.md).
 
 The pilot uses metadata-only pseudorandom patient splits before development indexing.
@@ -424,8 +428,8 @@ See [UI proposals and verification](ui.md) and the [actual synthetic test record
 The [40 GB VRAM/LAN design](lan-runner.md) is a proposal for tomorrow; the implemented
 endpoint policy remains loopback-only.
 
-Operator documentation ships at repository root as [`manual.html`](../manual.html) and
-[`manual.pdf`](../manual.pdf), with configuration and operational checklists. These contain
+Operator documentation ships under `docs/` as [`manual.html`](manual.html) and
+[`manual.pdf`](manual.pdf), with configuration and operational checklists. These contain
 no study images. Per-run HTML remains under ignored `data/results/`: it presents findings,
 educational severity/attention and evidence galleries, while preserving uncertainty and
 explicit self-made-tool/fallibility disclaimers. No severity is assigned to absent or

@@ -164,7 +164,7 @@ Patient-level splits are deterministic. The same patient list and salt
 the development and sealed patient sets. Loading a split verifies the local files against
 these hashes. A tampered or regenerated split fails to load.
 
-Procedure and sealed-holdout rules: [`DATA_POLICY.md`](../DATA_POLICY.md#4-sealed-holdout).
+Procedure and sealed-holdout rules: [`DATA_POLICY.md`](DATA_POLICY.md#4-sealed-holdout).
 
 Freezing an *experiment config* for sealed evaluation exists only as the library function
 `freeze_experiment` in `src/thoraxbench/splits/guard.py`. It is not yet exposed in the CLI.

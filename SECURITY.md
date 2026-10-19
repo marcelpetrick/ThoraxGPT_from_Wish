@@ -64,7 +64,7 @@ LAN inference on a second machine is **planned** only. The proposed design is in
   `.env` and `*.token` files.
 * `scripts/check_no_medical_data.sh` fails the pipeline when Git tracks forbidden file
   types, files under `data/`, large files, or strings that look like Hugging Face or
-  GitHub tokens. See [`DATA_POLICY.md`](DATA_POLICY.md) for the full rule set.
+  GitHub tokens. See [`DATA_POLICY.md`](docs/DATA_POLICY.md) for the full rule set.
 * Self-contained HTML reports must stay inside `data/results/`. `require_results_path`
   in `src/thoraxbench/reports/html_report.py` resolves symlinks before the check.
 * Model text in HTML reports is escaped.
@@ -94,7 +94,7 @@ LAN inference on a second machine is **planned** only. The proposed design is in
 ### Sealed holdout
 
 The sealed 20 % holdout is a research-integrity control, not an access-control boundary
-against a local administrator. See [`DATA_POLICY.md`](DATA_POLICY.md#4-sealed-holdout).
+against a local administrator. See [`DATA_POLICY.md`](docs/DATA_POLICY.md#4-sealed-holdout).
 
 ## Known gaps
 

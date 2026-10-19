@@ -39,7 +39,7 @@ Prerequisite: a running local server. Use `uv run thoraxbench serve` from the re
 HTML report opens without the server. Display-window changes do not change analysis.
 
 **Recovery:** preserve errors and abstentions. Check model availability and permitted study
-membership. Never bypass a split rejection. See [the manual](../manual.html#recovery).
+membership. Never bypass a split rejection. See [the manual](manual.html#recovery).
 
 ## Guided workbench
 
@@ -278,8 +278,8 @@ The complete local pipeline runs both suites. A real browser capture from the sy
 workbench may be kept at `data/results/ui-preview.png` for local inspection; the About screen
 can provide a public README screenshot without medical imagery.
 
-Operator instructions ship as [manual.html](../manual.html) and a
-[printable PDF](../manual.pdf) generated from it. They cover installation, local configuration, first-run
+Operator instructions ship as [manual.html](manual.html) and a
+[printable PDF](manual.pdf) generated from it. They cover installation, local configuration, first-run
 checkpoints, report interpretation and recovery in short, direct instructions. Regenerate
 the PDF after editing the HTML using the command at the end of the manual.
 

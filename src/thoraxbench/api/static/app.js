@@ -651,8 +651,17 @@
       || job.steps.find((step) => step.status === "cancelled" && step.elapsed_s != null);
     return active?.model_id === "monai-lung-nodule";
   }
+  const importOperations = ["path_check","header_check","discovery","pixel_decode","input_qc","source_recheck"];
+  function importProgressText(job) {
+    const progress = job?.progress;
+    if (job?.kind !== "study-import" || job.finished || !["running","cancelling"].includes(job.status) || !progress || !importOperations.includes(progress.operation) || !Number.isInteger(progress.completed) || progress.completed < 0) return "";
+    const total = Number.isInteger(progress.total) && progress.total >= progress.completed ? progress.total : null;
+    const count = total === null ? progress.completed.toLocaleString(language) : `${progress.completed.toLocaleString(language)} / ${total.toLocaleString(language)}`;
+    return `${t(`folderProgress_${progress.operation}`)}: ${count} ${t(progress.operation === "input_qc" ? "folderProgressChecks" : ["path_check","source_recheck"].includes(progress.operation) ? "folderProgressEntries" : "folderProgressFiles")}${total === null ? ` · ${t("folderProgressUnknown")}` : ""}`;
+  }
   function renderFollowed() {
     const job = followed;
+    const progress = importProgressText(job); $("folder-job-progress").hidden = !progress; if ($("folder-job-progress").textContent !== progress) setText("folder-job-progress",progress);
     $("request-timer").hidden = !job; $("batch-status").hidden = !job || job.kind !== "comparison";
     if (!job) return;
     const position = job.status === "queued" && job.queue_position ? ` · ${t("jobPosition")} ${job.queue_position}` : "";
@@ -726,6 +735,7 @@
   function jobLink(id) { const link = document.createElement("a"); link.href = `/?job=${encodeURIComponent(id)}`; link.dataset.jobLink = id; link.dataset.tip = "jobOpenTip"; link.className = "button secondary"; link.textContent = t("jobOpen"); return link; }
   function elapsedCell(key) { const element = cell("—","jobElapsedTip"); element.dataset.elapsed = key; element.classList.add("job-time"); return element; }
   function renderJobsTable() {
+    const focusedProgress = document.activeElement?.dataset?.jobProgress;
     const body = $("jobs-body"), focused = document.activeElement?.dataset?.jobAction || document.activeElement?.dataset?.jobLink || document.activeElement?.dataset?.jobReport || document.activeElement?.dataset?.jobDiagnostic;
     body.replaceChildren();
     [...jobs].reverse().forEach((job) => {
@@ -735,7 +745,9 @@
       if (job.status === "cancelled" && job.cancel_stage === "inference") { const detail = document.createElement("small"); detail.className = "job-detail"; detail.textContent = t(usesDetectorCancellation(job) ? "detectorProviderCaveat" : "jobProviderCaveat"); status.append(detail); }
       const result = cell("","jobResultTip"); if (job.result_available) result.append(jobLink(job.id)); if (job.diagnostic) result.append(diagnosticButton(job));
       const action = cell("","jobActionTip"), button = jobButton(job); if (button) action.append(button);
-      row.append(cell(t(`jobKind_${job.kind.replaceAll("-","_")}`),"jobKindTip"),cell(studyText(job),"jobStudyTip"),cell(job.kind === "comparison" ? `${job.steps.length} ${t("jobModels")}` : job.models[0] || "—","jobModelsTip"),status,cell(localTime(job.queued_at),"jobQueuedAtTip"),cell(localTime(job.started_at),"jobStartedAtTip"),elapsedCell(job.id),cell(job.finished ? t(`jobStatus_${job.status}`) : `${t(`stage_${job.stage}`)}${job.queue_position ? ` · ${t("jobPosition")} ${job.queue_position}` : ""}`,"jobStageTip"),result,action);
+      const stage = cell(job.finished ? t(`jobStatus_${job.status}`) : `${t(`stage_${job.stage}`)}${job.queue_position ? ` · ${t("jobPosition")} ${job.queue_position}` : ""}`,"jobStageTip");
+      const progress = importProgressText(job); if (progress) { const detail = document.createElement("small"); detail.className = "job-detail"; detail.tabIndex = 0; detail.dataset.tip = "folderProgressTip"; detail.dataset.importProgress = ""; detail.dataset.jobProgress = job.id; detail.textContent = progress; stage.append(detail); }
+      row.append(cell(t(`jobKind_${job.kind.replaceAll("-","_")}`),"jobKindTip"),cell(studyText(job),"jobStudyTip"),cell(job.kind === "comparison" ? `${job.steps.length} ${t("jobModels")}` : job.models[0] || "—","jobModelsTip"),status,cell(localTime(job.queued_at),"jobQueuedAtTip"),cell(localTime(job.started_at),"jobStartedAtTip"),elapsedCell(job.id),stage,result,action);
       body.append(row);
       job.steps.forEach((step,index) => {
         const sub = document.createElement("tr"); sub.className = "job-step"; sub.dataset.step = `${job.id}:${index}`;
@@ -751,6 +763,7 @@
     $("downloads-section").hidden = !jobDownloads.length;
     $("jobs-clear").disabled = !jobs.some((job) => job.finished);
     initializeTooltips();
+    if (focusedProgress) document.querySelector(`[data-job-progress="${CSS.escape(focusedProgress)}"]`)?.focus();
     if (focused) document.querySelector(`[data-job-action="${CSS.escape(focused)}"],[data-job-link="${CSS.escape(focused)}"],[data-job-report="${CSS.escape(focused)}"],[data-job-diagnostic="${CSS.escape(focused)}"]`)?.focus();
   }
   function renderJobTimes() {
@@ -772,7 +785,7 @@
     setText("job-indicator-text", running ? `${t(running.status === "cancelling" ? "jobStopping" : "jobRunning")}: ${jobSummary(running)} · ${t("jobStageWord")} ${t(`stage_${running.stage}`)}` : `${t("jobs")}:`);
     setText("job-queue-link", `${queued} ${t("jobQueuedWord")}`);
     $("nav-jobs-count").hidden = !(running || queued); setText("nav-jobs-count", String((running ? 1 : 0) + queued));
-    const signature = JSON.stringify([language, jobs.map((job) => [job.id,job.status,job.stage,job.queue_position,job.result_available,job.diagnostic?.trace_id,job.steps.map((step) => [step.status,step.result_id])]), jobDownloads.map((entry) => [entry.id,entry.status,entry.completed,entry.detail])]);
+    const signature = JSON.stringify([language, jobs.map((job) => [job.id,job.status,job.stage,job.queue_position,job.result_available,job.diagnostic?.trace_id,[job.progress?.operation,job.progress?.completed,job.progress?.total],job.steps.map((step) => [step.status,step.result_id])]), jobDownloads.map((entry) => [entry.id,entry.status,entry.completed,entry.detail])]);
     if (force || signature !== jobSignature) { jobSignature = signature; renderJobsTable(); }
     renderJobNotice(); renderJobTimes();
   }
@@ -907,6 +920,8 @@
 
   Object.assign(words.en,{localStudy:"Local study",viewerLoading:"Loading source image…",viewerLoadingNote:"Loading the selected DICOM preview. Analysis stays disabled until this image is ready.",viewerBlocked:"Choose a usable study",viewerBlockedNote:"The new folder has not opened successfully. Previous images are hidden and analysis is blocked. Open a valid folder or explicitly select a library study.",viewerLimited:"Input QC is limited. This local study cannot be analyzed; choose a usable CT series.",viewerRetry:"Retry image",viewerRetryTip:"Reload the selected source image. Analysis stays disabled until it displays successfully.",diag_unreadable_dicom_headers:"The selected CT series opened, but some headers were unreadable and skipped. Review discovery counts and Input QC. Skipped files do not by themselves make the selected series unusable."});
   Object.assign(words.de,{localStudy:"Lokale Studie",viewerLoading:"Quellbild wird geladen…",viewerLoadingNote:"Die ausgewählte DICOM-Vorschau wird geladen. Analyse bleibt gesperrt, bis dieses Bild bereit ist.",viewerBlocked:"Eine nutzbare Studie wählen",viewerBlockedNote:"Der neue Ordner wurde nicht erfolgreich geöffnet. Vorherige Bilder sind verborgen und die Analyse ist gesperrt. Einen gültigen Ordner öffnen oder ausdrücklich eine Bibliotheksstudie wählen.",viewerLimited:"Eingabe-QC ist eingeschränkt. Diese lokale Studie kann nicht analysiert werden; eine nutzbare CT-Serie wählen.",viewerRetry:"Bild erneut laden",viewerRetryTip:"Das ausgewählte Quellbild erneut laden. Analyse bleibt gesperrt, bis es erfolgreich angezeigt wird.",diag_unreadable_dicom_headers:"Die ausgewählte CT-Serie wurde geöffnet, aber einige Header waren unlesbar und wurden übersprungen. Suchstatistik und Eingabe-QC prüfen. Übersprungene Dateien allein machen die ausgewählte Serie nicht unbrauchbar."});
+  Object.assign(words.en,{folderProgress_path_check:"Path check",folderProgress_header_check:"Header check",folderProgress_discovery:"DICOM discovery",folderProgress_pixel_decode:"Pixel decoding",folderProgress_input_qc:"Input QC",folderProgress_source_recheck:"Source recheck",folderProgressEntries:"entries",folderProgressFiles:"files",folderProgressChecks:"checks",folderProgressUnknown:"total unknown",folderProgressTip:"Actual completed work in this operation, reported by the server. File checks and pixel decoding are separate passes; Input QC counts checks. Totals may be unknown. These counts are not an overall percentage or a remaining-time estimate."});
+  Object.assign(words.de,{folderProgress_path_check:"Pfadprüfung",folderProgress_header_check:"Headerprüfung",folderProgress_discovery:"DICOM-Suche",folderProgress_pixel_decode:"Pixeldekodierung",folderProgress_input_qc:"Eingabe-QC",folderProgress_source_recheck:"Quellen-Nachprüfung",folderProgressEntries:"Einträge",folderProgressFiles:"Dateien",folderProgressChecks:"Prüfungen",folderProgressUnknown:"Gesamtzahl unbekannt",folderProgressTip:"Vom Server gemeldete, tatsächlich abgeschlossene Arbeit dieses Vorgangs. Dateiprüfung und Pixeldekodierung sind getrennte Durchläufe; Eingabe-QC zählt Prüfungen. Gesamtzahlen können unbekannt sein. Die Zähler sind weder Gesamtprozente noch Restzeit-Schätzungen."});
   const PAGES = {"/":"analysis","/about":"about","/evaluation":"evaluation","/jobs":"jobs"};
   async function navigate(path, push = false) {
     viewScroll[currentPage] = window.scrollY;

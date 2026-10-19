@@ -326,15 +326,22 @@ def test_runtime_library_metadata_traversal(monkeypatch: pytest.MonkeyPatch) -> 
     ]
 
 
-def test_cli_serve_binds_only_loopback(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_cli_serve_binds_only_loopback(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     import uvicorn
 
     run = Mock()
+    monkeypatch.setattr(cli, "get_settings", lambda: Settings(data_dir=tmp_path))
     monkeypatch.setattr(uvicorn, "run", run)
     result = CliRunner().invoke(cli.app, ["serve", "--port", "8765"])
     assert result.exit_code == 0, result.output
     assert "http://127.0.0.1:8765" in result.output
-    assert run.call_args.kwargs == {"host": "127.0.0.1", "port": 8765, "proxy_headers": False}
+    assert (tmp_path / "logs" / "jobs.jsonl").is_file()
+    assert run.call_args.kwargs == {
+        "host": "127.0.0.1",
+        "port": 8765,
+        "proxy_headers": False,
+        "access_log": False,
+    }
     assert CliRunner().invoke(cli.app, ["serve", "--host", "192.168.1.2"]).exit_code != 0
 
 

@@ -7,15 +7,15 @@
 [![Coverage gate ≥95%](https://img.shields.io/badge/coverage_gate-%E2%89%A595%25-brightgreen.svg)](pyproject.toml)
 [![mypy strict](https://img.shields.io/badge/mypy-strict-blue.svg)](pyproject.toml)
 [![Local inference](https://img.shields.io/badge/inference-local%20only-087f8c.svg)](docs/architecture.md)
-[![Research use only](https://img.shields.io/badge/use-research%20only-orange.svg)](Vision.md)
-[![HTML manual](https://img.shields.io/badge/manual-HTML-086c70.svg)](manual.html)
-[![PDF manual](https://img.shields.io/badge/manual-PDF-b44737.svg)](manual.pdf)
+[![Research use only](https://img.shields.io/badge/use-research%20only-orange.svg)](docs/Vision.md)
+[![HTML manual](https://img.shields.io/badge/manual-HTML-086c70.svg)](docs/manual.html)
+[![PDF manual](https://img.shields.io/badge/manual-PDF-b44737.svg)](docs/manual.pdf)
 [![Latest release](https://img.shields.io/github/v/release/marcelpetrick/ThoraxGPT_from_Wish?sort=semver)](https://github.com/marcelpetrick/ThoraxGPT_from_Wish/releases/latest)
 
 A local-first, license-aware, reproducible thoracic-CT AI benchmark laboratory.
-See [`Vision.md`](Vision.md) for the research goals, [`docs/architecture.md`](docs/architecture.md)
+See [`Vision.md`](docs/Vision.md) for the research goals, [`docs/architecture.md`](docs/architecture.md)
 for the C4 architecture and [`docs/plan.md`](docs/plan.md) for the
-implementation plan. Read the [HTML operator manual](manual.html) or [printable PDF](manual.pdf)
+implementation plan. Read the [HTML operator manual](docs/manual.html) or [printable PDF](docs/manual.pdf)
 for setup, configuration, a first run and troubleshooting. The build backend is pinned to
 Hatchling 1.32.4; CI uses uv 0.13.1. Runtime, development and locked transitive dependencies
 were checked against stable PyPI releases on 2026-10-19. The lockfile preserves
@@ -24,8 +24,9 @@ provider-required CUDA versions; see [the latest dependency review](docs/depende
 The completed demo videos are in [`media/`](media/README.md): [square](media/pilot-A.mp4) and [portrait](media/pilot-B.mp4), 30 seconds each. They show a selected calibration case with training overlap; they do not establish diagnostic accuracy.
 
 | Document | Content |
-| [`docs/local-folders.md`](docs/local-folders.md) | Open a local DICOM folder by path drop, paste or folder browsing |
 |---|---|
+| [`docs/agent-environment.md`](docs/agent-environment.md) | Agent sandbox and workstation setup notes |
+| [`docs/local-folders.md`](docs/local-folders.md) | Open a local DICOM folder by path drop, paste or folder browsing |
 | [`docs/video-delivery-2026-10-19.md`](docs/video-delivery-2026-10-19.md) | Completed local 4K tour and two verified 30-second cuts; selected calibration and overlap limitations |
 | [`docs/linkedin-video-plan.md`](docs/linkedin-video-plan.md) | Guarded Chromium recording, two 30-second edits, credits and verification |
 | [`docs/ux-review-2026-10-16.md`](docs/ux-review-2026-10-16.md) / [HTML](docs/ux-review-2026-10-16.html) | Ranked UX findings, implementation plan and verification status |
@@ -35,7 +36,7 @@ The completed demo videos are in [`media/`](media/README.md): [square](media/pil
 | [`docs/fine-tuning-plan.md`](docs/fine-tuning-plan.md) | Precision limits, ranked adaptation options, leakage-safe fine-tuning protocol |
 | [`docs/results.md`](docs/results.md) | Measured benchmark runs with config hash, command and limitations |
 | [`docs/reproducibility.md`](docs/reproducibility.md) | What each run records, pinned software, how to repeat a run |
-| [`DATA_POLICY.md`](DATA_POLICY.md) | Medical-data rules, license gate, data budget, sealed holdout |
+| [`DATA_POLICY.md`](docs/DATA_POLICY.md) | Medical-data rules, license gate, data budget, sealed holdout |
 | [`SECURITY.md`](SECURITY.md) | Implemented controls, known gaps, vulnerability reporting |
 | [`docs/vision_traceability.md`](docs/vision_traceability.md) | Vision section → implementation status and evidence |
 | [`docs/datasets.md`](docs/datasets.md) | Dataset license research and the `acquire` procedure |
@@ -157,6 +158,9 @@ separate from the frozen development library. See [the folder procedure](docs/lo
 for browser drop limitations and recovery. File suffixes are optional. The dataset switches
 to **Local** after opening; Run waits for a decoded viewer image and usable input QC.
 Warnings and failures offer **Details** and a downloadable trace for debugging.
+Live loading feedback shows actual operation counters. Structured job logs persist in
+`data/logs/jobs.jsonl`; an optional user-journal launcher and the private single-file
+`scripts/dcom_evaluator.py` helper are described in [the folder procedure](docs/local-folders.md).
 
 The **Rough remaining estimate** starts with broad workstation guesses: 1–60 seconds for
 the HU baseline and 1–15+ minutes for a vision model. Later estimates use recent local

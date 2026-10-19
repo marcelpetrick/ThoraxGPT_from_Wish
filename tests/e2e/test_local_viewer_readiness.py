@@ -4,12 +4,22 @@
 
 from __future__ import annotations
 
+import time
+
 import pytest
 from playwright.sync_api import Page, Route, expect
 
 from tests.e2e.test_local_folder_ui import FolderAPI
 
 pytestmark = pytest.mark.e2e
+
+
+def wait_for_pending(page: Page, pending: list[Route]) -> None:
+    # Route dispatch follows the request event; pump Playwright until it actually arrives.
+    deadline = time.monotonic() + 5
+    while not pending and time.monotonic() < deadline:
+        page.wait_for_timeout(10)
+    assert pending
 
 
 def open_local(page: Page, api: FolderAPI) -> None:
@@ -34,7 +44,7 @@ def test_delayed_source_image_blocks_analysis_until_actual_pixels_arrive(ui_page
     expect(page.locator("#viewer-status")).to_contain_text("Loading the selected DICOM")
     expect(page.locator("#run-analysis")).to_be_disabled()
     expect(page.locator("#ct-image")).to_be_hidden()
-    assert pending
+    wait_for_pending(page, pending)
     pending[-1].fulfill(body=api.png, content_type="image/png")
     expect(page.locator("#ct-image")).to_be_visible()
     expect(page.locator("#run-analysis")).to_be_enabled()
@@ -112,7 +122,7 @@ def test_stale_image_completion_never_replaces_new_selection(ui_page: Page) -> N
     page.route("**/api/studies/local/**", hold_image)
     open_local(page, api)
     expect(page.locator("#run-analysis")).to_be_disabled()
-    assert pending
+    wait_for_pending(page, pending)
     page.locator("#dataset-filter").select_option("demo")
     expect(page.locator("#ct-image")).to_be_visible()
     expect(page.locator("#run-analysis")).to_be_enabled()
@@ -141,7 +151,7 @@ def test_late_import_completion_never_unblocks_a_newer_folder(
     api.finish()
     page.clock.fast_forward(1100)
     expect(page.locator("#job-follow-status")).to_contain_text("Succeeded")
-    assert pending
+    wait_for_pending(page, pending)
     assert api.job is not None
     first = dict(api.job)
 
@@ -237,7 +247,7 @@ def test_late_submit_response_does_not_override_explicit_study_choice(ui_page: P
     page.locator("#local-folder-path").fill("/synthetic/A")
     page.locator("#open-local-folder").click()
     expect(page.locator("#run-analysis")).to_be_disabled()
-    assert pending
+    wait_for_pending(page, pending)
     page.locator("#study-select").select_option(label="phantom")
     expect(page.locator("#run-analysis")).to_be_enabled()
     with page.expect_response("**/api/local-studies"):
@@ -267,7 +277,7 @@ def test_delayed_refresh_cannot_replace_a_newly_opened_folder(ui_page: Page) -> 
 
     page.route("**/api/studies", inventory)
     page.locator("#refresh-studies").click()
-    assert pending
+    wait_for_pending(page, pending)
     api.study = dict(first_study, case_id="SYNTHETIC-B-opaque")
 
     def submit_second(route: Route) -> None:

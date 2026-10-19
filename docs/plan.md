@@ -1,6 +1,6 @@
 # ThoraxBench Local — Implementation Plan
 
-This plan turns [`Vision.md`](../Vision.md) into a working product. Decisions recorded
+This plan turns [`Vision.md`](Vision.md) into a working product. Decisions recorded
 here are binding until changed by a later commit to this file.
 
 ## Environment facts (2026-10-15)
@@ -110,6 +110,72 @@ Status: ✅ done · 🔄 in progress · ⏳ open · ✖ dropped
 | 🔄 WP12 | GitHub About + ten topics applied ✅; project review + course correction ✅; `docs/vision_traceability.md` ✅; closing ranked gaps ⏳ | all | lead |
 
 ## Current activity
+
+### Root cleanup and diagnostic scan handover — 2026-10-19
+
+Current task: finish the local-import diagnostics ticket and keep the repository root
+focused on standard entry points. The lead owns integration, final validation and release.
+
+- [x] Move vision, data policy, agent environment and both operator manuals under `docs/`.
+  Update relative links, including release notes and the recording helper's manual path.
+- [x] Document `scripts/dcom_evaluator.py`: single-file header inspection, bounded
+  `--scan-headers` folder summaries and explicit `--scan-headers --check-import` loading.
+  Nineteen synthetic helper tests passed; no private source was inspected by agents.
+- [x] Integrate measured loading counters, translated live UI feedback and bounded
+  sanitized JSON/journal events. Preserve warnings, source-image readiness and holdout checks.
+- [x] Regenerate `docs/manual.pdf` with separate diagnostic and durable-log pages.
+  Visually reviewed pages 18–19: commands, warnings and footers fit without clipping.
+- [ ] Run the complete local gate, make the gated commit, push, and check exact-commit CI.
+- [ ] Publish only after these checks pass; refresh the preview only when its queue is idle.
+
+Baseline: `cff030d` v0.5.0 passed public CI. This follow-up targets v0.5.1 and is
+committed only after the complete `scripts/commit.sh --no-push` gate passes. Inspect
+`git log -1` and `.pipeline/diagnostics-final-commit.log` for the resulting commit and gate
+record. Every new commit must update this plan in the same change, including evidence and
+remaining work. Preserve all current changes,
+recovery stashes and saved outputs. Do not run additional private-data inspection or
+inference for this cleanup. MedGemma recognition readiness and full benchmark sweeps remain
+open; a successful folder import does not establish model accuracy.
+
+
+### Operator diagnostics and loading feedback — 2026-10-19
+
+User requested a private, locally run `dcom_evaluator.py` within ten minutes, durable logs
+and live loading feedback. The lead owns the header helper and job/logging integration;
+two isolated workers supplied actual core counters and translated UI progress. Their work
+is integrated and frozen; the lead owns the combined gate and release. Do not
+inspect the private Downloads study. Observe only the user's server job/log metadata.
+The user's v0.5.0 import succeeded in about 79 seconds with 317 byte-length header errors.
+
+- [x] D1: implement one-file stdout JSON diagnostics, with values/paths omitted by default.
+  Ten synthetic subprocess/core tests cover malformed tags, privacy, bounds and sealed
+  guards. Independent review fixed argument echoing and the optional-pixel guard.
+- [x] D2: add bounded actual header/discovery/pixel/QC counters through the shared queue.
+- [x] D3: add durable bounded job logs and an optional journal launch procedure.
+- [ ] D4: integrate/review, run the full gate, refresh the idle preview and publish a tested
+  GitHub release. v0.5.0 is committed at `cff030d`; CI `39322252887` passed. Its release
+  draft remains unpublished until the follow-up release passes the required checks.
+
+Diagnostics integration checkpoint: 71 focused core/browser/API checks passed; 28 privacy,
+rotation, guard and parser checks passed. A real synthetic user-service run completed in
+0.20 s with 43 JSON events spanning all six operations. Journald received matching events;
+log mode is 0600. The test service was stopped. No private image was read. Review fixed
+copied-sealed pixel access, disabled query-bearing HTTP access logs, and corrected path
+counter units. Route-arrival waits also remove a scheduling assumption from existing
+browser tests. The 19-page HTML/PDF manual was generated; final diagnostic/log pages were visually reviewed.
+
+Release target: v0.5.1 after the full local gate, push and exact-commit GitHub CI. Replace
+the unpublished v0.5.0 draft assets with the new build, verify uploaded checksums, then
+publish. Refresh the preview only when its queue is idle and restore optional detector
+packages after the locked base-environment gate. Preserve all saved reports and worker
+recovery stashes. Both new worker worktrees are clean; integrated patches remain in
+`recovery: folder progress backend/UI integrated 2026-10-19` stashes. The user then supplied two readable single-file reports. They do not locate the rejected
+headers. The release gate was stopped before commit to add an explicit operator-run
+header-only folder scan with aggregate error groups and opaque series/orientation counts.
+No private files are read by agents. The lead continues journal/privacy checks in parallel;
+the isolated backend worker owns the scan extension and synthetic tests. A second real
+synthetic journal smoke confirms folder-query paths are omitted (HTTP 200). The commit script and exact-commit CI enforce D4's
+release acceptance; publication and preview verification follow those green gates.
 
 ### Local DICOM folder opening — 2026-10-19
 
@@ -610,7 +676,7 @@ from here**: read this section and *Next steps*, then `git log --oneline | head 
   illustrations are explicitly labeled. Invalid/missing evidence remains unresolved;
   all model text is escaped. Results-path checks reject symlink escapes before inference
   and on download. P4 uses one-based model image numbering, version 1.0.1.
-- ✅ **Operator manual (user follow-up):** root `manual.html` and matching `manual.pdf`,
+- ✅ **Operator manual (user follow-up):** `docs/manual.html` and matching `docs/manual.pdf`,
   with configuration, startup, synthetic walkthrough, output interpretation and recovery.
   Uses short, direct maintenance-manual-style instructions. Document actual commands only;
   acquisition is implemented; a standalone automatic data-budget CLI remains pending.

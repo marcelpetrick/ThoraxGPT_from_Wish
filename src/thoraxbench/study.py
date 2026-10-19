@@ -10,6 +10,7 @@ series UID (the cache is derived data and can be deleted at any time, Vision §2
 from __future__ import annotations
 
 import json
+from collections.abc import Iterator
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -17,6 +18,7 @@ from typing import Any
 import numpy as np
 
 from thoraxbench.dicom import QCReport, Volume, load_study
+from thoraxbench.dicom.progress import Progress, emit_progress
 from thoraxbench.preprocess import HUCues, hu_cues
 from thoraxbench.privacy import identifier_values
 
@@ -108,6 +110,14 @@ def _load_cache(path: Path) -> tuple[Volume, dict[str, Any]]:
     return volume, dict(meta["selection"])
 
 
+def _identifier_paths(path: Path, progress: Progress | None) -> Iterator[Path]:
+    files = sorted(p for p in path.rglob("*") if p.is_file())
+    emit_progress(progress, "header_check", 0, len(files))
+    for completed, file in enumerate(files, 1):
+        yield file
+        emit_progress(progress, "header_check", completed, len(files))
+
+
 def load_study_dir(
     path: Path,
     *,
@@ -115,6 +125,7 @@ def load_study_dir(
     case_id: str | None = None,
     cache_dir: Path | None = None,
     series_uid: str | None = None,
+    progress: Progress | None = None,
 ) -> Study:
     """Load the chest CT study below *path* (DICOM folder).
 
@@ -134,10 +145,10 @@ def load_study_dir(
                 volume,
                 selection,
                 identifiers=identifier_values(
-                    (p for p in path.rglob("*") if p.is_file()), keep=(volume.patient_id,)
+                    _identifier_paths(path, progress), keep=(volume.patient_id,)
                 ),
             )
-    loaded, selection = load_study(path)
+    loaded, selection = load_study(path, progress=progress)
     if loaded is None:
         msg = f"no eligible axial chest CT series below {path}: {selection['reason']}"
         raise StudyLoadError(msg, selection)
@@ -150,7 +161,5 @@ def load_study_dir(
         volume.patient_id,
         volume,
         selection,
-        identifiers=identifier_values(
-            (p for p in path.rglob("*") if p.is_file()), keep=(volume.patient_id,)
-        ),
+        identifiers=identifier_values(_identifier_paths(path, progress), keep=(volume.patient_id,)),
     )
