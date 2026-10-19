@@ -299,7 +299,9 @@ captions are one-based. Historical aggregate results retain their original defin
 
 ## Planned public demo recording
 
-Follow `docs/linkedin-video-plan.md` for the two LinkedIn pilot scripts and delivery settings.
+Follow `docs/linkedin-video-plan.md` for `scripts/linkedin_video.py` capture/render commands,
+master integrity, two exact 30-second cuts and delivery settings. Use `--extra detector`
+when invoking uv so the running detector environment retains its optional packages.
 The user explicitly triggered two 30-second local draft cuts on 2026-10-17 and requests
 MONAI on the already-reviewed public calibration example, with no heuristic. For these
 local drafts this replaces the earlier synthetic-only recording preference. Verify TCIA

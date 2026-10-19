@@ -23,7 +23,7 @@ provider-required CUDA versions; see [the latest dependency review](docs/depende
 
 | Document | Content |
 |---|---|
-| [`docs/linkedin-video-plan.md`](docs/linkedin-video-plan.md) | Two video pilot scripts, recording readiness and LinkedIn export settings |
+| [`docs/linkedin-video-plan.md`](docs/linkedin-video-plan.md) | Guarded Chromium recording, two 30-second edits, credits and verification |
 | [`docs/ux-review-2026-10-16.md`](docs/ux-review-2026-10-16.md) / [HTML](docs/ux-review-2026-10-16.html) | Ranked UX findings, implementation plan and verification status |
 | [`docs/status-2026-10-17.md`](docs/status-2026-10-17.md) | Full-program status, real-data verdict and decision plan |
 | [`docs/approach-review-2026-10-17.md`](docs/approach-review-2026-10-17.md) | Literature review: can a local 4B VLM detect lung nodules on CT? Verdict and ranked plan |

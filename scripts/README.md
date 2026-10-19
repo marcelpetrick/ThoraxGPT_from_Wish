@@ -144,3 +144,19 @@ failed; see `docs/model-usage-review-2026-10-17.md`. Do not present it as accura
 Use `--view full --slab-mm 5 --window both` for the separate selected-plane synthetic
 context check. This is a known target plane, not detection. Its latest categorical gate
 also failed. Raw responses and source/script hashes remain preserved per invocation.
+
+## `linkedin_video.py` — local recording and separate editing
+
+Follow [the current video procedure](../docs/linkedin-video-plan.md). The user authorized
+two 30-second local draft cuts using a deliberately selected approved LIDC calibration
+example and the actual MONAI detector. This is not an accuracy benchmark or an upload tool.
+
+`capture` requires a clean checkout, explicit `--allow-real-calibration`, a loopback `--url`,
+an approved registry and a calibration guard. It owns an isolated Xvfb/Chromium display and
+preserves an uncut high-quality master plus failed attempts under ignored results. It never
+records the personal desktop, downloads weights or starts a server. `render` reads the
+reviewed original and editable cut plan, writes unique square/portrait 30-second H.264 cuts
+with persistent disclosures, captions, five-second URL/credit end cards, SRT and FFprobe
+checks. Inspect every final frame/crop; local recording does not authorize publication.
+
+Synthetic metadata/guard tests: `uv run --extra detector pytest tests/unit/test_linkedin_video.py -q --no-cov`.

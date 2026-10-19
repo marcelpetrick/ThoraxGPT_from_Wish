@@ -1,8 +1,84 @@
-# LinkedIn video pilots — planned, not recorded
+# LinkedIn video pilots — authorized local drafts, two 30-second cuts
 
 Research use only. ThoraxBench Local is a self-made experimental tool. Findings may be
 incorrect, incomplete or misleading. It does not provide professional medical advice
 or a basis for diagnosis or treatment decisions.
+
+**Current authorization (2026-10-18):** the user explicitly requested recording and editing
+two **30-second** videos of a real successful detector workflow. This overrides the earlier
+synthetic-only recording proposal for these local drafts only. Use the deliberately selected
+positive **calibration** example `lidc_idri / LIDC-IDRI-0027` and `monai-lung-nodule`.
+LUNA16-trained weights overlap LIDC: this is an illustration, never independent accuracy.
+No sealed/internal-test case, acquisition, upload or publication is authorized by the recorder.
+Keep all real frames, full takes, failed attempts and edits under ignored
+`data/results/linkedin/`. Never commit patient pixels or video.
+
+## Current recorder procedure
+
+Prerequisites: a clean committed checkout, a green full gate, an already running loopback
+UI with an idle processing queue, verified detector weights, Chromium, Xvfb, FFmpeg/FFprobe
+and DejaVu Sans. Run commands from the repository root. Complete a real UI rehearsal and
+inspect the source images for identifiers before capture. Header audit alone does not
+establish absence of burned-in identifiers.
+
+1. Start continuous capture on an isolated Xvfb display. It never records the personal desktop.
+
+   ```bash
+   uv run --extra detector python scripts/linkedin_video.py --repo "$PWD" capture \
+     --url http://127.0.0.1:8001 --dataset lidc_idri --case LIDC-IDRI-0027 \
+     --model monai-lung-nodule --allow-real-calibration --chromium /usr/bin/chromium
+   ```
+
+2. Save the printed take folder. Inspect its **uncut** `master.mp4`, `take.json` and
+   `capture.log`. The master is 2560×1440, H.264 CRF16, 30 fps, limited to two encoder
+   threads. Optional `--width 3840 --height 2160` captures 4K with greater CPU/disk cost.
+   The visible library is narrowed to the selected calibration case before initial page load;
+   requests for other studies/slices are blocked. Download staging also stays inside the
+   take folder. The script drives source slices/windows/help, an actual queued detector job, candidate
+   review/source navigation, the actual new-tab report, About, manual and EN/DE/light/dark.
+   It also opens the read-only Evaluation landing and saves the actual offline HTML download.
+   No results are mocked. It records source identity, real elapsed time, job/result IDs and
+   detector metadata. Failed takes remain preserved and cannot be rendered as successes.
+
+3. Inspect `cut-plan.json`. Adjust its per-shot pixel crops/start times to keep the UI
+   readable and inside the recorded frame. Crops are presentation changes. Keep the genuine
+   model/result pairing, explicit shortened-wait captions and actual processing duration.
+   The original take is never overwritten. Its finalized SHA-256 is checked before rendering.
+
+4. Render separately after reviewing the original. Substitute the printed folder.
+
+   ```bash
+   uv run --extra detector python scripts/linkedin_video.py --repo "$PWD" render \
+     --take data/results/linkedin/REPLACE_WITH_PRINTED_TAKE_FOLDER
+   ```
+
+5. Inspect both `pilot-A.mp4` (1080×1080) and `pilot-B.mp4` (1080×1350) in the new unique
+   render folder. Each has exactly 900 frames / 30 seconds, H.264/yuv420p/30 fps, burned
+   captions, SRT, thumbnail and FFprobe verification. Both disclose shortened waits. The
+   project URL remains on screen for the final five seconds. No audio or upload occurs.
+
+**Checkpoint:** the original includes the full real wait and outcome. Both edits disclose
+selected calibration example, research-only/not-diagnosis status and LIDC training overlap.
+Verify text/crops on a phone. A successful encoding does not establish model accuracy.
+**Recovery:** keep any failure and its logs. Resolve the cause and record a new unique take;
+do not replace failures with fabricated or synthetic findings. Check disk space before retrying.
+
+## Dataset credit and local reuse check
+
+The official [TCIA LIDC-IDRI wiki](https://wiki.cancerimagingarchive.net/pages/viewpage.action?pageId=1966254)
+identifies images/XML as CC BY 3.0. The registry agrees. End cards credit LIDC-IDRI / TCIA,
+Armato et al. (2015), CC BY 3.0 and dataset DOI `10.7937/K9/TCIA.2015.LO9QL9SX`. Each render
+includes `credits.txt` with the full registry dataset citation, recommended 2011 publication
+DOI `10.1118/1.3528204`, NCI/FNIH acknowledgement and
+[license link](https://creativecommons.org/licenses/by/3.0/). Windowing, crops and captions
+modify the presentation. No endorsement by TCIA or contributors is implied. Review the final
+local draft before any separate publication decision.
+
+## Historical pilot proposal — superseded
+
+The following 60/90-second synthetic-only proposal is preserved as design history. Its
+durations, synthetic-only restriction and pending-trigger status do not govern the explicitly
+authorized two 30-second real-calibration local drafts above.
 
 **Status:** two editorial pilots are ready for review. Recording, recorder automation,
 encoding and publication remain pending. Start recording only after the user triggers it
@@ -113,7 +189,7 @@ Only show comparison if the real sequential rehearsal succeeds or explicitly dem
 partial failures. Label every shortened wait. Keep a legible, static disclaimer during
 results and the final card. Do not describe output as finding a disease or validating a model.
 
-## Future recording automation — implement after the trigger
+## Historical automation proposal — replaced by `scripts/linkedin_video.py`
 
 The repository does not yet contain a dedicated LinkedIn recording script. The future
 script should reuse synthetic demo setup and browser flow from the existing screenshot

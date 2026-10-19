@@ -43,3 +43,14 @@ new regression cases were also run against their original clean branches: cancel
 failed because the UI showed detector wording during Ollama inference; diagnostic indexing
 failed because an empty first call was dropped. The same repaired cases pass. The complete
 dependency integration will run the full gate again; no unresolved review finding remains.
+
+## Recorder review — 2026-10-19
+
+Reviewed the new recorder branch at `ba66639` against its integration base `5aec0e3`.
+The independent reviewer confirmed fixes for initial study selection, POST submission
+matching, child-process cleanup, contained downloads/master integrity, genuine detector
+source identity, report image selection, finite crop/time bounds and credit disclosures.
+Twenty-five synthetic guard regressions and a genuine synthetic FFmpeg encode smoke pass;
+both test cuts have 900 frames and 30-second duration. No confirmed blocker remains.
+The worker full gate passed 858 tests at 97.84% coverage. The lead's combined gate and
+real take/frame review remain release acceptance; no real images are committed.

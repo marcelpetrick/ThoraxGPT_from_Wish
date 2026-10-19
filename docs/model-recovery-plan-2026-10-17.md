@@ -18,8 +18,8 @@ not the 600-second HTTP timeout. Its 13530-character response repeated the sixte
 roster seven to eight times instead of closing the JSON object. Increasing or removing the
 cap would prolong a schema loop; that is not the selected fix. The original run is preserved.
 
-The default Q4/Q8 profiles still select P3's unbounded schema even though bounded
-P5/schema-v2 exists. Earlier P5 runs improved completion, but did not establish useful
+At the failure checkpoint, default Q4/Q8 profiles selected P3's unbounded schema despite
+bounded P5/schema-v2 being available. The delivered defaults now select P5. Earlier P5 runs improved completion, but did not establish useful
 recognition. RGB/HU windows already match Google's executable CT example. Runtime,
 message layout and task differences still need a controlled comparison.
 

@@ -111,6 +111,31 @@ Status: ✅ done · 🔄 in progress · ⏳ open · ✖ dropped
 
 ## Current activity
 
+### Finish plan — 2026-10-19
+
+Checkpoint: main `425010b` (v0.4.14) is clean and pushed. Both latest CI runs passed.
+Core recovery, result tabs, About metadata, dependency refresh and review repairs are
+complete. The four MedGemma calibration requests finish but fail useful-reading readiness.
+The detector rehearsal completed in 49.68 seconds: 19 proposals, 8 at the fixed 0.5 cutoff,
+12 illustrated. This is an overlap-affected selected-case workflow check, not accuracy.
+No UI server is currently running after the workstation restart; saved files remain.
+
+- [x] V1: recorder `ba66639` passed independent review and its full gate: 858 tests,
+  97.84% coverage, including 25 synthetic recorder regressions. Real recording remains next.
+- [ ] V2: merge into main, synchronize operator documentation and pass the combined gate.
+- [ ] V3: restore detector extras, start the clean committed UI and record one genuine
+  Chromium tour of the authorized calibration case; preserve original/failed takes.
+- [ ] V4: inspect the take, render two 30-second cuts, verify all 900 frames per cut,
+  captions, credits, readable framing and recorded source/model identity.
+- [ ] V5: record the delivery paths and limitations, commit/push final handover and
+  verify CI. Never commit real frames or upload to LinkedIn.
+
+Only the recorder worker and existing independent reviewer are delegated. The lead owns
+all live inference/capture. Keep GPU jobs sequential and the frozen 20% sealed. VLM
+recognition, official-runtime parity and unbiased evaluation remain separate scientific
+follow-up; do not describe them as completed by this video task.
+
+
 - **User-triggered video (2026-10-17):** produce two 30-second LinkedIn draft cuts and
   retain the complete original Chrome/Chromium tour. The user explicitly requests the
   real previously reviewed MONAI calibration example and excludes the heuristic; this
