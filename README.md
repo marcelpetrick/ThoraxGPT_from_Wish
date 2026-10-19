@@ -23,6 +23,7 @@ provider-required CUDA versions; see [the latest dependency review](docs/depende
 
 | Document | Content |
 |---|---|
+| [`docs/video-delivery-2026-10-19.md`](docs/video-delivery-2026-10-19.md) | Completed local 4K tour and two verified 30-second cuts; selected calibration and overlap limitations |
 | [`docs/linkedin-video-plan.md`](docs/linkedin-video-plan.md) | Guarded Chromium recording, two 30-second edits, credits and verification |
 | [`docs/ux-review-2026-10-16.md`](docs/ux-review-2026-10-16.md) / [HTML](docs/ux-review-2026-10-16.html) | Ranked UX findings, implementation plan and verification status |
 | [`docs/status-2026-10-17.md`](docs/status-2026-10-17.md) | Full-program status, real-data verdict and decision plan |

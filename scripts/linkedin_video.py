@@ -644,11 +644,12 @@ def render(args: argparse.Namespace) -> Path:
             caption.write_text("\n".join(textwrap.wrap(clip["caption"], 42)))
             roi = clip.get("crop")
             crop = f"crop={roi[2]}:{roi[3]}:{roi[0]}:{roi[1]}," if roi else ""
+            # Reserve header and caption bands even for tall square-cut crops.
             chains.append(
                 f"[s{index}]trim=start={clip['start']}:duration={clip['duration']},"
-                f"setpts=PTS-STARTPTS,{crop}scale=1080:{height - 240}:"
+                f"setpts=PTS-STARTPTS,{crop}scale=1080:{height - 320}:"
                 f"force_original_aspect_ratio=decrease,pad=1080:{height}:"
-                "(ow-iw)/2:(oh-ih)/2:color=0x102e3b,setsar=1,fps=30,"
+                f"(ow-iw)/2:80+({height - 320}-ih)/2:color=0x102e3b,setsar=1,fps=30,"
                 f"drawtext=fontfile='{filter_path(Path(font))}':"
                 f"textfile='{filter_path(caution)}':fontcolor=white:fontsize=22:x=30:y=28,"
                 f"drawtext=fontfile='{filter_path(Path(font))}':"

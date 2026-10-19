@@ -113,28 +113,32 @@ Status: ✅ done · 🔄 in progress · ⏳ open · ✖ dropped
 
 ### Finish plan — 2026-10-19
 
-Checkpoint: main `425010b` (v0.4.14) is clean and pushed. Both latest CI runs passed.
-Core recovery, result tabs, About metadata, dependency refresh and review repairs are
-complete. The four MedGemma calibration requests finish but fail useful-reading readiness.
-The detector rehearsal completed in 49.68 seconds: 19 proposals, 8 at the fixed 0.5 cutoff,
-12 illustrated. This is an overlap-affected selected-case workflow check, not accuracy.
-The clean UI is running on port 8001. The first 4K take closed Chromium before model
-inference; its failed original is preserved. A synthetic 4K X11 capture succeeded after
-forcing the X11 backend and removing inherited Wayland routing. Apply that correction
-and retain original errors when a browser page closes.
+Checkpoint: clean engine `d171803` (v0.4.17) recorded the genuine 4K Chromium tour.
+The full gate passed 872 tests /97.87% coverage. Core recovery, result tabs, About
+metadata, dependency refresh and review repairs are complete. MedGemma requests now
+finish but still fail useful-reading readiness; recognition remains open.
+
+The selected MONAI calibration recording succeeded: 80.108 seconds server elapsed,
+19 proposals, 8 at the existing 0.5 cutoff and 12 illustrated. The full 168.7-second
+master and actual offline report remain under ignored `data/results/linkedin/`.
+The first failed take is preserved. X11 isolation fixed inherited Wayland routing.
+Visual review found square-cut captions overlapping footage; the renderer now reserves
+separate header, footage and caption areas. This is a presentation repair, not a change
+to detector output. See [the delivery record](video-delivery-2026-10-19.md).
 
 - [x] V1: recorder `ba66639` passed independent review and its full gate: 858 tests,
-  97.84% coverage, including 25 synthetic recorder regressions. Real recording remains next.
+  97.84% coverage, including 25 synthetic recorder regressions. Subsequent recording is complete below.
 - [x] V2: integrated `dc206c5` (v0.4.16), synchronized the 16-page manual; full gate
   passed 871 tests /97.87% coverage.
-- [ ] V3: restore detector extras, start the clean committed UI and record one genuine
+- [x] V3: restore detector extras, start the clean committed UI and record one genuine
   Chromium tour of the authorized calibration case; preserve original/failed takes.
-- [ ] V4: inspect the take, render two 30-second cuts, verify all 900 frames per cut,
+- [x] V4: inspect the take, render two 30-second cuts, verify all 900 frames per cut,
   captions, credits, readable framing and recorded source/model identity.
-- [ ] V5: record the delivery paths and limitations, commit/push final handover and
-  verify CI. Never commit real frames or upload to LinkedIn.
+- [x] V5: record delivery paths, limitations and final review. Final handover uses the
+  full commit/push gate; verify the resulting GitHub Actions run before closing the session.
+  No real frames are committed and nothing is uploaded to LinkedIn.
 
-Only the recorder worker and existing independent reviewer are delegated. The lead owns
+The recorder worker and independent reviewer have finished. The lead owns
 all live inference/capture. Keep GPU jobs sequential and the frozen 20% sealed. VLM
 recognition, official-runtime parity and unbiased evaluation remain separate scientific
 follow-up; do not describe them as completed by this video task.

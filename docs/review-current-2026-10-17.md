@@ -54,3 +54,14 @@ Twenty-five synthetic guard regressions and a genuine synthetic FFmpeg encode sm
 both test cuts have 900 frames and 30-second duration. No confirmed blocker remains.
 The worker full gate passed 858 tests at 97.84% coverage. The lead's combined gate and
 real take/frame review remain release acceptance; no real images are committed.
+
+## Final recording review — 2026-10-19
+
+A clean v0.4.17 recording completed genuine MONAI inference in 80.108 seconds. Review
+found captions overlapping the square footage. The renderer now reserves separate
+header, footage and caption areas. Both repaired cuts were actually encoded, visually
+reviewed across all six scenes and decoded in full without errors. FFprobe confirms
+900 frames /30 seconds for both formats. See [delivery evidence](video-delivery-2026-10-19.md).
+The failed first take and initial renders remain preserved; no patient pixels enter Git.
+No unresolved finding remains in this delivery scope. Model recognition and unbiased
+accuracy remain open scientific work, unaffected by presentation or software gate success.

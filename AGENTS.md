@@ -311,6 +311,10 @@ still must pass; do not use sealed/internal-test data or commit patient pixels. 
 a full original take, label edited waits, and retain genuine failures/abstentions. Verify actual prepared-image counts; anatomy
 sampling can exceed `n`. Never imply clinical usefulness or model accuracy.
 
+Local draft delivery and frame/encoding checks are recorded in
+`docs/video-delivery-2026-10-19.md`. Preserve the uncut master and failed attempts.
+A successful MONAI demonstration does not resolve MedGemma recognition readiness.
+
 ## Visual evidence reliability
 
 Constrained Ollama prompts P2–P4 require valid one-based prepared-image evidence for a

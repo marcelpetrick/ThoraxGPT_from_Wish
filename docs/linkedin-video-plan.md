@@ -13,6 +13,8 @@ No sealed/internal-test case, acquisition, upload or publication is authorized b
 Keep all real frames, full takes, failed attempts and edits under ignored
 `data/results/linkedin/`. Never commit patient pixels or video.
 
+The completed local draft delivery is recorded in [the delivery record](video-delivery-2026-10-19.md).
+
 ## Current recorder procedure
 
 Prerequisites: a clean committed checkout, a green full gate, an already running loopback
@@ -55,7 +57,7 @@ establish absence of burned-in identifiers.
 
 5. Inspect both `pilot-A.mp4` (1080×1080) and `pilot-B.mp4` (1080×1350) in the new unique
    render folder. Each has exactly 900 frames / 30 seconds, H.264/yuv420p/30 fps, burned
-   captions, SRT, thumbnail and FFprobe verification. Both disclose shortened waits. The
+   captions in a reserved band, SRT, thumbnail and FFprobe verification. Both disclose shortened waits. The
    project URL remains on screen for the final five seconds. No audio or upload occurs.
 
 **Checkpoint:** the original includes the full real wait and outcome. Both edits disclose
