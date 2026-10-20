@@ -73,7 +73,12 @@ def test_full_review_shows_eta_and_plain_outcome(tmp_path: Path) -> None:
             expect(page.locator("#full-review-coverage")).to_contain_text("Checked 0 of")
             expect(page.locator("#full-review-look li").first).to_contain_text("Pulmonary nodule")
             expect(page.locator("#full-review-look")).to_contain_text("density (HU) measurement")
-            expect(page.locator("#full-review-unanswered")).to_contain_text("Emphysema")
+            # Density rules answered emphysema over the whole volume; hiatal hernia needs
+            # the (abstaining) image model, so only it stays unchecked.
+            expect(page.locator("#full-review-tools")).to_contain_text("Emphysema")
+            expect(page.locator("#full-review-unanswered")).to_contain_text("Hiatal hernia")
+            expect(page.locator("#full-review-unanswered")).not_to_contain_text("Emphysema")
+            expect(page.locator("#full-review-constant-row")).to_be_visible()
             expect(panel).to_contain_text("not a diagnosis")
             before = page.locator("#slice-slider").input_value()
             page.locator("#full-review-look li button").first.click()
@@ -103,3 +108,27 @@ def test_full_review_stop_keeps_partial_result_in_german(tmp_path: Path) -> None
             )
             expect(page.locator("#full-review-progress")).to_be_hidden()
             assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
+
+
+def test_whole_volume_review_lists_tool_checked_labels_in_german(tmp_path: Path) -> None:
+    """Without an image model the panel shows what the tools checked, not a 16-label miss list."""
+    settings = Settings(data_dir=tmp_path / "data")
+    with serve(settings) as address, browser_page(address) as page:
+        page.locator("#create-demo").click()
+        expect(page.locator("#run-full-review")).to_be_enabled()
+        page.locator("#language-toggle").click()
+        expect(page.locator("#full-review-note")).to_contain_text("etwa eine Minute")
+        page.locator("#run-full-review").click()
+        panel = page.locator("#full-review-panel")
+        _advance_until(page, panel.is_visible)
+        expect(page.locator("#full-review-tools-row")).to_contain_text(
+            "Über das ganze Volumen geprüft"
+        )
+        expect(page.locator("#full-review-tools")).to_contain_text("Dichteregeln")
+        expect(page.locator("#full-review-noflags-row")).to_be_hidden()
+        expect(page.locator("#full-review-constant-row")).to_be_hidden()
+        unchecked = page.locator("#full-review-unanswered")
+        expect(unchecked).to_contain_text("Thoraxprüfung mit Bildmodell")
+        expect(unchecked).not_to_contain_text("Emphysem")
+        expect(panel).to_contain_text("Selbst entwickeltes experimentelles")
+        expect(panel).not_to_contain_text("Experimentelles Selbst")

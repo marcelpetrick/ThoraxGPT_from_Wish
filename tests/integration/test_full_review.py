@@ -131,6 +131,8 @@ def test_full_review_agrees_detector_hu_and_vlm(study: Study, scripted_detector:
     assert summary["verdict"] == "findings_to_review"
     assert summary["coverage"] | {"partial": False, "stopped": False} == summary["coverage"]
     assert summary["detector"]["status"] == "completed"
+    assert summary["labels_tool_checked"]["detector"] == ["pulmonary_nodule"]
+    assert "pulmonary_nodule" not in summary["labels_not_checked"]
     top = summary["look_here"][0]
     assert top["label"] == "pulmonary_nodule"
     assert top["sources"] == ["detector", "hu", "vlm"]
@@ -254,6 +256,18 @@ def test_whole_volume_review_without_image_model(study: Study) -> None:
     assert run.summary["coverage"]["slabs_total"] == 0
     assert run.summary["heuristic"]["status"] == "completed"
     assert run.summary["coverage"]["stopped"] is False
+    # Labels the density rules answered are checked, not "could not be checked".
+    tools = run.summary["labels_tool_checked"]
+    assert tools["detector"] == []
+    assert {"emphysema", "pleural_effusion", "pneumothorax"} <= set(tools["hu"])
+    assert "emphysema" not in run.summary["labels_not_checked"]
+    assert "hiatal_hernia" in run.summary["labels_not_checked"]
+    page = render_full_review_html(run.summary, run.thumbnails)
+    assert "Checked over the whole volume" in page
+    assert "Not checked in this run" in page
+    assert "need the image-model slab sweep" in page
+    assert "Answers without information" not in page
+    assert "Could not be checked" not in page
 
 
 def test_whole_volume_review_reports_a_requested_stop(study: Study) -> None:

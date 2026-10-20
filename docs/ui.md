@@ -72,7 +72,7 @@ position and elapsed waiting time; failures stop that model's timer and allow la
 to proceed.
 
 The **Rough remaining estimate** starts with broad workstation guesses: 1–60 seconds for
-the HU baseline and 1–15+ minutes for a vision model. Later estimates use recent local
+the HU baseline, 1–3 minutes for the nodule detector and 1–15+ minutes for a vision model. Later estimates use recent local
 request durations for the same model and image count. They are not measured benchmarks,
 inference progress or deadlines. Hardware, input size and cold loading can exceed them.
 Only numeric duration history is stored locally; no study identifiers are used.

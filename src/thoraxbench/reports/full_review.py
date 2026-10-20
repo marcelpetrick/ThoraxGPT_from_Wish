@@ -108,6 +108,16 @@ def _reliability_text(summary: dict[str, Any], names: dict[str, str]) -> str:
     return ""
 
 
+def _tools_text(tools: dict[str, list[str]], names: dict[str, str]) -> str:
+    """Which labels the detector and density rules answered over the whole volume."""
+    parts = [
+        f"{', '.join(names.get(lbl, lbl) for lbl in tools.get(key, []))} ({tool})"
+        for key, tool in (("detector", "nodule detector"), ("hu", "density rules, weak cues"))
+        if tools.get(key)
+    ]
+    return "; ".join(parts) or "none"
+
+
 def _baseline_text(summary: dict[str, Any]) -> str:
     detector = summary.get("detector", {})
     status = detector.get("status")
@@ -239,15 +249,33 @@ def render_full_review_html(summary: dict[str, Any], thumbnails: dict[int, bytes
     def _names(key: str) -> str:
         return ", ".join(names.get(lbl, lbl) for lbl in summary.get(key, [])) or "none"
 
+    swept = bool(summary.get("coverage", {}).get("slabs_total"))
+    tools = summary.get("labels_tool_checked")
+    if tools is not None:
+        out += [
+            "<h2>Checked over the whole volume</h2>",
+            f"<p>{escape(_tools_text(tools, names))}</p>",
+        ]
+    if swept:
+        out += [
+            "<h2>What the image model checked and did not flag</h2>",
+            f"<p>{escape(_names('labels_no_flags'))}</p>",
+            "<h2>Answers without information</h2>",
+            "<p class='muted'>The image model said “yes” on most slabs for these, so a yes "
+            "means nothing here.</p>",
+            f"<p>{escape(_names('labels_not_informative'))}</p>",
+        ]
+    unchecked = "labels_not_checked" if "labels_not_checked" in summary else "labels_unanswered"
     out += [
-        "<h2>What was checked and not flagged</h2>",
-        f"<p>{escape(_names('labels_no_flags'))}</p>",
-        "<h2>Answers without information</h2>",
-        "<p class='muted'>The image model said “yes” on most slabs for these, so a yes "
-        "means nothing here.</p>",
-        f"<p>{escape(_names('labels_not_informative'))}</p>",
-        "<h2>Could not be checked</h2>",
-        f"<p>{escape(_names('labels_unanswered'))}</p>",
+        "<h2>Not checked in this run</h2>",
+        f"<p>{escape(_names(unchecked))}</p>",
+    ]
+    if not swept and summary.get(unchecked):
+        out.append(
+            "<p class='muted'>These need the image-model slab sweep: run the full review "
+            "with an image model to include them.</p>"
+        )
+    out += [
         "<h2>Next steps (rule-based guideline context, educational)</h2><ul>",
         *[f"<li>{escape(step)}</li>" for step in summary.get("next_steps", [])],
         "</ul>",

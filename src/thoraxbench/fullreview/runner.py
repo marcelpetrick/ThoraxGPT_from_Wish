@@ -47,7 +47,7 @@ from thoraxbench.views import MultiSliceView, get_view, render_slice_png
 PROMPT_ID = "P7"
 DETECTOR_ID = "monai-lung-nodule"
 HEURISTIC_ID = "heuristic-hu"
-RUNNER_VERSION = "1"
+RUNNER_VERSION = "2"
 #: Stop early when this many slabs in a row fail before any slab answered (runtime down).
 MAX_INITIAL_FAILURES = 3
 #: Edge length of the retained downscaled copy of each model image (HTML evidence).
@@ -143,6 +143,12 @@ def _baselines(
         "status": "abstained" if heuristic.report.abstain else "completed",
         "nodule_candidates": len(candidates),
         "positive_labels": [c.label for c in cues],
+        # Every label the density rules answered over the whole volume, flagged or not.
+        "checked_labels": sorted(
+            {f.label for f in heuristic.report.findings if f.presence_probability() is not None}
+        )
+        if not heuristic.report.abstain
+        else [],
         "seconds": round(heuristic.perf.total_s, 3),
     }
     detector_info: dict[str, Any] = {"status": "not_configured", "candidates": 0}
@@ -348,6 +354,13 @@ def run_full_review(  # noqa: PLR0915 - one staged, linear engine pipeline
         key: [lbl for lbl, s in aggregate.labels.items() if s.status == key]
         for key in ("flagged", "not_informative", "no_flags", "unanswered")
     }
+    # Whole-volume tools check some labels even without a slab sweep; only the rest is unchecked.
+    tool_checked = {
+        "detector": ["pulmonary_nodule"] if detector_info.get("status") == "completed" else [],
+        "hu": [lbl for lbl in labels if lbl in heuristic_info.get("checked_labels", [])],
+    }
+    by_tools = {lbl for checked in tool_checked.values() for lbl in checked}
+    not_checked = [lbl for lbl in by_status["unanswered"] if lbl not in by_tools]
     covered = [selection.slab_bounds[0][0], selection.slab_bounds[-1][1] - 1] if total else None
     visited_count = len(slabs)
     summary: dict[str, Any] = {
@@ -392,6 +405,8 @@ def run_full_review(  # noqa: PLR0915 - one staged, linear engine pipeline
         "labels_not_informative": by_status["not_informative"],
         "labels_no_flags": by_status["no_flags"],
         "labels_unanswered": by_status["unanswered"],
+        "labels_tool_checked": tool_checked,
+        "labels_not_checked": not_checked,
         "model_constant": aggregate.model_constant,
         "overall_positive_rate": None
         if aggregate.overall_positive_rate is None

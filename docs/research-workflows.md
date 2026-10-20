@@ -127,7 +127,7 @@ Live loading feedback shows actual operation counters. Structured job logs persi
 header values. See [Checking a real DICOM folder](wiki/Checking-a-real-DICOM-folder.md).
 
 The **Rough remaining estimate** starts with broad workstation guesses: 1–60 seconds for
-the HU baseline and 1–15+ minutes for a vision model. Later estimates use recent local
+the HU baseline, 1–3 minutes for the nodule detector and 1–15+ minutes for a vision model. Later estimates use recent local
 request durations for the same model and image count. They are not measured benchmarks,
 inference progress or deadlines. Hardware, input size and cold loading can exceed them.
 Only numeric duration history is stored locally; no study identifiers are used.
