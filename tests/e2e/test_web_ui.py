@@ -82,6 +82,13 @@ def test_synthetic_study_analysis_downloads_and_about(
     expect(page.get_by_role("table").first).to_be_visible()
     expect(page.get_by_role("table").first).to_contain_text(re.compile("nodule", re.I))
     expect(page.locator("#metric-images")).to_have_text("0")
+    # The plain-language verdict leads the result in the interface language.
+    expect(page.locator("#verdict-text")).to_contain_text(
+        "Zur Prüfung markiert" if language == "de" else "Flagged for review"
+    )
+    expect(page.locator("#verdict-source")).to_contain_text(
+        "Feste Formulierung" if language == "de" else "Fixed wording"
+    )
     _check_findings_scores(page, language)
     _check_control_tooltips(page)
     with page.expect_download() as downloaded:

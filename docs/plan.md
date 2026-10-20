@@ -138,6 +138,9 @@ Phase A — report clarity (lead, inline; separate commit):
   structured outcome (always available, EN/DE). Optional "LLM summary": a local text-only
   call that receives only the structured outcome JSON, never images; accepted only if every
   number, label and side it mentions exists in that JSON, otherwise the template is shown.
+- [x] A8 App result panel leads with the verdict (EN/DE, follows the language switch) and a
+  "Rephrase with local LLM" button; the source line says fixed wording, LLM, or why the LLM
+  text was rejected. E2E checks the verdict in both languages.
 - Phase A evidence: Markdown/HTML open with a ≤3-sentence verdict (`reports/outcome.py`,
   EN/DE templates) and coverage; yes-bias collapses N abstention lines into one; detector
   candidates below 0.5 are counted, not listed; HTML has a CSS-only EN/DE switch; one short

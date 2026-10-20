@@ -75,3 +75,4 @@ body:has(.job-notice:not([hidden])) main{padding-bottom:135px}
 .full-review-outcome.verdict-nothing_flagged_in_checked_area{border-color:var(--accent)}
 .full-review-look li{margin-bottom:.6rem;overflow-wrap:anywhere}
 .full-review-look li .button{margin-top:.3rem}
+.verdict-box{border:2px solid var(--accent);border-radius:10px;padding:14px 16px;margin:16px 0}.verdict-box h3{margin:0 0 6px;font-size:14px}#verdict-text{font-size:14px;font-weight:600;margin:0 0 6px}#verdict-source{margin:0 0 10px}
