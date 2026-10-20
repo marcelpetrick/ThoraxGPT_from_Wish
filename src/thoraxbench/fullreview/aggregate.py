@@ -23,7 +23,7 @@ from thoraxbench.ontology.clinical import load_clinical_kb
 from thoraxbench.ontology.guidelines import fleischner
 
 #: Version of the aggregation/ranking rules (bump on any rule change).
-AGGREGATION_VERSION = "1"
+AGGREGATION_VERSION = "2"
 #: A label positive on more than this share of its answered slabs is "not informative".
 CONSTANT_LABEL_RATE = 0.6
 #: A model whose positives exceed this share of all answered (label, slab) pairs is constant.
@@ -148,6 +148,8 @@ class LookHere:
     vlm_spanned_slabs: int = 0
     evidence: list[str] = field(default_factory=list)
     rank: int = 0
+    #: Only the HU density rules point here; listed as a weak cue, never the verdict alone.
+    weak: bool = False
 
     def to_dict(self) -> dict[str, Any]:
         """JSON-ready dictionary."""
@@ -356,8 +358,10 @@ def rank_look_here(
         )
     for item in items:
         item.agreement = len(set(item.sources)) >= 2
+        item.weak = set(item.sources) == {"hu"}
     items.sort(
         key=lambda i: (
+            i.weak,
             -len(set(i.sources)),
             not i.agreement,
             -(i.detector_score or 0.0),
@@ -383,7 +387,9 @@ def verdict_of(
     """Plain outcome: something to review, nothing flagged where checked, or not assessable."""
     if not study_adequate:
         return "not_assessable"
-    if look_here:
+    # HU density rules over-report on real scans (test runs 2026-10-20); alone they are
+    # weak cues that support other sources but never make the verdict.
+    if any(not item.weak for item in look_here):
         return "findings_to_review"
     vlm_usable = answered_slabs > 0 and not model_constant
     if vlm_usable or detector_completed:

@@ -20,6 +20,7 @@ Verdict = Literal["findings_to_review", "nothing_flagged", "not_assessable"]
 SHOW_SCORE = 0.5
 # Share of requested labels claimed positive without image evidence that marks a yes-bias.
 YES_BIAS_SHARE = 0.75
+DETECTOR_MODEL = "monai-lung-nodule"
 NO_EVIDENCE = "positive has no valid attached-image evidence"
 
 SHORT_DISCLAIMER = {
@@ -168,7 +169,8 @@ def build_outcome(
     total = int(result.qc.get("n_slices") or 0)
     coverage = _coverage(result, lang)
     biased = yes_bias(result)
-    detector = result.report.lesions is not None
+    # A failed detector run may carry no lesion list; its model id still identifies it.
+    detector = result.report.lesions is not None or result.model_id == DETECTOR_MODEL
     if result.report.abstain or result.raw_error:
         if biased:
             labels = len(result.request.labels) or len(result.report.findings)
@@ -190,11 +192,18 @@ def build_outcome(
             if lang == "de"
             else f"It was shown {coverage}; this run says nothing about the scan."
         )
-        third = (
-            "Für Lungenrundherde den Detektor (1️⃣ monai-lung-nodule) auf dieselbe Studie anwenden."
-            if lang == "de"
-            else "Run the lung-nodule detector (1️⃣ monai-lung-nodule) on the same study."
-        )
+        if detector:
+            third = (
+                "Detektor-Einrichtung prüfen und erneut starten oder Radiologen lesen lassen."
+                if lang == "de"
+                else "Check the detector setup and retry, or have a radiologist read the scan."
+            )
+        else:
+            third = (
+                "Für Lungenrundherde den Detektor (1️⃣ monai-lung-nodule) anwenden."
+                if lang == "de"
+                else "Run the lung-nodule detector (1️⃣ monai-lung-nodule) on the same study."
+            )
         return Outcome("not_assessable", [first, second, third], coverage, yes_bias=biased)
     places, hidden = _look_here(result, width_mm)
     if not places:

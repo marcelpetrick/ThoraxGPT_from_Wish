@@ -33,9 +33,12 @@ def _start(page: Page, provider: FakeOllama, german: bool) -> None:
     expect(page.locator("#run-analysis")).to_be_enabled()
     if german:
         page.locator("#language-toggle").click()
+    # The HU baseline (default) may start a whole-volume review; unavailable models may not.
+    expect(page.locator("#run-full-review")).to_be_enabled()
+    page.locator("#model-select").select_option("ct-chat")
     expect(page.locator("#run-full-review")).to_be_disabled()
     expect(page.locator("#full-review-blocked")).to_contain_text(
-        "Bildmodell" if german else "image model"
+        "Detektor" if german else "detector"
     )
     page.locator("#model-select").select_option("medgemma1.5-q4")
     expect(page.locator("#run-full-review")).to_be_enabled()
@@ -62,9 +65,11 @@ def test_full_review_shows_eta_and_plain_outcome(tmp_path: Path) -> None:
             provider.release(200)
             panel = page.locator("#full-review-panel")
             _advance_until(page, panel.is_visible)
+            # The scripted model abstains and no detector runs: density cues alone are weak.
             expect(page.locator("#full-review-verdict")).to_have_text(
-                "Something to show a radiologist"
+                "This scan could not be assessed"
             )
+            expect(page.locator("#full-review-look")).to_contain_text("weak cue")
             expect(page.locator("#full-review-coverage")).to_contain_text("Checked 0 of")
             expect(page.locator("#full-review-look li").first).to_contain_text("Pulmonary nodule")
             expect(page.locator("#full-review-look")).to_contain_text("density (HU) measurement")
@@ -94,7 +99,7 @@ def test_full_review_stop_keeps_partial_result_in_german(tmp_path: Path) -> None
             expect(page.locator("#notice")).to_contain_text("Teilergebnis")
             expect(page.locator("#full-review-coverage")).to_contain_text("Teilergebnis")
             expect(page.locator("#full-review-verdict")).to_have_text(
-                "Etwas für die Radiologie zum Ansehen"
+                "Diese Aufnahme konnte nicht beurteilt werden"
             )
             expect(page.locator("#full-review-progress")).to_be_hidden()
             assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")

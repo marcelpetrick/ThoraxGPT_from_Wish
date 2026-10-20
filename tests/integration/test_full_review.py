@@ -248,9 +248,17 @@ def test_slab_self_abstention_keeps_per_label_answers(study: Study) -> None:
     )
 
 
-def test_non_image_models_are_refused(study: Study) -> None:
+def test_whole_volume_review_without_image_model(study: Study) -> None:
+    """The slab sweep is optional; the detector/HU baseline alone still give an outcome."""
+    run = run_full_review(study, "heuristic-hu", Settings(), detector_id=None)
+    assert run.summary["coverage"]["slabs_total"] == 0
+    assert run.summary["heuristic"]["status"] == "completed"
+    assert run.summary["coverage"]["stopped"] is False
+
+
+def test_service_models_are_refused(study: Study) -> None:
     with pytest.raises(ModelUnavailableError):
-        run_full_review(study, "heuristic-hu", Settings())
+        run_full_review(study, "ct-chat", Settings())
 
 
 # -- job API over a scripted loopback Ollama stand-in ---------------------------------------
@@ -287,7 +295,7 @@ def _submit(client: TestClient, model_id: str = "medgemma1.5-q4") -> Any:
 def test_full_review_job_reports_progress_and_outcome(
     client: TestClient, ollama: FakeOllama
 ) -> None:
-    assert _submit(client, "heuristic-hu").status_code == 422
+    assert _submit(client, "ct-chat").status_code == 422  # service models cannot sweep
     job = _submit(client).json()["job"]
     assert job["kind"] == "full-review"
     assert job["models"] == ["medgemma1.5-q4"]
@@ -301,10 +309,13 @@ def test_full_review_job_reports_progress_and_outcome(
     assert _submit(client).json()["created"] is False
     ollama.release(200)
     done = _until(client, job["id"], lambda j: j["finished"])
-    # The scripted provider abstains, but HU cues on the phantom still give places to look.
-    assert done["status"] == "succeeded"
+    # The scripted provider abstains and no detector ran: HU cues alone are weak, listed
+    # but never the verdict, so nothing usable checked the scan.
+    assert done["status"] == "abstained"
     summary = done["result"]["summary"]
-    assert summary["verdict"] == "findings_to_review"
+    assert summary["verdict"] == "not_assessable"
+    assert summary["look_here"]
+    assert all(item["weak"] for item in summary["look_here"])
     assert summary["coverage"]["slabs_answered"] == 0
     assert summary["detector"]["status"] in {"unavailable", "completed"}
     page = client.get(done["result"]["downloads"]["html"] + "?inline=true")

@@ -34,6 +34,9 @@ def test_candidate_previews_and_slice_navigation(
         expect(page.locator("#candidate-panel")).to_be_visible(timeout=30_000)
         expect(page.locator("#candidate-body tr")).to_have_count(1)
         expect(page.locator("#candidate-previews img")).to_have_count(2)
+        # Previews load lazily; bring them into view as a reader would (the verdict box
+        # above the results can push them below the fold).
+        page.locator("#candidate-previews").scroll_into_view_if_needed()
         page.wait_for_function(
             "() => [...document.querySelectorAll('#candidate-previews img')]"
             ".every(i => i.complete && i.naturalWidth === 256)"

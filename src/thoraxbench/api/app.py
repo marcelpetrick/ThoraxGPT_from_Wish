@@ -28,6 +28,7 @@ from thoraxbench.api.abortable_http import abortable_client
 from thoraxbench.api.diagnostics import RECOVERY, failure_code, header_warning_diagnostic
 from thoraxbench.api.evaluation import Evaluation, EvaluationError
 from thoraxbench.api.jobs import (
+    ACTIVE,
     JobCancelledError,
     JobContext,
     JobError,
@@ -68,6 +69,8 @@ from thoraxbench.views import render_slice_png
 ASSETS = Path(__file__).parent
 # Local text model that may rephrase the deterministic verdict (fact-checked, optional).
 SUMMARY_MODEL = "medgemma1.5-q4"
+# Adapters a full thorax review can start from (image-model sweep optional).
+REVIEW_ADAPTERS = frozenset({"ollama", "monai_detector", "heuristic"})
 RECOMMENDED_MODELS = (
     "monai-lung-nodule",
     "heuristic-hu",
@@ -777,8 +780,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:  # noqa: PLR0915 - 
         """Run the full thorax review; returns the payload and whether it was stopped."""
         identifier, folder = result_folder()
         item = configured_models().get(model_id)
-        if item is None or item.adapter != "ollama":
-            raise JobError("Full thorax review needs a local vision-language model")
+        if item is None or item.adapter not in REVIEW_ADAPTERS:
+            raise JobError("Full thorax review needs an image model or the detector")
         context.stage("study")
         try:
             study = get_study(dataset, case_id)
@@ -848,8 +851,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:  # noqa: PLR0915 - 
         configured = configured_models()
         if body.kind in {"analysis", "full-review"} and body.model_id not in configured:
             raise HTTPException(422, "Unknown model")
-        if body.kind == "full-review" and configured[body.model_id].adapter != "ollama":
-            raise HTTPException(422, "Full thorax review needs a local vision-language model")
+        if body.kind == "full-review" and configured[body.model_id].adapter not in REVIEW_ADAPTERS:
+            raise HTTPException(422, "Full thorax review needs an image model or the detector")
         if (
             body.kind == "analysis"
             and configured[body.model_id].prompt == "P6"
@@ -977,6 +980,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:  # noqa: PLR0915 - 
         template = " ".join(outcome.sentences)
         if not body.use_llm:
             return {"text": template, "source": "template", "rejection": None}
+        # The GPU runs one job at a time; the optional rephrasing never competes with it.
+        if any(job["status"] in ACTIVE for job in jobs.snapshots()):
+            return {"text": template, "source": "template", "rejection": "a local job is running"}
         model = configured_models().get(SUMMARY_MODEL)
         if model is None or not model.tag:
             return {"text": template, "source": "template", "rejection": "no summary model"}

@@ -158,6 +158,12 @@ Phase C — thorax-review focus and model guidance (lead):
   only the strength (0.5 = unknown), contradictions add a warning; bare numbers and P6
   logprobs keep P(present) semantics. Earlier "constant positive" MedGemma conclusions
   (status 2026-10-17, readiness checks) must be re-run before they are cited.
+- [x] R1 Branch review (v0.5.4…d4988f6), all findings fixed: (1) HU-only look-here entries are
+  weak cues and never decide the verdict (real scans got "findings to review" from density
+  noise); (2) the full review also runs with the detector or HU baseline only, the image-model
+  sweep is optional and the UI no longer recommends MedGemma; (3) the optional LLM verdict
+  falls back to the template while a GPU job runs; (4) a failed detector run no longer
+  recommends running the detector.
 - [x] C0b Full review: a slab-level self-abstention ("only one slice visible") no longer
   discards the per-label answers; P7 1.1.0 asks for `abstain: false` and null per label.
 - [x] C1 Evidence-based fit marker per model (`fit` 1–3 + reason in `configs/models/*.yaml`):

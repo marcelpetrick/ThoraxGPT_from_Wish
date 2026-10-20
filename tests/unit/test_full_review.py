@@ -204,7 +204,20 @@ def test_ranking_is_bounded(monkeypatch: pytest.MonkeyPatch) -> None:
 def test_verdicts() -> None:
     item = rank_look_here([], [], [StudyLevelCue("emphysema")], slab_slices=1, spacing_z_mm=1)
     kwargs: dict[str, Any] = {"answered_slabs": 10, "model_constant": False}
-    assert verdict_of(item, detector_completed=False, **kwargs) == "findings_to_review"
+    # Density rules alone are a weak cue: listed, but never the verdict (2026-10-20 review).
+    assert item[0].weak
+    assert verdict_of(item, detector_completed=False, **kwargs) == (
+        "nothing_flagged_in_checked_area"
+    )
+    detector = rank_look_here(
+        [],
+        [Candidate("detector", "pulmonary_nodule", 40, "right", 0.9, 5.3)],
+        [StudyLevelCue("emphysema")],
+        slab_slices=1,
+        spacing_z_mm=1,
+    )
+    assert [entry.weak for entry in detector] == [False, True]
+    assert verdict_of(detector, detector_completed=True, **kwargs) == "findings_to_review"
     assert verdict_of([], detector_completed=False, **kwargs) == "nothing_flagged_in_checked_area"
     assert (
         verdict_of([], answered_slabs=10, model_constant=True, detector_completed=False)

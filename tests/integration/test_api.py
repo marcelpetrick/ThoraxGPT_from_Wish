@@ -18,6 +18,7 @@ from typer.testing import CliRunner
 
 from thoraxbench.analysis import AnalysisResult
 from thoraxbench.api import app as api
+from thoraxbench.api.jobs import JobManager
 from thoraxbench.api.licenses import runtime_libraries
 from thoraxbench.cli import main as cli
 from thoraxbench.config import Settings
@@ -37,6 +38,23 @@ def settings(tmp_path: Path) -> Settings:
 @pytest.fixture
 def client(settings: Settings) -> TestClient:
     return TestClient(api.create_app(settings))
+
+
+def _check_verdict_summary(client: TestClient, json_url: str) -> None:
+    """The verdict endpoint answers in EN/DE and never queues behind a running job."""
+    summary_url = json_url.rsplit("/", 1)[0] + "/summary"
+    for lang in ("en", "de"):
+        verdict = client.post(summary_url, json={"lang": lang})
+        assert verdict.status_code == 200
+        assert verdict.json()["source"] == "template"
+        assert verdict.json()["text"].count(".") <= 3
+    assert client.post(summary_url, json={"lang": "fr"}).status_code == 422
+    # The optional LLM wording never competes with a running GPU job.
+    with pytest.MonkeyPatch.context() as patch:
+        patch.setattr(JobManager, "snapshots", lambda self: [{"status": "running"}])
+        busy = client.post(summary_url, json={"lang": "en", "use_llm": True}).json()
+    assert busy["source"] == "template"
+    assert busy["rejection"] == "a local job is running"
 
 
 def test_demo_slices_analysis_and_downloads(client: TestClient) -> None:
@@ -72,13 +90,7 @@ def test_demo_slices_analysis_and_downloads(client: TestClient) -> None:
     assert "## Verdict" in body["markdown"]
     saved = client.get(body["downloads"]["json"])
     assert saved.json() == body["result"]
-    summary_url = body["downloads"]["json"].rsplit("/", 1)[0] + "/summary"
-    for lang in ("en", "de"):
-        verdict = client.post(summary_url, json={"lang": lang})
-        assert verdict.status_code == 200
-        assert verdict.json()["source"] == "template"
-        assert verdict.json()["text"].count(".") <= 3
-    assert client.post(summary_url, json={"lang": "fr"}).status_code == 422
+    _check_verdict_summary(client, body["downloads"]["json"])
     assert "attachment" in saved.headers["content-disposition"]
     assert client.get(body["downloads"]["markdown"]).text == body["markdown"]
     html = client.get(body["downloads"]["html"])

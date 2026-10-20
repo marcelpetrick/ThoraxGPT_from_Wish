@@ -85,3 +85,18 @@ output (fewer labels per call or a smaller generation budget) is open.
   are judged in the model's render mode only.
 * "Nothing flagged" never means the scan is normal. Only a radiologist's report counts.
 * Validate on synthetic studies and calibration cases only; never on the sealed holdout.
+
+## Update 2026-10-20 (review fixes)
+
+- Density-rule (HU) entries alone are listed as **weak cues** and never make the verdict
+  "findings to review"; they still raise agreement when another tool points to the same place.
+- The review can start with the detector (1️⃣ `monai-lung-nodule`) or the HU baseline: then
+  no image-model slab sweep runs and the detector plus density rules check the whole volume.
+  With MedGemma the sweep adds about 2 minutes per slab and, in test runs, answered "absent"
+  for every label (see `docs/model-test-runs-2026-10-20.md`).
+- MedGemma's per-slab "abstain" (it sees one slice) no longer discards its per-label answers.
+- Live check after the fixes (synthetic phantom, MedGemma Q4, stopped after 8 of 59 slabs
+  to free the GPU): all 8 slabs answered (previously none), every label "absent" on every
+  slab including the nodule level; ~110 s per slab while the detector shared the GPU. The
+  detector found the planted nodule and the HU rules agreed, so the outcome was "findings to
+  review" with that nodule first. Use the detector-only review for practical runs.

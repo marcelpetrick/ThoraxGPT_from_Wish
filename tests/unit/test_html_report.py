@@ -357,3 +357,13 @@ def test_outcome_without_findings_says_what_was_checked(result: AnalysisResult) 
         "Checked: whole volume; only lung nodules were searched.",
         "This does not rule out findings; the radiologist's report remains the reference.",
     ]
+
+
+def test_failed_detector_does_not_recommend_itself(result: AnalysisResult) -> None:
+    result.model_id = "monai-lung-nodule"
+    result.qc = {"n_slices": 64}
+    result.raw_error = "RuntimeError: weights missing"
+    outcome = build_outcome(result, "en")
+    assert outcome.verdict == "not_assessable"
+    assert "Check the detector setup" in outcome.sentences[2]
+    assert "Run the lung-nodule detector" not in " ".join(outcome.sentences)

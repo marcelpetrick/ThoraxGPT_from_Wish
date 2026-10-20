@@ -64,6 +64,11 @@ def _coverage_text(summary: dict[str, Any]) -> str:
     cov = summary["coverage"]
     total, answered = cov["slabs_total"], cov["slabs_answered"]
     if not total:
+        if summary.get("detector", {}).get("status") == "completed":
+            return (
+                "No image-model slab sweep ran; the nodule detector and the density rules "
+                "checked the whole scan volume."
+            )
         return "No part of the scan was checked by the image model."
     pct = round(100 * answered / total)
     covered = cov.get("covered_slices") or [0, cov["slices_total"] - 1]
@@ -154,6 +159,8 @@ def _look_here_html(
         facts = [f"Found by: {sources}."]
         if item.get("agreement"):
             facts.append("Several independent tools point to this place.")
+        if item.get("weak"):
+            facts.append("Weak cue: only the density rules point here; they often over-report.")
         if item.get("vlm_positive_slabs"):
             facts.append(
                 f"Image model said yes on {item['vlm_positive_slabs']} of "

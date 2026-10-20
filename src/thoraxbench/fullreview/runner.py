@@ -214,10 +214,16 @@ def run_full_review(  # noqa: PLR0915 - one staged, linear engine pipeline
     stop = should_stop or (lambda: False)
     started = clock()
     config = load_model_config(model_id, settings.configs_dir / "models")
-    if config.adapter != "ollama" and model is None:
-        raise ModelUnavailableError("full thorax review needs a local vision-language model")
-    window, size = _window(get_view(config.view, **config.view_params))
-    vlm = model or load_model(model_id, settings, prompt_id=PROMPT_ID, client=client)
+    # The image-model slab sweep is optional: with the detector or HU baseline selected, the
+    # review runs the whole-volume tools only (the detector is the component with signal).
+    image_model = model is not None or config.adapter == "ollama"
+    if not image_model and config.adapter not in {"monai_detector", "heuristic"}:
+        raise ModelUnavailableError("full thorax review needs an image model or the detector")
+    vlm: ThoraxModel | None = None
+    window, size = "lung", 0
+    if image_model:
+        window, size = _window(get_view(config.view, **config.view_params))
+        vlm = model or load_model(model_id, settings, prompt_id=PROMPT_ID, client=client)
     ontology = load_ontology()
     labels = ontology.ids(core_only=True)
     names = {lb.id: lb.name for lb in ontology.labels}
@@ -225,7 +231,11 @@ def run_full_review(  # noqa: PLR0915 - one staged, linear engine pipeline
     sweep = strategy or ThoraxSweep()
     volume = study.volume
     adequate = bool(study.qc.adequate)
-    selection = sweep.select(volume, study.cues) if adequate else Selection([], [], slab_bounds=[])
+    selection = (
+        sweep.select(volume, study.cues)
+        if adequate and image_model
+        else Selection([], [], slab_bounds=[])
+    )
     total = len(selection.indices)
     candidates: list[Candidate] = []
     cues: list[StudyLevelCue] = []
@@ -236,7 +246,7 @@ def run_full_review(  # noqa: PLR0915 - one staged, linear engine pipeline
             study, settings, detector_id=detector_id, announce=announce, stop=stop
         )
     prompt_sha = getattr(getattr(vlm, "prompt", None), "sha256", None)
-    identity = vlm.describe() if adequate and hasattr(vlm, "describe") else {}
+    identity = vlm.describe() if adequate and vlm is not None and hasattr(vlm, "describe") else {}
     slabs: list[dict[str, Any]] = []
     answered: list[SlabAnswers] = []
     thumbnails: dict[int, bytes] = {}
@@ -248,8 +258,8 @@ def run_full_review(  # noqa: PLR0915 - one staged, linear engine pipeline
         announce("slabs")
     progress(0, total, None)
     for visited, position in enumerate(selection.visit_order):
-        if stop():
-            stopped = True
+        if stop() or vlm is None:
+            stopped = vlm is not None
             break
         lo, hi = selection.slab_bounds[position]
         tag = selection.tags[position]
