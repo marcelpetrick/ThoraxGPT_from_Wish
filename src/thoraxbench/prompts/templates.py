@@ -30,7 +30,7 @@ import yaml
 from thoraxbench.ontology import Ontology, load_ontology
 from thoraxbench.prompts.schema import findings_json_schema, strict_findings_json_schema
 
-PROMPT_IDS = ("P0", "P1", "P2", "P3", "P4", "P5", "P6")
+PROMPT_IDS = ("P0", "P1", "P2", "P3", "P4", "P5", "P6", "P7")
 SCHEMA_VERSIONS = ("1", "2")
 NO_CONTEXT = "No deterministic measurements are available for this study."
 

@@ -306,3 +306,39 @@ def test_failing_abort_hook_does_not_break_cancellation() -> None:
     assert started.wait(TIMEOUT)
     assert manager.cancel(_uid(job))["status"] == "cancelling"  # type: ignore[index]
     assert manager.wait(_uid(job), TIMEOUT)["status"] == "cancelled"  # type: ignore[index]
+
+
+def test_measured_rate_progress_and_partial_result_on_cancel() -> None:
+    manager = JobManager()
+    reported = threading.Event()
+    proceed = threading.Event()
+
+    def work(context: JobContext) -> JobOutcome:
+        context.progress("review_images", 0, 10)
+        context.progress("review_images", 2, 10, seconds_per_item=9.84)
+        for bad in (float("nan"), -1.0, True):
+            with pytest.raises(ValueError, match="time per item"):
+                context.progress("review_images", 3, 10, seconds_per_item=bad)
+        reported.set()
+        assert proceed.wait(TIMEOUT)
+        raise JobCancelledError(result={"partial": True})
+
+    job, _ = manager.submit("full-review", "rate", {}, work)
+    assert reported.wait(TIMEOUT)
+    running = manager.get(_uid(job))
+    assert running is not None
+    assert running["progress"] == {
+        "operation": "review_images",
+        "completed": 2,
+        "total": 10,
+        "seconds_per_item": 9.84,
+        "remaining_s": 78.7,
+    }
+    manager.cancel(_uid(job))
+    proceed.set()
+    final = manager.wait(_uid(job), TIMEOUT)
+    assert final is not None
+    assert final["status"] == "cancelled"
+    assert final["result"] == {"partial": True}
+    assert final["result_available"] is True
+    assert final["progress"] is None

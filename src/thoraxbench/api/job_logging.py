@@ -18,7 +18,15 @@ from thoraxbench.provenance import git_state
 
 LOGGER = logging.getLogger("thoraxbench.job_events")
 OPERATIONS = frozenset(
-    {"path_check", "header_check", "discovery", "pixel_decode", "input_qc", "source_recheck"}
+    {
+        "path_check",
+        "header_check",
+        "discovery",
+        "pixel_decode",
+        "input_qc",
+        "source_recheck",
+        "review_images",
+    }
 )
 
 

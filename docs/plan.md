@@ -157,19 +157,31 @@ Phase C — thorax-review focus and model guidance (lead):
   on evidence.
 
 Phase B — full thorax review job (isolated worker; separate commits):
-- [ ] B1 Coverage sweep over lung z-range plus mediastinal/upper-abdomen margin as
+- [x] B1 Coverage sweep over lung z-range plus mediastinal/upper-abdomen margin as
   contiguous slabs, visited coarse-to-fine (ends, middle, quarters, … until all covered).
-- [ ] B2 One multi-label query per slab (all labels, yes/no + evidence); about 60–70 slabs
+- [x] B2 One multi-label query per slab (all labels, yes/no + evidence); about 60–70 slabs
   for a 317 mm scan, roughly 10–15 min with MedGemma Q4 on this workstation.
-- [ ] B3 Aggregate per label across neighbouring slabs: localized clusters become findings;
+- [x] B3 Aggregate per label across neighbouring slabs: localized clusters become findings;
   a label positive on most slabs is reported as "not informative (constant answer)".
-- [ ] B4 Combine whole-volume MONAI candidates, HU cues and VLM clusters into one ranked
+- [x] B4 Combine whole-volume MONAI candidates, HU cues and VLM clusters into one ranked
   "look here" list with slice range, side, sources and agreement.
-- [ ] B5 Live progress: after the first slab, show measured time per image and
+- [x] B5 Live progress: after the first slab, show measured time per image and
   "k of n images left, about M min" (updated after every image); cancel keeps partial results.
-- [ ] B6 Outcome summary + rule-based next steps (existing guideline rules only).
+- [x] B6 Outcome summary + rule-based next steps (existing guideline rules only).
 - [ ] B7 Validate on synthetic lesions and calibration cases only (never the holdout);
   record honestly whether VLM clusters add anything over the detector.
+- Phase B evidence (isolated worker, integrated by the lead): `thorax_sweep` strategy
+  (5 mm slabs over lung range +10/−30 mm, coarse-to-fine order, ≤96 slabs), prompt P7
+  (one slab, all labels, null when not visible), `full-review` job with HU baseline and MONAI
+  once, label clustering with constant-answer detection (>60 % per label, >85 % overall),
+  ranked look-here list, measured s/image + remaining images/time, cancel keeps a partial
+  result, EN/DE outcome panel, `docs/full-review.md`. Worker suite: 1052 passed. Live smoke
+  (synthetic phantom, MedGemma Q4, 8 slabs): ~35 s/image, no usable label answers; open.
+- C3 interim (API test runs, 3 studies each: synthetic phantom, LIDC-0027 nodules,
+  LIDC-0306 no nodules): MONAI found the phantom nodule (0.998) and 0027 (0.998) but scored
+  0.77 on 0306 (false alarm); HU baseline over-reports on real scans (pneumothorax etc.);
+  MedGemma Q4 abstained on all; P6 answered all 16 labels positive on all three; Llama 3.2
+  Vision abstained in ~4 s. Fit tiers confirmed so far.
 
 Expectation: the detector is the only component with demonstrated signal. Full coverage
 does not make a small VLM accurate; the summary must say so when its answers are constant.

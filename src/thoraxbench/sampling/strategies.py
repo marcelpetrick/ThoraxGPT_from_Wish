@@ -15,6 +15,7 @@ thickness for MIP rendering.
 | ``two_stage`` (S5) | §10 S5 | lung-extent context + slices of deterministic nodule candidates |
 | ``mip_slabs`` | reading practice | contiguous thin MIP slabs covering the lungs (nodule search) |
 | ``contact_sheet`` (S6) | §10 S6 | lung-extent slices meant to be tiled into one montage image |
+| ``thorax_sweep`` | full review | contiguous slabs over lungs + margins, visited coarse-to-fine |
 
 S3 (multi-window) is a rendering choice and lives in :mod:`thoraxbench.views`.
 """
@@ -23,7 +24,8 @@ from __future__ import annotations
 
 import hashlib
 import json
-from dataclasses import dataclass
+import math
+from dataclasses import dataclass, field
 from typing import Any, ClassVar
 
 import numpy as np
@@ -34,12 +36,19 @@ from thoraxbench.preprocess import HUCues
 
 @dataclass(frozen=True)
 class Selection:
-    """Chosen slices with tags (e.g. ``"carina"``) and an optional MIP slab thickness."""
+    """Chosen slices with tags (e.g. ``"carina"``) and an optional MIP slab thickness.
+
+    ``slab_bounds`` (half-open source-slice ranges, one per index) and ``visit_order``
+    (positions into ``indices``) are set only by strategies that define explicit contiguous
+    slabs and a processing order; ``indices`` always stay cranial-first.
+    """
 
     indices: list[int]
     tags: list[str]
     slab_mm: float = 0.0
     montage: bool = False
+    slab_bounds: list[tuple[int, int]] = field(default_factory=list)
+    visit_order: list[int] = field(default_factory=list)
 
 
 def _evenly(lo: int, hi: int, n: int) -> list[int]:
@@ -231,8 +240,96 @@ class ContactSheet(Strategy):
         return Selection(base.indices, base.tags, montage=True)
 
 
+def coarse_to_fine(n: int) -> list[int]:
+    """Visit order over ``n`` positions: both ends, the middle, quarters, eighths, ...
+
+    Breadth-first bisection of the open intervals between already visited positions, so
+    every position appears exactly once and an early stop still spreads over the range.
+    """
+    if n <= 0:
+        return []
+    order = [0] if n == 1 else [0, n - 1]
+    queue = [(0, n - 1)]
+    while queue:
+        lo, hi = queue.pop(0)
+        if hi - lo <= 1:
+            continue
+        mid = (lo + hi) // 2
+        order.append(mid)
+        queue.extend(((lo, mid), (mid, hi)))
+    return order
+
+
+def _sweep_tag(idx: int, lo: int, hi: int, cues: HUCues) -> str:
+    """Plain anatomical level of a slab centre (landmarks when available, else thirds)."""
+    if idx < lo:
+        return "above the lung apex (lower neck / thoracic inlet)"
+    if idx > hi:
+        return "below the lung bases (upper abdomen)"
+    lm = cues.landmarks
+    if lm is not None:
+        levels = (
+            (lm.carina, "upper chest (apex to carina)"),
+            (lm.heart, "mid chest (carina to heart)"),
+            (lm.dome, "lower chest (heart to diaphragm dome)"),
+        )
+        return next((name for limit, name in levels if idx <= limit), "lung bases")
+    rank = (idx - lo) / max(hi - lo, 1)
+    return "upper chest" if rank < 1 / 3 else "mid chest" if rank <= 2 / 3 else "lower chest"
+
+
+@dataclass(frozen=True)
+class ThoraxSweep(Strategy):
+    """Contiguous MIP slabs over the lungs plus cranial/caudal margins, visited coarse-to-fine.
+
+    The covered range is the lung z-range widened by ``cranial_margin_mm`` (thoracic inlet)
+    and ``caudal_margin_mm`` (upper abdomen), clipped to the volume. Slabs of ``slab_mm``
+    (whole slices, at least one) tile it without gaps; when that would exceed ``n`` slabs,
+    the slabs widen evenly instead. ``visit_order`` is :func:`coarse_to_fine`.
+    """
+
+    id: ClassVar[str] = "thorax_sweep"
+    version: ClassVar[str] = "1"
+    n: int = 96
+    slab_mm: float = 5.0
+    cranial_margin_mm: float = 10.0
+    caudal_margin_mm: float = 30.0
+
+    @property
+    def params(self) -> dict[str, Any]:
+        """Parameters that influence the selection."""
+        return {
+            "n": self.n,
+            "slab_mm": self.slab_mm,
+            "cranial_margin_mm": self.cranial_margin_mm,
+            "caudal_margin_mm": self.caudal_margin_mm,
+        }
+
+    def select(self, volume: Volume, cues: HUCues) -> Selection:
+        """Tile the widened lung range with contiguous slabs (cranial first)."""
+        nz = volume.shape[0]
+        dz = float(volume.spacing_mm[0])
+        lo, hi = _lung_range(volume, cues)
+        start = max(0, lo - round(self.cranial_margin_mm / dz))
+        end = min(nz - 1, hi + round(self.caudal_margin_mm / dz))
+        span = end - start + 1
+        step = max(1, round(self.slab_mm / dz))
+        if math.ceil(span / step) > max(1, self.n):
+            step = math.ceil(span / max(1, self.n))
+        bounds = [(s, min(s + step, end + 1)) for s in range(start, end + 1, step)]
+        centers = [(a + b - 1) // 2 for a, b in bounds]
+        return Selection(
+            centers,
+            [_sweep_tag(c, lo, hi, cues) for c in centers],
+            slab_mm=round(step * dz, 1),
+            slab_bounds=bounds,
+            visit_order=coarse_to_fine(len(bounds)),
+        )
+
+
 STRATEGIES: dict[str, type[Strategy]] = {
-    cls.id: cls for cls in (Uniform, LungExtent, AnatomyBalanced, TwoStage, MipSlabs, ContactSheet)
+    cls.id: cls
+    for cls in (Uniform, LungExtent, AnatomyBalanced, TwoStage, MipSlabs, ContactSheet, ThoraxSweep)
 }
 
 

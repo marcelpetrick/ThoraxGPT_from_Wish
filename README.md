@@ -34,6 +34,7 @@ The completed demo videos are in [`media/`](media/README.md): [square](media/pil
 | [`docs/status-2026-10-17.md`](docs/status-2026-10-17.md) | Full-program status, real-data verdict and decision plan |
 | [`docs/approach-review-2026-10-17.md`](docs/approach-review-2026-10-17.md) | Literature review: can a local 4B VLM detect lung nodules on CT? Verdict and ranked plan |
 | [`docs/detector-baseline.md`](docs/detector-baseline.md) | Optional local MONAI reference detector, explicit weight setup, overlap caveats and sourced candidate review |
+| [`docs/full-review.md`](docs/full-review.md) | Full thorax review job: whole-chest slab sweep with one image model, detector and HU cues, live ETA and a plain-language outcome |
 | [`docs/fine-tuning-plan.md`](docs/fine-tuning-plan.md) | Precision limits, ranked adaptation options, leakage-safe fine-tuning protocol |
 | [`docs/results.md`](docs/results.md) | Measured benchmark runs with config hash, command and limitations |
 | [`docs/reproducibility.md`](docs/reproducibility.md) | What each run records, pinned software, how to repeat a run |

@@ -9,8 +9,10 @@ from thoraxbench.sampling.strategies import (
     LungExtent,
     MipSlabs,
     Selection,
+    ThoraxSweep,
     TwoStage,
     Uniform,
+    coarse_to_fine,
     get_strategy,
 )
 
@@ -21,7 +23,9 @@ __all__ = [
     "LungExtent",
     "MipSlabs",
     "Selection",
+    "ThoraxSweep",
     "TwoStage",
     "Uniform",
+    "coarse_to_fine",
     "get_strategy",
 ]

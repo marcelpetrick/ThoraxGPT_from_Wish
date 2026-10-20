@@ -2,8 +2,10 @@
 # Copyright (C) 2026 Marcel Petrick <mail@marcelpetrick.it>
 """Loopback-only FastAPI application sharing the CLI research engine."""
 
+import contextlib
 import hashlib
 import ipaddress
+import json
 from collections.abc import Awaitable, Callable
 from pathlib import Path
 from threading import RLock
@@ -45,9 +47,11 @@ from thoraxbench.api.local_studies import (
 from thoraxbench.api.model_pulls import ModelPullJobs, PullBusyError
 from thoraxbench.api.presentation import finding_presentation
 from thoraxbench.config import Settings, get_settings
+from thoraxbench.fullreview import run_full_review
 from thoraxbench.index import SUPPORTED, IndexEntry, load_index, open_study
 from thoraxbench.reports import render_study_report
 from thoraxbench.reports.candidates import candidate_review
+from thoraxbench.reports.full_review import SHORT_DISCLAIMER, render_full_review_html
 from thoraxbench.reports.html_report import (
     render_comparison_report,
     render_html_report,
@@ -139,10 +143,10 @@ class AnalyzeBody(BaseModel):
 
 
 class JobBody(BaseModel):
-    """Queue one analysis or a sequential recommended-model comparison of one study."""
+    """Queue one analysis, a recommended-model comparison or a full thorax review."""
 
     model_config = ConfigDict(extra="forbid")
-    kind: Literal["analysis", "comparison"]
+    kind: Literal["analysis", "comparison", "full-review"]
     dataset: str = Field(pattern=r"^[A-Za-z0-9_.-]+$", max_length=100)
     case_id: str = Field(pattern=r"^[A-Za-z0-9_.-]+$", max_length=200)
     model_id: str = Field(default="heuristic-hu", pattern=r"^[A-Za-z0-9_.-]+$", max_length=100)
@@ -767,11 +771,85 @@ def create_app(settings: Settings | None = None) -> FastAPI:  # noqa: PLR0915 - 
 
         return work
 
+    def execute_full_review(
+        dataset: str, case_id: str, model_id: str, context: JobContext
+    ) -> tuple[dict[str, Any], bool]:
+        """Run the full thorax review; returns the payload and whether it was stopped."""
+        identifier, folder = result_folder()
+        item = configured_models().get(model_id)
+        if item is None or item.adapter != "ollama":
+            raise JobError("Full thorax review needs a local vision-language model")
+        context.stage("study")
+        try:
+            study = get_study(dataset, case_id)
+        except HTTPException as exc:
+            raise JobError(str(exc.detail)) from exc
+        client, transport = abortable_client(item.timeout_s)
+        unregister = context.on_abort(transport.abort)
+
+        def stage(name: str) -> None:
+            # Stage names are display-only here; stops are handled between slabs.
+            with contextlib.suppress(JobCancelledError):
+                context.stage(name)
+
+        def progress(done: int, total: int, rate: float | None) -> None:
+            with contextlib.suppress(JobCancelledError):
+                context.progress("review_images", done, total, seconds_per_item=rate)
+
+        try:
+            run = run_full_review(
+                study,
+                model_id,
+                config,
+                client=client,
+                on_stage=stage,
+                on_progress=progress,
+                should_stop=lambda: context.cancelled,
+            )
+        except (OSError, ValueError, RuntimeError) as exc:
+            raise JobError(
+                "Full thorax review could not run; check the local model configuration"
+            ) from exc
+        finally:
+            unregister()
+            client.close()
+        stopped = bool(run.summary["coverage"].get("stopped"))
+        with contextlib.suppress(JobCancelledError):
+            context.stage("report")
+        folder.mkdir(parents=True)
+        json_path, html_path = folder / "full-review.json", folder / "full-review.html"
+        json_path.write_text(json.dumps(run.summary, indent=2), encoding="utf-8")
+        html_path.write_text(render_full_review_html(run.summary, run.thumbnails), "utf-8")
+        downloads[identifier] = {"json": json_path, "html": html_path}
+        return {
+            "id": str(identifier),
+            "summary": run.summary,
+            "disclaimer_short": SHORT_DISCLAIMER,
+            "downloads": {
+                "json": f"/api/results/{identifier}/json",
+                "html": f"/api/results/{identifier}/html",
+            },
+        }, stopped
+
+    def full_review_work(body: JobBody) -> Callable[[JobContext], JobOutcome]:
+        def work(context: JobContext) -> JobOutcome:
+            payload, stopped = execute_full_review(
+                body.dataset, body.case_id, body.model_id, context
+            )
+            if stopped:
+                raise JobCancelledError(result=payload)
+            verdict = payload["summary"]["verdict"]
+            return JobOutcome("abstained" if verdict == "not_assessable" else "succeeded", payload)
+
+        return work
+
     def submit(body: JobBody) -> tuple[dict[str, Any], bool]:
         result_folder()
         configured = configured_models()
-        if body.kind == "analysis" and body.model_id not in configured:
+        if body.kind in {"analysis", "full-review"} and body.model_id not in configured:
             raise HTTPException(422, "Unknown model")
+        if body.kind == "full-review" and configured[body.model_id].adapter != "ollama":
+            raise HTTPException(422, "Full thorax review needs a local vision-language model")
         if (
             body.kind == "analysis"
             and configured[body.model_id].prompt == "P6"
@@ -784,11 +862,16 @@ def create_app(settings: Settings | None = None) -> FastAPI:  # noqa: PLR0915 - 
             "case_id": body.case_id,
             "n_images": body.n_images,
         }
+        steps: list[dict[str, Any]] = []
         if body.kind == "analysis":
             key = f"analysis|{body.dataset}|{body.case_id}|{body.model_id}|{body.n_images}"
             label["models"] = [body.model_id]
             work = analysis_work(body)
-            steps: list[dict[str, Any]] = []
+        elif body.kind == "full-review":
+            key = f"full-review|{body.dataset}|{body.case_id}|{body.model_id}"
+            label["models"] = [body.model_id]
+            label["n_images"] = None
+            work = full_review_work(body)
         else:
             tags = _ollama_tags(config)
             candidates = [configured[m] for m in RECOMMENDED_MODELS if m in configured]

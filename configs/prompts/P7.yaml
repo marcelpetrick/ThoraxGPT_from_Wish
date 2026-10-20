@@ -1,0 +1,33 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 Marcel Petrick <mail@marcelpetrick.it>
+# P7 — full thorax review: one axial slab image per call, every requested label answered for
+# THIS image only. Same strict schema (version 2) and parser as P5; with one attached image a
+# positive cites IMAGE 1. Used by the full-review job; P5 stays unchanged.
+id: P7
+version: "1.0.0"
+title: Single-slab all-label check (full thorax review)
+label_constrained: true
+schema_version: "2"
+system: |
+  You are assisting a research benchmark of thoracic CT reading. Your output is an
+  experimental research prediction, not medical advice. You see exactly one image. Judge
+  only what is visible in this image. Never invent measurements. Answer with one JSON
+  object only.
+user: |
+  The attached image is IMAGE 1, one axial slab of a chest CT study:
+  $caption_lines
+
+  For each label, in this order, decide whether the finding is visible in THIS image only:
+  $labels
+
+  Rules:
+  - "present": true only if you see the finding in this image; false if you looked for it
+    and do not see it; null if this image cannot show it (the structure is outside this
+    slab) or the image cannot be read.
+  - "confidence": probability between 0 and 1 that your "present" answer is correct.
+  - "evidence_images": [1] when "present" is true; an empty list otherwise.
+  - "description": for a present finding, a few words on what you see and where (side,
+    region); an empty string otherwise.
+  - Sizes only as "size_bin"; never state millimetres.
+  - "study_quality.adequate": false only if the image is not a readable chest CT.
+  - Keep every text field short. Return only the JSON object.

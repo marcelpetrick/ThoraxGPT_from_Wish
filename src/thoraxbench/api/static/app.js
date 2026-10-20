@@ -38,7 +38,7 @@
   let followedId = null, followed = null, followedReceivedAt = 0, restoreSelection = false, jobNoticeState = null;
   const jobStates = new Map(), rememberedJobs = new Set();
   const ACTIVE_JOB = ["queued","running","cancelling"];
-  let comparison = [], comparisonDownload = null, forecastFinished = false;
+  let comparison = [], comparisonDownload = null, forecastFinished = false, fullReviewJob = null;
   let durationHistory = {};
   try { const stored = JSON.parse(localStorage.getItem("thoraxbench.duration-history") || "{}"); if (stored && typeof stored === "object" && !Array.isArray(stored)) durationHistory = stored; } catch { /* Timing estimates work without persistent browser storage. */ }
   function durationKey(id, count) { return `${id}:${count}`; }
@@ -153,7 +153,7 @@
     document.title = baseTitle();
     $("findings-table").setAttribute("aria-label", language === "en" ? "Findings" : "Befunde");
     $("libraries-table").setAttribute("aria-label", language === "en" ? "Dependency licenses" : "Lizenzen der Abhängigkeiten");
-    renderStudies(); renderModels(); renderStudyFacts(); renderResult(); renderComparison(); renderSetup(); renderPullStatus(); applyTheme(); renderViewerEmpty(); updateSliceLabels(); renderEvaluation(); renderJobs(true);
+    renderStudies(); renderModels(); renderStudyFacts(); renderResult(); renderComparison(); renderSetup(); renderPullStatus(); applyTheme(); renderViewerEmpty(); updateSliceLabels(); renderEvaluation(); renderJobs(true); renderFullReview();
     if (noticeKey) notice(noticeKey.key, noticeKey.kind, noticeKey.detail);
     if (folderDiagnosticJob?.status === "failed") folderJobFailure(folderDiagnosticJob); else if (folderNoticeState) folderMessage(folderNoticeState.key,folderNoticeState.detail);
     if (folderWarningResult) renderFolderWarnings(folderWarningResult);
@@ -233,7 +233,12 @@
     $("slice-slider").disabled = busy || !study;
     const comparing = $("compare-models").checked;
     $("model-select").disabled = busy || pulling || comparing;
-    $("run-analysis").disabled = busy || submitting || pulling || folderInputBlocked || viewerLoading || viewerReadyKey !== studyKey(study) || !$("ct-image").complete || !$("ct-image").naturalWidth || !study || (study.dataset === "local" && !study.qc_adequate) || (comparing ? !models.some((entry) => entry.recommended && entry.available) : !model?.available);
+    const inputBlocked = busy || submitting || pulling || folderInputBlocked || viewerLoading || viewerReadyKey !== studyKey(study) || !$("ct-image").complete || !$("ct-image").naturalWidth || !study || (study.dataset === "local" && !study.qc_adequate);
+    $("run-analysis").disabled = inputBlocked || (comparing ? !models.some((entry) => entry.recommended && entry.available) : !model?.available);
+    // The full thorax review follows the same input rules and needs an available vision-language model.
+    $("run-full-review").disabled = inputBlocked || comparing || !model?.available || model?.adapter !== "ollama";
+    const reviewBlocked = initialized && !inputBlocked && $("run-full-review").disabled ? (comparing ? "fullReviewBlockedCompare" : "fullReviewBlockedModel") : "";
+    $("full-review-blocked").hidden = !reviewBlocked; if ($("full-review-blocked").textContent !== (reviewBlocked ? t(reviewBlocked) : "")) setText("full-review-blocked", reviewBlocked ? t(reviewBlocked) : "");
     // Name the first reason why Run is unavailable instead of leaving a silently disabled button.
     const blocked = !initialized || busy || submitting || !$("run-analysis").disabled ? "" : pulling ? "runBlockedPull" : folderInputBlocked ? "runBlockedFolder" : !study ? "runBlockedStudy" : viewerLoading ? "runBlockedImage" : study.dataset === "local" && !study.qc_adequate ? "runBlockedQc" : viewerReadyKey !== studyKey(study) || !$("ct-image").naturalWidth ? "runBlockedImageFailed" : comparing ? "runBlockedNoModels" : "runBlockedModel";
     $("run-blocked-reason").hidden = !blocked; if ($("run-blocked-reason").textContent !== (blocked ? t(blocked) : "")) setText("run-blocked-reason", blocked ? t(blocked) : "");
@@ -362,7 +367,7 @@
     [["download-json","json"],["download-report","markdown"],["download-html","html"]].forEach(([id,key]) => { const url = output.downloads[key]; if (url) { $(id).href = url; $(id).setAttribute("aria-disabled","false"); $(id).setAttribute("download",""); } });
     initializeTooltips();
   }
-  function clearResult() { unfollow(); comparison = []; comparisonDownload = null; renderComparison(); output = null; renderResult(); ["open-html","download-json","download-report","download-html"].forEach((id) => { $(id).removeAttribute("href"); $(id).setAttribute("aria-disabled","true"); }); }
+  function clearResult() { unfollow(); comparison = []; comparisonDownload = null; renderComparison(); fullReviewJob = null; renderFullReview(); output = null; renderResult(); ["open-html","download-json","download-report","download-html"].forEach((id) => { $(id).removeAttribute("href"); $(id).setAttribute("aria-disabled","true"); }); }
   $("language-toggle").addEventListener("click", () => { language = language === "en" ? "de" : "en"; save("thoraxbench.language",language); applyLanguage(); });
   $("theme-toggle").addEventListener("click", () => { theme = theme === "light" ? "dark" : "light"; save("thoraxbench.theme",theme); applyTheme(); });
   $("study-select").addEventListener("change", () => { ++folderIntent; folderInputBlocked = false; if (followed?.kind === "study-import" || followed?.finished || !followedId) unfollow(); renderComparisonContext(); notice(null); renderStudyFacts(); showSlice(true); renderResult(); });
@@ -421,6 +426,71 @@
     submitting = true; updateControls();
     try {
       const data = await api("/api/jobs",{kind:comparing ? "comparison" : "analysis",dataset:study.dataset,case_id:study.case_id,model_id:$("model-select").value,n_images:count});
+      clearResult(); notice(data.created ? "jobSubmitted" : "jobDuplicate", data.created ? "" : "warning"); follow(data.job, false, true);
+      await pollJobs();
+    } catch (error) { notice("failed","error",error.message); }
+    finally { submitting = false; updateControls(); }
+  });
+  // Full thorax review: one job checks every chest slab with the selected image model, plus detector and HU cues.
+  Object.assign(words.en,{fullReviewRun:"Full thorax review",fullReviewTip:"Checks every chest slab (lungs plus a margin) for all finding types with the selected local image model, and runs the nodule detector and density measurements once. Takes several minutes; progress and a time estimate appear after the first image.",fullReviewNote:"Checks the whole chest for all finding types. Takes minutes; you can stop it and keep the part already checked.",fullReviewBlockedModel:"Full thorax review: choose an available local image model (for example medgemma1.5-q4).",fullReviewBlockedCompare:"Full thorax review: switch off model comparison first.",fullReviewProgressTip:"Measured on this workstation: images checked so far, measured seconds per image and a rough remaining time. Not a guaranteed deadline.",fullReviewPreparing:"Full review: running density measurements and the nodule detector first…",fullReviewMeasuring:"Full review: image {done} of {total} · measuring time per image…",fullReviewProgress:"Full review: image {done} of {total} checked · {rate} s per image · {left} images left, about {minutes} min",fullReviewFinishing:"Full review: all {total} images checked · summarising…",fullReviewHeading:"Full thorax review",fullReviewDisclaimer:"Experimental research tool, not a diagnosis: results can be wrong or incomplete, and a radiologist must review the scan.",fullReviewVerdict_findings_to_review:"Something to show a radiologist",fullReviewVerdict_nothing_flagged_in_checked_area:"Nothing was flagged in the checked area",fullReviewVerdict_not_assessable:"This scan could not be assessed",fullReviewLead_findings_to_review:"{count} place(s) to look at are listed below.",fullReviewLead_nothing_flagged_in_checked_area:"No checked tool flagged anything. This does not mean the scan is normal; this tool can miss findings.",fullReviewLead_not_assessable:"No usable answer came back, so nothing can be said about this scan.",fullReviewCoverage:"Checked {answered} of {total} slabs ({pct} %), slices {first} to {last} of {slices}.",fullReviewPartial:"Partial result: the review stopped after {visited} of {total} slabs.",fullReviewModelConstant:"The image model answered “yes” to {pct} % of all questions, so its answers carry no information. Only the detector and density measurements count.",fullReviewSomeConstant:"Answers without information (the model said “yes” on most slabs): {labels}.",fullReviewLookHeading:"Where to look",fullReviewNoFlags:"Checked, not flagged",fullReviewConstant:"Answers without information",fullReviewUnanswered:"Could not be checked",fullReviewNone:"none",fullReviewNextSteps:"Next steps (rule-based guideline context, English)",fullReviewShow:"Show in viewer",fullReviewShowTip:"Move the study viewer to the middle of this place. Starts no inference.",fullReviewSources:"Found by",fullReviewAgree:"several tools agree",fullReviewWholeScan:"whole-scan measurement",fullReviewSlice:"slice {first}",fullReviewSlices:"slices {first} to {last}",fullReviewSource_vlm:"image model",fullReviewSource_detector:"nodule detector",fullReviewSource_hu:"density (HU) measurement",fullReviewDoneNotice:"Full thorax review finished. The outcome is shown below.",fullReviewNotAssessableNotice:"Full thorax review finished without a usable answer.",fullReviewPartialNotice:"Full thorax review stopped. The part already checked is shown as a partial result.",jobKind_full_review:"Full thorax review",stage_heuristic:"Density measurements",stage_detector:"Nodule detector",stage_slabs:"Checking slabs",stage_aggregate:"Summarising"});
+  Object.assign(words.de,{fullReviewRun:"Vollständige Thoraxprüfung",fullReviewTip:"Prüft jede Thoraxschicht (Lunge plus Randbereich) mit dem gewählten lokalen Bildmodell auf alle Befundarten und führt Rundherd-Detektor und Dichtemessungen einmal aus. Dauert mehrere Minuten; Fortschritt und Zeitschätzung erscheinen nach dem ersten Bild.",fullReviewNote:"Prüft den ganzen Thorax auf alle Befundarten. Dauert Minuten; ein Stopp behält den bereits geprüften Teil.",fullReviewBlockedModel:"Vollständige Thoraxprüfung: ein verfügbares lokales Bildmodell wählen (zum Beispiel medgemma1.5-q4).",fullReviewBlockedCompare:"Vollständige Thoraxprüfung: zuerst den Modellvergleich ausschalten.",fullReviewProgressTip:"Auf diesem Rechner gemessen: bisher geprüfte Bilder, gemessene Sekunden pro Bild und eine grobe Restzeit. Keine garantierte Frist.",fullReviewPreparing:"Thoraxprüfung: zuerst Dichtemessungen und Rundherd-Detektor…",fullReviewMeasuring:"Thoraxprüfung: Bild {done} von {total} · Zeit pro Bild wird gemessen…",fullReviewProgress:"Thoraxprüfung: Bild {done} von {total} geprüft · {rate} s pro Bild · {left} Bilder übrig, etwa {minutes} Min.",fullReviewFinishing:"Thoraxprüfung: alle {total} Bilder geprüft · wird zusammengefasst…",fullReviewHeading:"Vollständige Thoraxprüfung",fullReviewDisclaimer:"Experimentelles Forschungswerkzeug, keine Diagnose: Ergebnisse können falsch oder unvollständig sein; eine Radiologin oder ein Radiologe muss die Aufnahme beurteilen.",fullReviewVerdict_findings_to_review:"Etwas für die Radiologie zum Ansehen",fullReviewVerdict_nothing_flagged_in_checked_area:"Im geprüften Bereich wurde nichts markiert",fullReviewVerdict_not_assessable:"Diese Aufnahme konnte nicht beurteilt werden",fullReviewLead_findings_to_review:"{count} Stelle(n) zum Ansehen sind unten aufgeführt.",fullReviewLead_nothing_flagged_in_checked_area:"Kein geprüftes Werkzeug hat etwas markiert. Das heißt nicht, dass die Aufnahme normal ist; das Werkzeug kann Befunde übersehen.",fullReviewLead_not_assessable:"Es kam keine verwertbare Antwort zurück; über diese Aufnahme lässt sich nichts sagen.",fullReviewCoverage:"{answered} von {total} Schichtblöcken geprüft ({pct} %), Schichten {first} bis {last} von {slices}.",fullReviewPartial:"Teilergebnis: Die Prüfung stoppte nach {visited} von {total} Schichtblöcken.",fullReviewModelConstant:"Das Bildmodell hat {pct} % aller Fragen mit „ja“ beantwortet; seine Antworten sind daher ohne Aussagekraft. Nur Detektor und Dichtemessungen zählen.",fullReviewSomeConstant:"Antworten ohne Aussagekraft (das Modell sagte auf den meisten Blöcken „ja“): {labels}.",fullReviewLookHeading:"Hier ansehen",fullReviewNoFlags:"Geprüft, nicht markiert",fullReviewConstant:"Antworten ohne Aussagekraft",fullReviewUnanswered:"Nicht prüfbar",fullReviewNone:"keine",fullReviewNextSteps:"Nächste Schritte (regelbasierter Leitlinienkontext, Englisch)",fullReviewShow:"Im Viewer zeigen",fullReviewShowTip:"Den Studienviewer zur Mitte dieser Stelle bewegen. Startet keine Inferenz.",fullReviewSources:"Gefunden von",fullReviewAgree:"mehrere Werkzeuge stimmen überein",fullReviewWholeScan:"Messung über die ganze Aufnahme",fullReviewSlice:"Schicht {first}",fullReviewSlices:"Schichten {first} bis {last}",fullReviewSource_vlm:"Bildmodell",fullReviewSource_detector:"Rundherd-Detektor",fullReviewSource_hu:"Dichtemessung (HU)",fullReviewDoneNotice:"Vollständige Thoraxprüfung beendet. Das Ergebnis steht unten.",fullReviewNotAssessableNotice:"Vollständige Thoraxprüfung ohne verwertbare Antwort beendet.",fullReviewPartialNotice:"Vollständige Thoraxprüfung gestoppt. Der bereits geprüfte Teil wird als Teilergebnis gezeigt.",jobKind_full_review:"Vollständige Thoraxprüfung",stage_heuristic:"Dichtemessungen",stage_detector:"Rundherd-Detektor",stage_slabs:"Schichtblöcke prüfen",stage_aggregate:"Zusammenfassen"});
+  const fill = (key, values) => Object.entries(values).reduce((text,[name,value]) => text.replaceAll(`{${name}}`, String(value)), t(key));
+  function fullReviewProgressText(job) {
+    if (job?.kind !== "full-review" || job.finished || !["running","cancelling"].includes(job.status)) return "";
+    const progress = job.progress;
+    if (!progress || progress.operation !== "review_images" || !Number.isInteger(progress.completed) || !Number.isInteger(progress.total)) return ["heuristic","detector","study","starting"].includes(job.stage) ? t("fullReviewPreparing") : "";
+    const done = progress.completed, total = progress.total, rate = progress.seconds_per_item;
+    if (done >= total) return fill("fullReviewFinishing",{total});
+    if (!done || typeof rate !== "number" || !Number.isFinite(rate)) return fill("fullReviewMeasuring",{done,total});
+    const remaining = typeof progress.remaining_s === "number" ? progress.remaining_s : rate * (total - done);
+    return fill("fullReviewProgress",{done,total,rate:rate.toLocaleString(language,{maximumFractionDigits:1,minimumFractionDigits:1}),left:total - done,minutes:Math.max(1,Math.ceil(remaining / 60))});
+  }
+  function fullReviewWhere(item) {
+    if (item.slice_lo == null || item.slice_hi == null) return t("fullReviewWholeScan");
+    const where = item.slice_lo === item.slice_hi ? fill("fullReviewSlice",{first:item.slice_lo + 1}) : fill("fullReviewSlices",{first:item.slice_lo + 1,last:item.slice_hi + 1});
+    return ["left","right","bilateral"].includes(item.side) ? `${where} · ${t(item.side)}` : where;
+  }
+  function showReviewSlice(job, index) {
+    const position = studies.findIndex((study) => study.dataset === job.dataset && study.case_id === job.case_id);
+    if (position < 0) return;
+    if ($("study-select").value !== String(position)) { $("study-search").value = ""; $("dataset-filter").value = ""; renderStudies(String(position)); $("study-select").value = String(position); renderStudyFacts(); }
+    $("slice-slider").max = Math.max(0, studies[position].n_slices - 1); $("slice-slider").value = String(index); showSlice(); $("viewer-heading").scrollIntoView({block:"start"});
+  }
+  function renderFullReview() {
+    const job = fullReviewJob, summary = job?.result?.summary;
+    $("full-review-panel").hidden = !summary; if (!summary) return;
+    const cov = summary.coverage, names = (labels) => labels.length ? labels.map(findingName).join(", ") : t("fullReviewNone");
+    setText("full-review-verdict", t(`fullReviewVerdict_${summary.verdict}`));
+    $("full-review-outcome").className = `full-review-outcome verdict-${summary.verdict}`;
+    setText("full-review-lead", fill(`fullReviewLead_${summary.verdict}`,{count:summary.look_here.length}));
+    const covered = cov.covered_slices || [0, cov.slices_total - 1];
+    const coverage = cov.slabs_total ? fill("fullReviewCoverage",{answered:cov.slabs_answered,total:cov.slabs_total,pct:Math.round(100 * cov.slabs_answered / cov.slabs_total),first:covered[0] + 1,last:covered[1] + 1,slices:cov.slices_total}) : "";
+    setText("full-review-coverage", `${coverage}${cov.partial ? ` ${fill("fullReviewPartial",{visited:cov.slabs_visited,total:cov.slabs_total})}` : ""}`);
+    const reliability = summary.model_constant ? fill("fullReviewModelConstant",{pct:Math.round(100 * (summary.overall_positive_rate || 0))}) : summary.labels_not_informative.length ? fill("fullReviewSomeConstant",{labels:names(summary.labels_not_informative)}) : "";
+    $("full-review-reliability").hidden = !reliability; setText("full-review-reliability", reliability);
+    $("full-review-look").replaceChildren(...summary.look_here.map((item) => {
+      const entry = document.createElement("li"), title = document.createElement("strong"), detail = document.createElement("span");
+      title.textContent = `${findingName(item.label)} — ${fullReviewWhere(item)}`;
+      detail.className = "muted small"; detail.textContent = ` · ${t("fullReviewSources")}: ${item.sources.map((source) => t(`fullReviewSource_${source}`)).join(", ")}${item.agreement ? ` · ${t("fullReviewAgree")}` : ""}`;
+      entry.append(title, detail);
+      (item.evidence || []).slice(0,2).forEach((text) => { const note = document.createElement("small"); note.className = "job-detail"; note.textContent = `“${text}”`; entry.append(note); });
+      if (item.slice_lo != null) { const button = document.createElement("button"); button.type = "button"; button.className = "button secondary"; button.dataset.tip = "fullReviewShowTip"; button.textContent = t("fullReviewShow"); button.addEventListener("click", () => showReviewSlice(job, Math.round((item.slice_lo + item.slice_hi) / 2))); entry.append(button); }
+      return entry;
+    }));
+    $("full-review-look-section").hidden = !summary.look_here.length;
+    setText("full-review-noflags", names(summary.labels_no_flags)); setText("full-review-constant", names(summary.labels_not_informative)); setText("full-review-unanswered", names(summary.labels_unanswered));
+    $("full-review-steps").replaceChildren(...summary.next_steps.map((step) => { const item = document.createElement("li"); item.textContent = step; return item; }));
+    const downloads = job.result.downloads || {};
+    $("full-review-open").hidden = !downloads.html; if (downloads.html) $("full-review-open").href = `${downloads.html}?inline=true`;
+    $("full-review-json").hidden = !downloads.json; if (downloads.json) $("full-review-json").href = downloads.json;
+    initializeTooltips();
+  }
+  $("run-full-review").addEventListener("click", async () => {
+    const study = currentStudy();
+    if (!study || $("run-full-review").disabled) return;
+    submitting = true; updateControls();
+    try {
+      const data = await api("/api/jobs",{kind:"full-review",dataset:study.dataset,case_id:study.case_id,model_id:$("model-select").value});
       clearResult(); notice(data.created ? "jobSubmitted" : "jobDuplicate", data.created ? "" : "warning"); follow(data.job, false, true);
       await pollJobs();
     } catch (error) { notice("failed","error",error.message); }
@@ -604,7 +674,7 @@
   function announce(text) { setText("job-announcer", text); }
   function baseTitle() { return `ThoraxBench Local · ${t("research")}`; }
   function runningJob() { return jobs.find((job) => job.status === "running" || job.status === "cancelling") || null; }
-  function unfollow() { followedId = null; followed = null; forecastFinished = false; $("request-timer").hidden = true; $("batch-status").hidden = true; $("job-caveat").hidden = true; if (currentPage === "analysis" && location.search) history.replaceState({},"","/"); renderForecast(); }
+  function unfollow() { followedId = null; followed = null; forecastFinished = false; $("request-timer").hidden = true; $("batch-status").hidden = true; $("job-caveat").hidden = true; $("full-review-progress").hidden = true; if (currentPage === "analysis" && location.search) history.replaceState({},"","/"); renderForecast(); }
   // A just-submitted job counts as unfinished before, so an instant result still gets its notice.
   function follow(job, restore = false, submitted = false) {
     followedId = job.id; followed = job; followedReceivedAt = performance.now(); restoreSelection = restore; forecastFinished = false;
@@ -623,16 +693,18 @@
     if (index < 0) return;
     $("study-search").value = ""; $("dataset-filter").value = ""; renderStudies(String(index));
     if (job.kind === "study-import") { renderStudyFacts(); showSlice(true); return; }
-    $("image-count").value = String(job.n_images); $("compare-models").checked = job.kind === "comparison";
-    if (job.kind === "analysis" && models.some((model) => model.id === job.models[0])) $("model-select").value = job.models[0];
+    if (Number.isInteger(job.n_images)) $("image-count").value = String(job.n_images); $("compare-models").checked = job.kind === "comparison";
+    if (["analysis","full-review"].includes(job.kind) && models.some((model) => model.id === job.models[0])) $("model-select").value = job.models[0];
     renderStudyFacts(); renderModelStatus(); showSlice(true); renderComparison();
   }
   function applyFollowed(previous) {
     const job = followed; if (!job) return;
     if (job.kind === "study-import") { renderFollowed(); importedStudy(job); if (job.status === "failed") folderJobFailure(job); if (job.status === "cancelled") folderMessage("folderStopped"); return; }
     if (restoreSelection && studies.length) { restoreSelection = false; selectJobStudy(job); }
-    requestSnapshot = uiSnapshotOf(job);
-    if (job.kind === "analysis") {
+    if (job.kind === "full-review") { fullReviewJob = job; renderFullReview(); }
+    else requestSnapshot = uiSnapshotOf(job);
+    if (job.kind === "full-review") { /* Outcome and progress render in the full-review panel. */ }
+    else if (job.kind === "analysis") {
       if (job.result && output?.job_id !== job.id) { output = {...job.result, ui_snapshot:requestSnapshot, job_id:job.id}; renderResult(); }
     } else {
       const known = new Set(comparison.filter((entry) => entry.output).map((entry) => entry.id));
@@ -645,8 +717,9 @@
       forecastFinished = true; rememberJobDurations(job);
       if (previous) {
         const abstained = job.status === "abstained";
-        if (job.status === "cancelled") notice("jobCancelledNotice","warning");
+        if (job.status === "cancelled") notice(job.kind === "full-review" && job.result ? "fullReviewPartialNotice" : "jobCancelledNotice","warning");
         else if (job.status === "failed") notice("failed","error",job.error || "");
+        else if (job.kind === "full-review") notice(abstained ? "fullReviewNotAssessableNotice" : "fullReviewDoneNotice", abstained ? "warning" : "");
         else if (job.kind === "comparison") notice("comparisonDone", job.steps.some((step) => ["error","abstained"].includes(step.status)) ? "warning" : "");
         else notice(abstained ? "abstainNotice" : "complete", abstained ? "warning" : "");
       }
@@ -676,6 +749,7 @@
     if (operation && operation !== announcedOperation) announce(`${t("folderProgressStarted")}: ${t(`folderProgress_${job.progress.operation}`)}`);
     announcedOperation = operation;
     $("request-timer").hidden = !job; $("batch-status").hidden = !job || job.kind !== "comparison";
+    const reviewProgress = fullReviewProgressText(job); $("full-review-progress").hidden = !reviewProgress; if ($("full-review-progress").textContent !== reviewProgress) setText("full-review-progress", reviewProgress);
     if (!job) return;
     const position = job.status === "queued" && job.queue_position ? ` · ${t("jobPosition")} ${job.queue_position}` : "";
     const stage = job.finished ? "" : ` · ${t("jobStageWord")} ${t(`stage_${job.stage}`)}`;
@@ -759,7 +833,7 @@
       const result = cell("","jobResultTip"); if (job.result_available) result.append(jobLink(job.id)); if (job.diagnostic) result.append(diagnosticButton(job));
       const action = cell("","jobActionTip"), button = jobButton(job); if (button) action.append(button);
       const stage = cell(job.finished ? t(`jobStatus_${job.status}`) : `${t(`stage_${job.stage}`)}${job.queue_position ? ` · ${t("jobPosition")} ${job.queue_position}` : ""}`,"jobStageTip");
-      const progress = importProgressText(job); if (progress) { const detail = document.createElement("small"); detail.className = "job-detail"; detail.tabIndex = 0; detail.dataset.tip = "folderProgressTip"; detail.dataset.importProgress = ""; detail.dataset.jobProgress = job.id; detail.textContent = progress; stage.append(detail); }
+      const progress = importProgressText(job) || fullReviewProgressText(job); if (progress) { const detail = document.createElement("small"); detail.className = "job-detail"; detail.tabIndex = 0; detail.dataset.tip = "folderProgressTip"; detail.dataset.importProgress = ""; detail.dataset.jobProgress = job.id; detail.textContent = progress; stage.append(detail); }
       row.append(cell(t(`jobKind_${job.kind.replaceAll("-","_")}`),"jobKindTip"),cell(studyText(job),"jobStudyTip"),cell(job.kind === "comparison" ? `${job.steps.length} ${t("jobModels")}` : job.models[0] || "—","jobModelsTip"),status,cell(localTime(job.queued_at),"jobQueuedAtTip"),cell(localTime(job.started_at),"jobStartedAtTip"),elapsedCell(job.id),stage,result,action);
       body.append(row);
       job.steps.forEach((step,index) => {
@@ -806,7 +880,7 @@
     const intent = ++folderIntent;
     await navigate("/", true);
     history.replaceState({},"",`/?job=${encodeURIComponent(id)}`);
-    try { const job = await api(`/api/jobs/${encodeURIComponent(id)}`); if (intent !== folderIntent) return; if (job.kind !== "study-import") { output = null; comparison = []; comparisonDownload = null; renderResult(); renderComparison(); } else importedJobs.delete(job.id); followedId = id; followed = null; follow(job, true); $(job.kind === "study-import" ? "input-heading" : "results-heading").scrollIntoView({block:"start"}); }
+    try { const job = await api(`/api/jobs/${encodeURIComponent(id)}`); if (intent !== folderIntent) return; if (job.kind !== "study-import") { output = null; comparison = []; comparisonDownload = null; renderResult(); renderComparison(); } else importedJobs.delete(job.id); followedId = id; followed = null; follow(job, true); $(job.kind === "study-import" ? "input-heading" : job.kind === "full-review" ? "full-review-heading" : "results-heading").scrollIntoView({block:"start"}); }
     catch { if (intent !== folderIntent) return; notice("jobGone","warning"); unfollow(); }
   }
   document.addEventListener("click", (event) => { const link = event.target.closest("[data-job-link]"); if (!link || event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return; event.preventDefault(); openJob(link.dataset.jobLink); });

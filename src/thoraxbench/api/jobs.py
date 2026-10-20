@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import contextlib
 import logging
+import math
 import time
 from collections.abc import Callable
 from dataclasses import dataclass, field
@@ -33,6 +34,7 @@ ACTIVE: frozenset[str] = frozenset({"queued", "running", "cancelling"})
 TERMINAL: frozenset[str] = frozenset({"succeeded", "failed", "abstained", "cancelled"})
 STEP_OPEN: frozenset[str] = frozenset({"waiting", "running"})
 MAX_DETAIL = 500
+MAX_RATE_S = 7 * 86400.0
 LOGGER = logging.getLogger(__name__)
 
 
@@ -40,8 +42,13 @@ class JobCancelledError(Exception):
     """Raised at a stage boundary after the operator asked to stop the job.
 
     Deliberately not a ``RuntimeError``/``ValueError`` so engine error handling that turns
-    those into inspectable failures cannot swallow a cancellation.
+    those into inspectable failures cannot swallow a cancellation. A work function that
+    stopped between items may attach its partial *result*; the job keeps it.
     """
+
+    def __init__(self, result: dict[str, Any] | None = None) -> None:
+        super().__init__("job cancelled")
+        self.result = result
 
 
 class JobError(Exception):
@@ -119,10 +126,17 @@ class JobContext:
         self.check()
         self._manager._set_stage(self._job, name)
 
-    def progress(self, operation: str, completed: int, total: int | None = None) -> None:
-        """Record measured local-loading counters and allow cooperative cancellation."""
+    def progress(
+        self,
+        operation: str,
+        completed: int,
+        total: int | None = None,
+        *,
+        seconds_per_item: float | None = None,
+    ) -> None:
+        """Record measured counters (and a measured per-item time); allows cancellation."""
         self.check()
-        self._manager._set_progress(self._job, operation, completed, total)
+        self._manager._set_progress(self._job, operation, completed, total, seconds_per_item)
 
     def step(self, index: int, **fields: Any) -> None:
         """Update one sub-step (comparison model) and time it on the server clock."""
@@ -279,8 +293,8 @@ class JobManager:
             context.check()
             outcome = job.work(context)
             diagnostic = outcome.diagnostic
-        except JobCancelledError:
-            outcome, cancelled = JobOutcome("failed"), True
+        except JobCancelledError as exc:
+            outcome, cancelled = JobOutcome("failed", result=exc.result), True
         except JobError as exc:
             outcome = JobOutcome("failed", error=str(exc)[:MAX_DETAIL])
             diagnostic = job_diagnostic(exc, job.stage)
@@ -304,6 +318,7 @@ class JobManager:
             if cancelled:
                 job.cancel.set()
                 job.status = "cancelled"
+                job.result = outcome.result
             else:
                 job.status = outcome.status
                 job.result = outcome.result
@@ -344,13 +359,32 @@ class JobManager:
             diagnostic=job.diagnostic,
         )
 
-    def _set_progress(self, job: _Job, operation: str, completed: int, total: int | None) -> None:
+    def _set_progress(
+        self,
+        job: _Job,
+        operation: str,
+        completed: int,
+        total: int | None,
+        seconds_per_item: float | None = None,
+    ) -> None:
         if operation not in OPERATIONS or type(completed) is not int or completed < 0:
             raise ValueError("Invalid progress operation or completed count")
         if total is not None and (type(total) is not int or total < completed):
             raise ValueError("Invalid progress total")
+        if seconds_per_item is not None and (
+            isinstance(seconds_per_item, bool)
+            or not isinstance(seconds_per_item, int | float)
+            or not math.isfinite(seconds_per_item)
+            or not 0 <= seconds_per_item <= MAX_RATE_S
+        ):
+            raise ValueError("Invalid measured time per item")
         with self._lock:
             job.progress = {"operation": operation, "completed": completed, "total": total}
+            if seconds_per_item is not None:
+                rate = round(float(seconds_per_item), 3)
+                job.progress["seconds_per_item"] = rate
+                if total is not None:
+                    job.progress["remaining_s"] = round(rate * (total - completed), 1)
             self._event(job, "progress")
             self._changed.notify_all()
 
