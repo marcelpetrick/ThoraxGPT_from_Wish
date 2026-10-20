@@ -143,8 +143,15 @@ rejected whole valid slices (probably a complete series).
   `39332366712` passed.
 - [x] Manuals: HTML adds the blocked-Run reason line and vendor private values /
   `qc_warning_count`; Chromium-printed 19-page PDF, pages 4 and 18 visually reviewed.
-- [ ] Release: v0.5.1 draft stays unpublished; publish one release after these atomic
-  commits pass the gate and exact-commit CI, replacing draft assets and checksums.
+- [x] Manual commit `e09e1d5` v0.5.4: gate GREEN, exact-commit CI `39348579922` passed.
+- [x] Release v0.5.4 published (former v0.5.1 draft retargeted to `e09e1d5`); wheel, sdist,
+  manual and helper replaced and verified against the downloaded SHA256SUMS.
+- [x] App smoke on v0.5.4 (port 8002, detector extras restored, weights verified): synthetic
+  implicit-VR ELSCINT1 folder imported 64/64 slices (`private_values_raw: 64`, no warnings,
+  QC adequate); MONAI job succeeded in 31 s with 0 candidates on the phantom; offline HTML
+  200. Execution check only, not accuracy. Smoke jobs were cleared.
+- [ ] Remaining UI review items (screen-reader text language switch, keyboard-reachable
+  disabled downloads, untranslated codeless hints, mobile job notice, Jobs table at 360 px).
 
 ### Root cleanup and diagnostic scan handover — 2026-10-19
 
@@ -162,7 +169,8 @@ focused on standard entry points. The lead owns integration, final validation an
   Visually reviewed pages 18–19: commands, warnings and footers fit without clipping.
 - [x] Run the complete local gate, make the gated commit, push, and check exact-commit CI
   (`6e1ddb3`, CI `39327963402` passed).
-- [ ] Publish only after these checks pass; refresh the preview only when its queue is idle.
+- [x] Publish only after these checks pass; refresh the preview only when its queue is idle
+  (published as v0.5.4; preview refreshed with an empty queue).
 
 Baseline: `cff030d` v0.5.0 passed public CI. This follow-up targets v0.5.1 and is
 committed only after the complete `scripts/commit.sh --no-push` gate passes. Inspect
@@ -188,9 +196,9 @@ The user's v0.5.0 import succeeded in about 79 seconds with 317 byte-length head
   guards. Independent review fixed argument echoing and the optional-pixel guard.
 - [x] D2: add bounded actual header/discovery/pixel/QC counters through the shared queue.
 - [x] D3: add durable bounded job logs and an optional journal launch procedure.
-- [ ] D4: integrate/review, run the full gate, refresh the idle preview and publish a tested
+- [x] D4: integrate/review, run the full gate, refresh the idle preview and publish a tested
   GitHub release. v0.5.0 is committed at `cff030d`; CI `39322252887` passed. Its release
-  draft remains unpublished until the follow-up release passes the required checks.
+  draft was retargeted and published as v0.5.4 after the follow-up checks passed.
 
 Diagnostics integration checkpoint: 71 focused core/browser/API checks passed; 28 privacy,
 rotation, guard and parser checks passed. A real synthetic user-service run completed in

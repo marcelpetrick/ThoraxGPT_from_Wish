@@ -5,16 +5,17 @@ ThoraxBench Local. The *why* lives in [`docs/Vision.md`](docs/Vision.md); the *h
 [`docs/plan.md`](docs/plan.md). If anything here conflicts with docs/Vision.md, docs/Vision.md wins
 and this file must be fixed.
 
-## Current handover — 2026-10-19
+## Current handover — 2026-10-20
 
-The current ticket is root-folder cleanup and completion of local import diagnostics.
-The last committed checkpoint is `cff030d` v0.5.0; its exact-commit GitHub CI passed.
-The v0.5.1 follow-up adds measured import counters, bounded sanitized JSON/journal
-logs and the operator-run single-file/folder helper in `scripts/dcom_evaluator.py`.
-Nineteen synthetic helper checks passed. The commit script requires the complete gate
-before creating this commit. Check `git log -1` and `.pipeline/diagnostics-final-commit.log`
-for the result. Public CI, preview refresh and release publication remain separate checks;
-do not infer them from a local commit.
+Release v0.5.4 is published (tag on `e09e1d5`, exact-commit CI `39348579922` passed, assets
+verified by SHA256SUMS). It includes v0.5.1 diagnostics, the v0.5.2 vendor-private-value
+importer fix (`private_values_raw`) and the v0.5.3 UI red-team fixes. The loopback app runs
+v0.5.4 on port 8002 with detector extras restored; a synthetic ELSCINT1 smoke study imported
+64/64 slices and completed a detector job with an offline HTML report. Open: the user's own
+re-check of the real folder with `dcom_evaluator.py --scan-headers --check-import`, and the
+remaining UI items in `docs/review-ui-redteam-2026-10-19.md`. After any `scripts/commit.sh`
+gate, restore detector extras (`uv sync --frozen --all-groups --extra detector`) and restart
+`thoraxbench-local` only when its job queue is idle.
 
 Documentation now lives in `docs/`: [vision](docs/Vision.md),
 [data policy](docs/DATA_POLICY.md), [agent environment](docs/agent-environment.md), and
