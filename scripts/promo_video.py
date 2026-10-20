@@ -68,7 +68,13 @@ WIDTH, HEIGHT, ZOOM = 2560, 1440, 1.5
 CHROME = 96  # Browser tab/address bar height in recorded pixels; never shown.
 FPS = 30
 BRAND, ACCENT, INK, SOFT = "#0f2f3a", "#2bb3a3", "#ffffff", "#9fd9d1"
-FONT_DIRS = [Path("/usr/share/fonts/noto"), Path("/usr/share/fonts/TTF")]
+# Arch/Manjaro and Debian/Ubuntu (CI) font locations.
+FONT_DIRS = [
+    Path("/usr/share/fonts/noto"),
+    Path("/usr/share/fonts/TTF"),
+    Path("/usr/share/fonts/truetype/noto"),
+    Path("/usr/share/fonts/truetype/dejavu"),
+]
 FORMATS = {"16x9": (1920, 1080)}
 SAMPLE_RATE = 48_000
 
@@ -92,7 +98,11 @@ def font(weight: str, size: int) -> ImageFont.FreeTypeFont:
         for folder in FONT_DIRS:
             if (folder / name).exists():
                 return ImageFont.truetype(str(folder / name), size)
-    raise FileNotFoundError(f"No {weight} font found")
+    # Pillow's bundled scalable font keeps rendering (and tests) working anywhere.
+    fallback = ImageFont.load_default(size)
+    if not isinstance(fallback, ImageFont.FreeTypeFont):
+        raise FileNotFoundError(f"No {weight} font found")
+    return fallback
 
 
 # --------------------------------------------------------------------------- capture

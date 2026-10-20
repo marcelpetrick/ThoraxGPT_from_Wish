@@ -134,3 +134,9 @@ def test_credits_name_source_overlap_and_voice() -> None:
     assert "overlaps its training data" in text
     assert "Kokoro-82M (Apache-2.0)" in text
     assert "Not medical advice" in text
+
+
+def test_rendering_works_without_system_fonts(monkeypatch: pytest.MonkeyPatch) -> None:
+    # CI runners and other distributions keep fonts elsewhere; Pillow's font still works.
+    monkeypatch.setattr("scripts.promo_video.FONT_DIRS", [])
+    assert pill("Caption", 36, 800).width > 0
