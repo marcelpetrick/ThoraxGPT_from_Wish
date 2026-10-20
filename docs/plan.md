@@ -264,6 +264,10 @@ rejected whole valid slices (probably a complete series).
 - [x] Remaining UI review items (screen-reader text language switch, keyboard-reachable
   disabled downloads, untranslated codeless hints, mobile job notice, Jobs table at 360 px):
   fixed as findings 9–13, covered by `tests/e2e/test_ui_leftovers.py`; released as v0.6.1.
+- [x] README rewrite for people looking through their own chest CT: verdict-first hero,
+  five-step quickstart, model fit table, honest limits; the former operator/research body
+  moved unchanged to `docs/research-workflows.md`, documents indexed in `docs/README.md`.
+  The heuristic verdict no longer says "whole volume; other areas were not looked at".
 
 ### Root cleanup and diagnostic scan handover — 2026-10-19
 

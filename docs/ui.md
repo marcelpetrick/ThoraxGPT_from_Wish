@@ -121,7 +121,7 @@ root. Ollama downloads the missing model and opens chat. Enter `/bye`, then chec
 `medgemma1.5-q4`. Use the exact tag in the selected model YAML. For download only,
 use `ollama pull medgemma1.5:4b-it-q4_K_M`. Start the installed Ollama service or
 `ollama serve` separately if needed. Review the publisher's terms first.
-See [the CLI setup and recovery](../README.md#set-up-an-unavailable-model).
+See [the CLI setup and recovery](research-workflows.md#set-up-an-unavailable-model).
 
 The browser offers an optional alternative:
 

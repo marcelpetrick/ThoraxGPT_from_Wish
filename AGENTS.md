@@ -16,8 +16,10 @@ turned `present: false, confidence: 0.0` into positives was fixed; MedGemma then
 pinned worktree `../tb-app` (port 8002, data in this checkout's `data/`); refresh it there
 with `git -C ../tb-app checkout --detach origin/main`, `uv sync --frozen --all-groups --extra
 detector`, then restart via `scripts/run_ui_journal.sh 8002` when its queue is idle. Gate
-commits in a separate worktree when a server runs from this checkout. Open: real-study accuracy is
-unmeasured.
+commits in a separate worktree when a server runs from this checkout. The README is now a short
+user-facing page; detailed workflows live in `docs/research-workflows.md` and every document is
+indexed in `docs/README.md` (keep README claims tied to `docs/model-test-runs-2026-10-20.md`).
+Open: real-study accuracy is unmeasured.
 
 Documentation now lives in `docs/`: [vision](docs/Vision.md),
 [data policy](docs/DATA_POLICY.md), [agent environment](docs/agent-environment.md), and

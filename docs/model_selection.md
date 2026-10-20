@@ -58,7 +58,7 @@ Start in the repository root with the locked environment installed.
    chat), or `ollama pull <configured-tag>` (download only). Use the YAML `tag`, not the
    app model ID. Leave chat with `/bye`, then refresh UI availability. The optional
    **Model availability & setup** browser download requires terms acknowledgement.
-   See [the exact example](../README.md#set-up-an-unavailable-model). Optional HTTP services
+   See [the exact example](research-workflows.md#set-up-an-unavailable-model). Optional HTTP services
    require publisher access, compatible weights/hardware and a configured loopback service.
 2. Run `uv run thoraxbench models`.
 3. Confirm that the intended configuration is available locally.
