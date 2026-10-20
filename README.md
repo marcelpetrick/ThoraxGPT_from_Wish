@@ -13,6 +13,8 @@ computer.**
 
 ![Verdict box: what was flagged, where, what was checked and what to show a radiologist](docs/assets/ui-verdict.png)
 
+▶ **[Watch the 40-second preview](media/promo-16x9.mp4)**: a real detector run on a public example CT, with voice-over.
+
 ## Why this exists
 
 A good friend came home from a chest CT with a CD of images and many questions, and the official

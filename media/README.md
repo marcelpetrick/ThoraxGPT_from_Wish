@@ -1,5 +1,11 @@
 # ThoraxBench Local — demo videos
 
+- [**Promo, 40 seconds**](promo-16x9.mp4): 1920×1080 with voice-over and music, captions in
+  [promo-16x9.srt](promo-16x9.srt), [thumbnail](promo-16x9-thumbnail.png) and
+  [credits](promo-credits.txt). A real MONAI full thorax review on the public LIDC-IDRI-0027
+  calibration example (real run 2:03, shown sped up and labelled). The voice is Kokoro-82M
+  (Apache-2.0); the music is generated. Story and procedure:
+  [the promo record](../docs/linkedin-promo-2026-10-20.md).
 - [Square video](pilot-A.mp4): 1080×1080, 30 seconds.
 - [Portrait video](pilot-B.mp4): 1080×1350, 30 seconds.
 

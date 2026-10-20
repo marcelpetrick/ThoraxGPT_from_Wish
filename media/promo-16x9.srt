@@ -1,0 +1,31 @@
+1
+00:00:00,000 --> 00:00:06,000
+A chest CT on a CD. No report yet. Let's take a look.
+
+2
+00:00:06,000 --> 00:00:13,200
+Free, open source, and fully on your own computer.
+
+3
+00:00:13,200 --> 00:00:18,200
+Open the scan and scroll through every slice.
+
+4
+00:00:18,200 --> 00:00:23,200
+One click: a nodule detector checks the whole chest.
+
+5
+00:00:23,200 --> 00:00:27,800
+It shows you where to look.
+
+6
+00:00:27,800 --> 00:00:30,800
+Slice 55, left lung, about 9 mm.
+
+7
+00:00:30,800 --> 00:00:35,200
+A plain report to take to your radiologist.
+
+8
+00:00:35,200 --> 00:00:40,000
+ThoraxBench Local Try it free on GitHub github.com/marcelpetrick/ThoraxGPT_from_Wish Research tool, not a diagnosis. CT: LIDC-IDRI, TCIA, CC BY 3.0 · public example that overlaps the detector's training data

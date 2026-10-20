@@ -23,6 +23,7 @@ while IFS= read -r f; do
     case "$f" in
         media/pilot-A.mp4) approved_video_sha256='27c25da7cad41092f62a09c9a8e0d05022b22526ecaa90d2c4a2cebf80224bcd' ;;
         media/pilot-B.mp4) approved_video_sha256='a8fd0a99f58da65930fc34ae6c038992c0d52c9aea094d73fa5584001023f1f1' ;;
+        media/promo-16x9.mp4) approved_video_sha256='c0d725d2f53be048b10d3e2349fcbd8062791b763af3f62c5c6ac32822482735' ;;
     esac
     if [[ -n "$approved_video_sha256" ]]; then
         actual_video_sha256=$(sha256sum "$f")

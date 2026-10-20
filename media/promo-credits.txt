@@ -1,0 +1,6 @@
+ThoraxBench Local promo - github.com/marcelpetrick/ThoraxGPT_from_Wish
+CT: lidc_idri / LIDC-IDRI-0027 (selected public calibration example).
+LIDC-IDRI / The Cancer Imaging Archive (TCIA), CC BY 3.0. Armato III et al. (2015), Data From LIDC-IDRI, doi:10.7937/K9/TCIA.2015.LO9QL9SX. Armato et al., Medical Physics 38(2):915-931 (2011), doi:10.1118/1.3528204. The authors acknowledge the National Cancer Institute and the Foundation for the National Institutes of Health, and their critical role in the creation of the free publicly available LIDC/IDRI Database used in this study. https://www.cancerimagingarchive.net/collection/lidc-idri/ https://creativecommons.org/licenses/by/3.0/ Presentation changes: windowed CT renders, UI recording, cropped excerpts and captions. No endorsement by TCIA or dataset contributors is implied.
+The MONAI detector's LUNA16 training data is derived from LIDC-IDRI, so this example overlaps its training data; it is not accuracy evidence.
+Voice: Kokoro-82M (Apache-2.0), voice af_heart. Music: generated for this video.
+Self-made experimental research tool; may be wrong or incomplete. Not medical advice or a basis for diagnosis or treatment decisions.
