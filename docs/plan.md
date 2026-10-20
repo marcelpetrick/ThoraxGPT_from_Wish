@@ -276,6 +276,8 @@ rejected whole valid slices (probably a complete series).
   generated music, loudness -16 LUFS, exact frame count.
 - [x] V4 Review: contact sheet, full-size frames, transcript of the voice, loudness.
 - [x] V5 Commit the reviewed cut to `media/` with its hash pinned in the medical-data guard.
+- [x] REL v0.7.0: notes in `docs/releases/v0.7.0.md`; publish after the gate, push and
+  exact-commit CI, with wheel, sdist, manual, helper and SHA256SUMS verified after upload.
 - Found while recording and fixed in the app: detector-only full reviews listed all labels
   as unchecked (0.6.4), the viewer flashed a placeholder while scrubbing (0.6.5), and a
   certifi advisory turned CI red (0.6.6).

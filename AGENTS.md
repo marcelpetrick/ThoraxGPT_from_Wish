@@ -5,9 +5,9 @@ ThoraxBench Local. The *why* lives in [`docs/Vision.md`](docs/Vision.md); the *h
 [`docs/plan.md`](docs/plan.md). If anything here conflicts with docs/Vision.md, docs/Vision.md wins
 and this file must be fixed.
 
-## Current handover — 2026-10-20 (v0.6.1)
+## Current handover — 2026-10-20 (v0.7.0)
 
-Release v0.6.0 targets thorax review (v0.6.1 closes the UI red-team leftovers): reports and the app lead with a ≤3-sentence verdict
+Release v0.6.0 targets thorax review (v0.6.1 closes the UI red-team leftovers; v0.7.0 adds the user-facing README, detector-only review wording, smooth slice scrolling and the promo video): reports and the app lead with a ≤3-sentence verdict
 (EN/DE), models carry evidence-based fit markers (1️⃣ MONAI detector, 2️⃣ HU baseline and
 uninstalled 3D CT models, 3️⃣ research controls), and a full thorax review runs the detector and
 density rules on the whole volume with an optional image-model slab sweep. A parser bug that
