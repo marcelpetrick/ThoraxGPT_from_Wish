@@ -139,6 +139,10 @@ rejected whole valid slices (probably a complete series).
   failures, folder jobs looking like model results, field-level path error, inconsistent
   study label. Worker: 362 e2e/integration + 649 unit passed. Remaining items are listed in
   [the review](review-ui-redteam-2026-10-19.md). Integrated as a separate gated commit.
+- [x] UI commit `36c062e` v0.5.3: full gate GREEN (tests 353 s), exact-commit CI
+  `39332366712` passed.
+- [x] Manuals: HTML adds the blocked-Run reason line and vendor private values /
+  `qc_warning_count`; Chromium-printed 19-page PDF, pages 4 and 18 visually reviewed.
 - [ ] Release: v0.5.1 draft stays unpublished; publish one release after these atomic
   commits pass the gate and exact-commit CI, replacing draft assets and checksums.
 
@@ -156,7 +160,8 @@ focused on standard entry points. The lead owns integration, final validation an
   sanitized JSON/journal events. Preserve warnings, source-image readiness and holdout checks.
 - [x] Regenerate `docs/manual.pdf` with separate diagnostic and durable-log pages.
   Visually reviewed pages 18–19: commands, warnings and footers fit without clipping.
-- [ ] Run the complete local gate, make the gated commit, push, and check exact-commit CI.
+- [x] Run the complete local gate, make the gated commit, push, and check exact-commit CI
+  (`6e1ddb3`, CI `39327963402` passed).
 - [ ] Publish only after these checks pass; refresh the preview only when its queue is idle.
 
 Baseline: `cff030d` v0.5.0 passed public CI. This follow-up targets v0.5.1 and is

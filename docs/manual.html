@@ -94,7 +94,7 @@ uv run thoraxbench --help</code></pre><p>Expect a version, the research disclaim
 </ol>
 <div class="check"><strong>Checkpoint:</strong> A source slice appears. The local folder is selected and labelled for this server session. It is not automatically part of the frozen development cohort. At most 16 local registrations are retained.</div>
 <h3>Recover from an unavailable folder</h3>
-<p>Select the folder containing the DICOM CT series. Individual JPG/PNG images and archives are not supported. Check local permissions if the folder cannot open. Wait for the Local dataset selection and a visible viewer image. Run is blocked while loading or when input is unusable. Read input QC before running. Select “Details” on warnings or failures and download diagnostic JSON with its trace ID before retrying. Missing file extensions are supported. Unreadable headers are counted separately from selected slices. Never bypass a sealed-data refusal by copying or renaming a study.</p>
+<p>Select the folder containing the DICOM CT series. Individual JPG/PNG images and archives are not supported. Check local permissions if the folder cannot open. Wait for the Local dataset selection and a visible viewer image. Run is blocked while loading or when input is unusable. Read input QC before running. Select “Details” on warnings or failures and download diagnostic JSON with its trace ID before retrying. Missing file extensions are supported. Unreadable headers are counted separately from selected slices. If Run stays disabled, the line below it names the reason. Never bypass a sealed-data refusal by copying or renaming a study.</p>
 <h3>Know what is retained</h3>
 <p>Source files stay in place. Local registrations and jobs live in server memory and disappear on restart. Absolute paths are not saved in browser storage or job snapshots. Directory browsing displays the current path locally; this is not an anonymity guarantee. Inspect outputs before sharing.</p>
 <div class="notice"><strong>Research use only.</strong> This self-made experimental tool can produce incorrect, incomplete or misleading findings. It is not professional medical advice, a diagnosis or a basis for treatment decisions.</div>
@@ -413,6 +413,7 @@ uv run thoraxbench models</code></pre></li>
 <p>For explicit local pixel loading and application input QC, run:</p>
 <pre><code>uv run --no-sync python scripts/dcom_evaluator.py --scan-headers --check-import "/absolute/path/to/folder"</code></pre>
 <p>Full import runs only after a complete scan. It starts no model and creates no image/report export. Inspect the <code>import</code> result and QC. Readable headers do not prove usable pixels or model accuracy. Review JSON before sharing; this is not anonymization.</p>
+<p>Vendor private values that pydicom mistypes, such as a 6-byte ELSCINT1 <code>(01F1,1026)</code> Pitch, are kept as raw bytes instead of rejecting the slice. <code>private_values_raw</code> counts them; they remain in error groups but are informational. Public tags stay strict. <code>qc_warning_count</code> counts input-QC warnings.</p>
 <footer><span>Self-made research tool · Review diagnostic JSON before sharing</span><span>18 / 19</span></footer>
 </section>
 <section class="sheet" id="job-logs">
