@@ -231,6 +231,10 @@ def build_outcome(
             "nothing_flagged", [first, second, third], coverage, hidden_candidates=hidden
         )
     listed = "; ".join(_place(item, total, lang) for item in places[:3])
+    # A whole-volume run without a detector is the HU density baseline, not a slice sample.
+    whole = not detector and (
+        result.report.lesions is not None or result.model_id == "heuristic-hu"
+    )
     more = len(places) - 3
     if lang == "de":
         first = f"Zur Prüfung markiert: {listed}" + (f" und {more} weitere." if more > 0 else ".")
@@ -238,7 +242,11 @@ def build_outcome(
             f"Geprüft: {coverage}; nur Lungenrundherde wurden gesucht"
             + (f", {hidden} Kandidaten mit niedrigem Wert wurden nicht gezählt." if hidden else ".")
             if detector
-            else f"Geprüft: {coverage}; andere Bereiche wurden nicht angesehen."
+            else (
+                f"Geprüft: {coverage}, nur mit einfachen Dichteregeln; das sind grobe Hinweise."
+                if whole
+                else f"Geprüft: {coverage}; andere Schichten wurden nicht angesehen."
+            )
         )
         third = (
             "Diese Stelle(n) Radiologen zeigen und mit dem offiziellen Befundbericht vergleichen."
@@ -249,7 +257,11 @@ def build_outcome(
             f"Checked: {coverage}; only lung nodules were searched"
             + (f", and {hidden} low-score candidates were not counted." if hidden else ".")
             if detector
-            else f"Checked: {coverage}; other areas were not looked at."
+            else (
+                f"Checked: {coverage} with simple density rules only; treat these as rough cues."
+                if whole
+                else f"Checked: {coverage}; other slices were not looked at."
+            )
         )
         third = "Show these locations to a radiologist and compare with the official report."
     return Outcome(

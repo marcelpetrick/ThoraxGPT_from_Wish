@@ -367,3 +367,32 @@ def test_failed_detector_does_not_recommend_itself(result: AnalysisResult) -> No
     assert outcome.verdict == "not_assessable"
     assert "Check the detector setup" in outcome.sentences[2]
     assert "Run the lung-nodule detector" not in " ".join(outcome.sentences)
+
+
+@pytest.mark.parametrize(
+    ("model_id", "en", "de"),
+    [
+        (
+            "heuristic-hu",
+            "Checked: whole volume with simple density rules only; treat these as rough cues.",
+            "Geprüft: gesamtes Volumen, nur mit einfachen Dichteregeln; das sind grobe Hinweise.",
+        ),
+        (
+            "medgemma1.5-q4",
+            "Checked: 2 of 64 slices (3 %); other slices were not looked at.",
+            "Geprüft: 2 von 64 Schichten (3 %); andere Schichten wurden nicht angesehen.",
+        ),
+    ],
+)
+def test_flagged_coverage_matches_how_the_model_looked(
+    result: AnalysisResult, model_id: str, en: str, de: str
+) -> None:
+    # A whole-volume density run must not also claim that other areas were skipped.
+    result.model_id = model_id
+    result.qc = {"n_slices": 64}
+    result.slice_indices = [10, 20]
+    result.report.findings = [
+        Finding(label="pleural_effusion", present=True, confidence=0.9, evidence_images=[1])
+    ]
+    assert build_outcome(result, "en").sentences[1] == en
+    assert build_outcome(result, "de").sentences[1] == de
