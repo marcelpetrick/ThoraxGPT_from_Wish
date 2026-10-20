@@ -158,6 +158,8 @@ Phase C — thorax-review focus and model guidance (lead):
   only the strength (0.5 = unknown), contradictions add a warning; bare numbers and P6
   logprobs keep P(present) semantics. Earlier "constant positive" MedGemma conclusions
   (status 2026-10-17, readiness checks) must be re-run before they are cited.
+- [x] M1 Manual page 20 "Thorax review" (verdict, EN/DE switch, LLM wording, fit markers,
+  detector-first full review, weak cues); 20-page Chromium PDF, pages 1 and 20 reviewed.
 - [x] R1 Branch review (v0.5.4…d4988f6), all findings fixed: (1) HU-only look-here entries are
   weak cues and never decide the verdict (real scans got "findings to review" from density
   noise); (2) the full review also runs with the detector or HU baseline only, the image-model
