@@ -27,6 +27,7 @@ The completed demo videos are in [`media/`](media/README.md): [square](media/pil
 |---|---|
 | [`docs/agent-environment.md`](docs/agent-environment.md) | Agent sandbox and workstation setup notes |
 | [`docs/local-folders.md`](docs/local-folders.md) | Open a local DICOM folder by path drop, paste or folder browsing |
+| [`docs/wiki/Checking-a-real-DICOM-folder.md`](docs/wiki/Checking-a-real-DICOM-folder.md) | Check a real DICOM folder locally with `scripts/dcom_evaluator.py`; redacted vendor-tag case note |
 | [`docs/video-delivery-2026-10-19.md`](docs/video-delivery-2026-10-19.md) | Completed local 4K tour and two verified 30-second cuts; selected calibration and overlap limitations |
 | [`docs/linkedin-video-plan.md`](docs/linkedin-video-plan.md) | Guarded Chromium recording, two 30-second edits, credits and verification |
 | [`docs/ux-review-2026-10-16.md`](docs/ux-review-2026-10-16.md) / [HTML](docs/ux-review-2026-10-16.html) | Ranked UX findings, implementation plan and verification status |
@@ -161,6 +162,10 @@ Warnings and failures offer **Details** and a downloadable trace for debugging.
 Live loading feedback shows actual operation counters. Structured job logs persist in
 `data/logs/jobs.jsonl`; an optional user-journal launcher and the private single-file
 `scripts/dcom_evaluator.py` helper are described in [the folder procedure](docs/local-folders.md).
+
+**Check a folder first:** `uv run --no-sync python scripts/dcom_evaluator.py --scan-headers
+--check-import "/path/to/folder"` runs locally and prints aggregate JSON without paths or
+header values. See [Checking a real DICOM folder](docs/wiki/Checking-a-real-DICOM-folder.md).
 
 The **Rough remaining estimate** starts with broad workstation guesses: 1–60 seconds for
 the HU baseline and 1–15+ minutes for a vision model. Later estimates use recent local

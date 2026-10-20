@@ -131,8 +131,12 @@ rejected whole valid slices (probably a complete series).
   suites 40/40 passed. No private file was read by the agent.
 - [x] Importer fix committed `5e2769a` v0.5.2: full gate GREEN, exact-commit CI
   `39329540433` passed. Idle preview (empty job queue) restarted on v0.5.2, port 8002.
-- [ ] Operator re-check: rerun the same `--scan-headers --check-import` command; expect
-  `header_errors: 0`, `private_values_raw: 317` and possibly a different selected series.
+- [x] Operator re-check on v0.5.5 (user-run, JSON shared): all files readable,
+  `header_errors: 0`, `private_values_raw` equal to the former error count, import succeeded
+  with adequate QC and no QC warnings; the formerly excluded axial series is now listed.
+- [x] Redacted case note and checker guide: `docs/wiki/Checking-a-real-DICOM-folder.md`
+  (no path, name or acquisition values), linked from README. GitHub wiki is enabled but has
+  no first page, so its git repo does not exist yet; mirror the page once one is created.
 - [x] UI/UX red-team (isolated worker, synthetic data only): 8 findings fixed — stale study
   after failed folder open, unexplained disabled Run (translated, live reason), progress
   placement/announcement noise, untranslated folder error, header warnings worded as
