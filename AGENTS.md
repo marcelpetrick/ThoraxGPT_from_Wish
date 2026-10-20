@@ -5,9 +5,9 @@ ThoraxBench Local. The *why* lives in [`docs/Vision.md`](docs/Vision.md); the *h
 [`docs/plan.md`](docs/plan.md). If anything here conflicts with docs/Vision.md, docs/Vision.md wins
 and this file must be fixed.
 
-## Current handover — 2026-10-20 (v0.6.0)
+## Current handover — 2026-10-20 (v0.6.1)
 
-Release v0.6.0 targets thorax review: reports and the app lead with a ≤3-sentence verdict
+Release v0.6.0 targets thorax review (v0.6.1 closes the UI red-team leftovers): reports and the app lead with a ≤3-sentence verdict
 (EN/DE), models carry evidence-based fit markers (1️⃣ MONAI detector, 2️⃣ HU baseline and
 uninstalled 3D CT models, 3️⃣ research controls), and a full thorax review runs the detector and
 density rules on the whole volume with an optional image-model slab sweep. A parser bug that
@@ -16,8 +16,8 @@ turned `present: false, confidence: 0.0` into positives was fixed; MedGemma then
 pinned worktree `../tb-app` (port 8002, data in this checkout's `data/`); refresh it there
 with `git -C ../tb-app checkout --detach origin/main`, `uv sync --frozen --all-groups --extra
 detector`, then restart via `scripts/run_ui_journal.sh 8002` when its queue is idle. Gate
-commits in a separate worktree when a server runs from this checkout. Open: UI review items
-in `docs/review-ui-redteam-2026-10-19.md`; real-study accuracy is unmeasured.
+commits in a separate worktree when a server runs from this checkout. Open: real-study accuracy is
+unmeasured.
 
 Documentation now lives in `docs/`: [vision](docs/Vision.md),
 [data policy](docs/DATA_POLICY.md), [agent environment](docs/agent-environment.md), and

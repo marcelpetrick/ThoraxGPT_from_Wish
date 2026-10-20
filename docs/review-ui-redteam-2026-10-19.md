@@ -46,22 +46,29 @@ jobs. No private source, sealed input or real patient image was opened or captur
    `local / <full session UUID>` while the selector showed *Local study 1a2b3c4d*.
    **Fixed:** context uses the same translated short label.
 
-## Remaining (not changed)
+## Follow-up fixes (2026-10-20)
 
-- The visually hidden job announcer keeps its last English sentence after switching to
-  German until the next event. It is not visible; a re-announcement on switch could be noisy.
-- Disabled download links remain focusable (`aria-disabled`), which is intentional for
-  their tooltips but announces inert controls.
-- Server failure hints in `job.error` are English when no diagnostic code is present.
-- The mobile job notice is fixed at the bottom and can cover the last lines of a panel
-  until dismissed; main content has extra bottom padding.
-- Jobs table stays horizontally scrollable at 360 px (contained, no page overflow).
-- Evaluation, About and the offline HTML report showed no new wording or layout issue.
-  Contrast tokens checked for body, muted, warning and accent text exceed 4.5:1.
+9. **Announcer language:** the visually hidden job announcer kept its last English sentence
+   after a switch to German. **Fixed:** the last announcement is rebuilt in the new language.
+10. **Inert download links:** disabled links stayed in the tab order. **Fixed:** they get
+    `tabindex="-1"` until a result enables them, and a visible hint says when downloads
+    become available.
+11. **English server errors:** `job.error` without a diagnostic code stayed English.
+    **Fixed:** known messages are translated; other server text gets a translated lead and is
+    marked as the English server detail.
+12. **Mobile job notice:** the fixed bottom notice wrapped to several lines and the page used a
+    guessed 135 px padding. **Fixed:** one truncated line (full text in its title) and the
+    page is padded by the notice's measured height, so the end of the page stays reachable.
+13. **Jobs table at 360 px:** it scrolled horizontally. **Fixed:** below 640 px each job is a
+    stacked card with column names as labels.
+
+Evaluation, About and the offline HTML report showed no new wording or layout issue.
+Contrast tokens checked for body, muted, warning and accent text exceed 4.5:1.
 
 ## Verification
 
-New `tests/e2e/test_ui_redteam.py` covers findings 1, 2, 4, 6 and 7 in EN/DE.
+New `tests/e2e/test_ui_redteam.py` covers findings 1, 2, 4, 6 and 7 in EN/DE;
+`tests/e2e/test_ui_leftovers.py` covers findings 9–13.
 `test_folder_import_progress.py` asserts finding 3, `test_job_diagnostics_ui.py` findings 5
 and 6, and the real-folder workflow test asserts finding 8 offline. Integration tests cover
 the exported counter whitelist and the page landmarks. Passing tests establish software

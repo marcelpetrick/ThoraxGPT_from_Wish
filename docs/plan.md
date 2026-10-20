@@ -261,8 +261,9 @@ rejected whole valid slices (probably a complete series).
   implicit-VR ELSCINT1 folder imported 64/64 slices (`private_values_raw: 64`, no warnings,
   QC adequate); MONAI job succeeded in 31 s with 0 candidates on the phantom; offline HTML
   200. Execution check only, not accuracy. Smoke jobs were cleared.
-- [ ] Remaining UI review items (screen-reader text language switch, keyboard-reachable
-  disabled downloads, untranslated codeless hints, mobile job notice, Jobs table at 360 px).
+- [x] Remaining UI review items (screen-reader text language switch, keyboard-reachable
+  disabled downloads, untranslated codeless hints, mobile job notice, Jobs table at 360 px):
+  fixed as findings 9–13, covered by `tests/e2e/test_ui_leftovers.py`; released as v0.6.1.
 
 ### Root cleanup and diagnostic scan handover — 2026-10-19
 

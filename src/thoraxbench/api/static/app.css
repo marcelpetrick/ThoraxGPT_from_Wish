@@ -54,10 +54,19 @@
 .job-clock{font-size:13px}
 }
 @media(max-width:640px){
-.job-notice{position:fixed;bottom:0;left:0;right:0;z-index:21;font-size:11px;gap:6px;box-shadow:0 -3px 16px #0002}
-.job-notice>span{flex:1 1 100%;overflow-wrap:anywhere}
-body:has(.job-notice:not([hidden])) main{padding-bottom:135px}
+.job-notice{position:fixed;bottom:0;left:0;right:0;z-index:21;font-size:11px;gap:6px;flex-wrap:nowrap;box-shadow:0 -3px 16px #0002}
+.job-notice>span{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.job-notice .button,.job-notice>a{flex:none;font-size:11px;padding:4px 8px}
+body:has(.job-notice:not([hidden])) main{padding-bottom:calc(var(--job-notice-height,48px) + 16px)}
+#jobs-table{min-width:0}
+#jobs-table thead{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+#jobs-table tr{display:block;border-bottom:1px solid var(--border);padding:8px 0}
+#jobs-table td{display:grid;grid-template-columns:minmax(90px,38%) 1fr;gap:8px;border:0;padding:4px 0}
+#jobs-table td[data-label]::before{content:attr(data-label);color:var(--muted);font-size:10px}
+#jobs-table td:empty,#jobs-table tr.job-step td:not([data-label]){display:none}
+#jobs-table tr.job-step{padding-left:12px}
 }
+.downloads-hint{margin:8px 0 0}.downloads-hint[hidden]{display:none}
 
 .candidate-previews{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:14px;margin:16px 0}.candidate-previews figure{margin:0;border:1px solid var(--line);border-radius:10px;overflow:hidden}.candidate-previews img{display:block;width:100%;height:auto;background:#05090c}.candidate-previews figcaption{padding:8px 10px;font-size:12px}
 
