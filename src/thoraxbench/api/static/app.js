@@ -260,24 +260,29 @@
   function setBusy(value) { busy = value; updateControls(); }
   function showSlice(reset = false) {
     const study = currentStudy(), request = ++viewerRequest, key = studyKey(study);
+    // Within one study the shown slice stays until the next one has loaded, so scrubbing
+    // does not flash the loading placeholder; Run stays locked until the new image is ready.
+    const keep = !reset && !folderInputBlocked && Boolean(study) && !$("ct-image").hidden && $("ct-image").dataset.study === key;
     viewerReadyKey = ""; viewerFailed = false; viewerLoading = false;
-    $("ct-image").hidden = true; $("viewer-empty").hidden = false;
+    if (!keep) { $("ct-image").hidden = true; $("viewer-empty").hidden = false; }
     if (!study || folderInputBlocked) { renderViewerEmpty(); updateControls(); return; }
     $("slice-slider").max = Math.max(0, study.n_slices - 1);
     if (reset) $("slice-slider").value = Math.floor(study.n_slices / 2);
     const index = Number($("slice-slider").value);
     updateSliceLabels(); viewerLoading = true; renderViewerEmpty(); updateControls();
     // Each request owns its image element: late load/error events cannot unlock another study.
-    const image = new Image(); image.id = "ct-image"; image.alt = t("sliceAlt"); image.dataset.alt = "sliceAlt"; image.hidden = true;
-    $("ct-image").replaceWith(image);
+    const image = new Image(); image.id = "ct-image"; image.alt = t("sliceAlt"); image.dataset.alt = "sliceAlt"; image.dataset.study = key; image.hidden = true;
+    if (!keep) $("ct-image").replaceWith(image);
     image.onload = () => {
       if (request !== viewerRequest || key !== studyKey(currentStudy()) || folderInputBlocked) return;
+      if (keep) $("ct-image").replaceWith(image);
       viewerLoading = false; viewerFailed = !(image.complete && image.naturalWidth > 0);
       viewerReadyKey = viewerFailed ? "" : key; image.hidden = viewerFailed; $("viewer-empty").hidden = !viewerFailed;
       renderViewerEmpty(); updateControls(); if (noticeKey?.key === "sliceFailed") notice(null);
     };
     image.onerror = () => {
       if (request !== viewerRequest || key !== studyKey(currentStudy()) || folderInputBlocked) return;
+      if (keep) $("ct-image").replaceWith(image);
       viewerLoading = false; viewerFailed = true; viewerReadyKey = ""; image.hidden = true; $("viewer-empty").hidden = false;
       renderViewerEmpty(); updateControls(); notice("sliceFailed","error");
     };
@@ -288,7 +293,7 @@
     const limited = currentStudy()?.dataset === "local" && !currentStudy().qc_adequate;
     const key = folderInputBlocked ? "viewerBlocked" : viewerLoading ? "viewerLoading" : viewerFailed ? "viewerFailureTitle" : "viewerEmpty";
     setText("viewer-empty-title",t(key)); setText("viewer-empty-note",t(folderInputBlocked ? "viewerBlockedNote" : viewerLoading ? "viewerLoadingNote" : viewerFailed ? "viewerFailureNote" : "viewerChoose"));
-    $("viewer-status").hidden = !folderInputBlocked && !viewerLoading && !viewerFailed && !limited;
+    $("viewer-status").hidden = !folderInputBlocked && !(viewerLoading && $("ct-image").hidden) && !viewerFailed && !limited;
     setText("viewer-status",t(folderInputBlocked ? "viewerBlockedNote" : viewerLoading ? "viewerLoadingNote" : viewerFailed ? "sliceFailed" : "viewerLimited"));
     $("retry-viewer").hidden = !viewerFailed || folderInputBlocked;
   }

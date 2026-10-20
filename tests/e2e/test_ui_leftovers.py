@@ -4,8 +4,10 @@
 
 from __future__ import annotations
 
+import re
+
 import pytest
-from playwright.sync_api import Page, expect
+from playwright.sync_api import Page, Route, expect
 
 from tests.e2e.test_local_folder_ui import FolderAPI
 
@@ -89,3 +91,36 @@ def test_mobile_notice_is_compact_and_jobs_table_stacks(ui_page: Page) -> None:
     assert wrapper.evaluate("(element) => element.scrollWidth <= element.clientWidth + 1")
     assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
     assert not api.errors
+
+
+def test_scrubbing_keeps_the_last_slice_visible_until_the_next_loads(ui_page: Page) -> None:
+    page = ui_page
+    page.locator("#create-demo").click()
+    expect(page.locator("#ct-image")).to_be_visible()
+    expect(page.locator("#run-analysis")).to_be_enabled()
+    held: list[Route] = []
+
+    def hold(route: Route) -> None:  # Playwright cannot wrap a bound builtin like list.append.
+        held.append(route)
+
+    page.route("**/slice/40.png*", hold)
+    slider = page.locator("#slice-slider")
+    slider.fill("40")
+    slider.dispatch_event("input")
+    page.wait_for_function("document.querySelector('#slice-counter').textContent.startsWith('41')")
+    # The previous slice stays on screen; analysis waits for the requested one.
+    expect(page.locator("#ct-image")).to_be_visible()
+    expect(page.locator("#viewer-empty")).to_be_hidden()
+    expect(page.locator("#viewer-status")).to_be_hidden()
+    expect(page.locator("#run-analysis")).to_be_disabled()
+    assert held
+    held[0].continue_()
+    expect(page.locator("#ct-image")).to_have_attribute("src", re.compile(r"/slice/40\.png"))
+    expect(page.locator("#run-analysis")).to_be_enabled()
+    page.unroute("**/slice/40.png*")
+    # A failed slice still replaces the old image with the failure state.
+    page.route("**/slice/41.png*", lambda route: route.fulfill(status=500))
+    slider.fill("41")
+    slider.dispatch_event("input")
+    expect(page.locator("#ct-image")).to_be_hidden()
+    expect(page.locator("#retry-viewer")).to_be_visible()
