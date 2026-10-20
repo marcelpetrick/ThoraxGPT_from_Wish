@@ -160,6 +160,10 @@ Phase C — thorax-review focus and model guidance (lead):
   (status 2026-10-17, readiness checks) must be re-run before they are cited.
 - [x] M1 Manual page 20 "Thorax review" (verdict, EN/DE switch, LLM wording, fit markers,
   detector-first full review, weak cues); 20-page Chromium PDF, pages 1 and 20 reviewed.
+- [x] REL v0.6.0: notes in `docs/releases/v0.6.0.md`; publish only after the gate, push and
+  exact-commit CI pass, with wheel, sdist, manual, helper and SHA256SUMS verified after upload.
+  B7 evidence: phantom (detector finds nodule, MedGemma all-absent) and calibration runs in
+  `docs/model-test-runs-2026-10-20.md`; full real-study review accuracy remains unmeasured.
 - [x] R2 `/code-review` (v0.5.4…HEAD), all 9 findings fixed: a stop during a detector/HU-only
   review is reported as cancelled; the selected detector config is used; yes-bias text counts
   only unsupported positives; German sides reuse `outcome.SIDES`; a positive at exactly 0.5
@@ -178,7 +182,7 @@ Phase C — thorax-review focus and model guidance (lead):
   discards the per-label answers; P7 1.1.0 asks for `abstain: false` and null per label.
 - [x] C1 Evidence-based fit marker per model (`fit` 1–3 + reason in `configs/models/*.yaml`):
   dropdown sorted by fit with 1️⃣/2️⃣/3️⃣ prefix, translated status line, API exposes it.
-- [ ] C2 Group the dropdown: thorax-review models first; general-purpose VLMs under a
+- [x] C2 Group the dropdown: thorax-review models first; general-purpose VLMs under a
   "research controls" group (kept for benchmarking, not the default path).
 - [x] C3 Test runs of every installed model on the synthetic demo (known planted lesions)
   and one calibration case (never the holdout); record a results table and adjust `fit` only
@@ -196,7 +200,7 @@ Phase B — full thorax review job (isolated worker; separate commits):
 - [x] B5 Live progress: after the first slab, show measured time per image and
   "k of n images left, about M min" (updated after every image); cancel keeps partial results.
 - [x] B6 Outcome summary + rule-based next steps (existing guideline rules only).
-- [ ] B7 Validate on synthetic lesions and calibration cases only (never the holdout);
+- [x] B7 Validate on synthetic lesions and calibration cases only (never the holdout);
   record honestly whether VLM clusters add anything over the detector.
 - Phase B evidence (isolated worker, integrated by the lead): `thorax_sweep` strategy
   (5 mm slabs over lung range +10/−30 mm, coarse-to-fine order, ≤96 slabs), prompt P7

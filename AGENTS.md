@@ -5,17 +5,19 @@ ThoraxBench Local. The *why* lives in [`docs/Vision.md`](docs/Vision.md); the *h
 [`docs/plan.md`](docs/plan.md). If anything here conflicts with docs/Vision.md, docs/Vision.md wins
 and this file must be fixed.
 
-## Current handover — 2026-10-20
+## Current handover — 2026-10-20 (v0.6.0)
 
-Release v0.5.4 is published (tag on `e09e1d5`, exact-commit CI `39348579922` passed, assets
-verified by SHA256SUMS). It includes v0.5.1 diagnostics, the v0.5.2 vendor-private-value
-importer fix (`private_values_raw`) and the v0.5.3 UI red-team fixes. The loopback app runs
-v0.5.4 on port 8002 with detector extras restored; a synthetic ELSCINT1 smoke study imported
-64/64 slices and completed a detector job with an offline HTML report. Open: the user's own
-re-check of the real folder with `dcom_evaluator.py --scan-headers --check-import`, and the
-remaining UI items in `docs/review-ui-redteam-2026-10-19.md`. After any `scripts/commit.sh`
-gate, restore detector extras (`uv sync --frozen --all-groups --extra detector`) and restart
-`thoraxbench-local` only when its job queue is idle.
+Release v0.6.0 targets thorax review: reports and the app lead with a ≤3-sentence verdict
+(EN/DE), models carry evidence-based fit markers (1️⃣ MONAI detector, 2️⃣ HU baseline and
+uninstalled 3D CT models, 3️⃣ research controls), and a full thorax review runs the detector and
+density rules on the whole volume with an optional image-model slab sweep. A parser bug that
+turned `present: false, confidence: 0.0` into positives was fixed; MedGemma then answers
+"absent" everywhere (see `docs/model-test-runs-2026-10-20.md`). The user's app runs from the
+pinned worktree `../tb-app` (port 8002, data in this checkout's `data/`); refresh it there
+with `git -C ../tb-app checkout --detach origin/main`, `uv sync --frozen --all-groups --extra
+detector`, then restart via `scripts/run_ui_journal.sh 8002` when its queue is idle. Gate
+commits in a separate worktree when a server runs from this checkout. Open: UI review items
+in `docs/review-ui-redteam-2026-10-19.md`; real-study accuracy is unmeasured.
 
 Documentation now lives in `docs/`: [vision](docs/Vision.md),
 [data policy](docs/DATA_POLICY.md), [agent environment](docs/agent-environment.md), and
