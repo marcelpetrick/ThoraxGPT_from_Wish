@@ -68,9 +68,17 @@ def test_demo_slices_analysis_and_downloads(client: TestClient) -> None:
     assert body["presentation"]["educational_only"] is True
     assert any(row["severity"] is not None for row in body["presentation"]["findings"])
     assert "Pulmonary nodule" in body["markdown"]
-    assert "not medical advice" in body["markdown"]
+    assert "Research tool, not a diagnosis" in body["markdown"]
+    assert "## Verdict" in body["markdown"]
     saved = client.get(body["downloads"]["json"])
     assert saved.json() == body["result"]
+    summary_url = body["downloads"]["json"].rsplit("/", 1)[0] + "/summary"
+    for lang in ("en", "de"):
+        verdict = client.post(summary_url, json={"lang": lang})
+        assert verdict.status_code == 200
+        assert verdict.json()["source"] == "template"
+        assert verdict.json()["text"].count(".") <= 3
+    assert client.post(summary_url, json={"lang": "fr"}).status_code == 422
     assert "attachment" in saved.headers["content-disposition"]
     assert client.get(body["downloads"]["markdown"]).text == body["markdown"]
     html = client.get(body["downloads"]["html"])

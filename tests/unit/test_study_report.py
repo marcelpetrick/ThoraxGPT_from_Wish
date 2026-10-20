@@ -8,6 +8,7 @@ from thoraxbench.analysis import DISCLAIMER, AnalysisResult
 from thoraxbench.ontology.clinical import Severity, load_clinical_kb
 from thoraxbench.perf import PerfRecord
 from thoraxbench.provenance import RunProvenance
+from thoraxbench.reports.outcome import SHORT_DISCLAIMER
 from thoraxbench.reports.study_report import (
     probability_of,
     render_study_report,
@@ -86,7 +87,12 @@ def test_size_severity_boundaries(label: str, size: float | None, severity: Seve
 
 def test_empty_and_failed_report(result: AnalysisResult) -> None:
     text = render_study_report(result)
-    assert text.count(DISCLAIMER) == 2
+    # One short disclaimer line; the full text lives once in docs/DISCLAIMER.md.
+    assert DISCLAIMER not in text
+    assert text.count(SHORT_DISCLAIMER["en"]) == 1
+    assert "## Verdict\n\nNothing was flagged in the checked area." in text
+    assert result.series_uid not in text
+    assert f"patient `{result.patient_id}`" not in text
     assert "No abnormality was reported above the decision threshold." in text
     assert "## Deterministic measurements\n\nnone" in text
     result.report.abstain = True

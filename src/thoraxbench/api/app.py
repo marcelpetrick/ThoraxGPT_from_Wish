@@ -53,6 +53,8 @@ from thoraxbench.reports.html_report import (
     render_html_report,
     require_results_path,
 )
+from thoraxbench.reports.llm_summary import llm_summary
+from thoraxbench.reports.outcome import build_outcome
 from thoraxbench.splits import CaseGuard, Phase
 from thoraxbench.study import Study, load_study_dir
 from thoraxbench.study_access import guard_study_input, guard_study_path
@@ -60,6 +62,8 @@ from thoraxbench.synthetic import PhantomSpec, make_phantom, write_dicom_series
 from thoraxbench.views import render_slice_png
 
 ASSETS = Path(__file__).parent
+# Local text model that may rephrase the deterministic verdict (fact-checked, optional).
+SUMMARY_MODEL = "medgemma1.5-q4"
 RECOMMENDED_MODELS = (
     "monai-lung-nodule",
     "heuristic-hu",
@@ -106,6 +110,14 @@ class ComparisonOmission(BaseModel):
     model_id: str = Field(min_length=1, max_length=100)
     status: Literal["skipped", "error"]
     detail: str = Field(max_length=500)
+
+
+class SummaryBody(BaseModel):
+    """Request a verdict in one report language."""
+
+    model_config = ConfigDict(extra="forbid")
+    lang: Literal["en", "de"] = "en"
+    use_llm: bool = False
 
 
 class CompareBody(BaseModel):
@@ -866,6 +878,29 @@ def create_app(settings: Settings | None = None) -> FastAPI:  # noqa: PLR0915 - 
     @app.post("/api/compare")
     def compare(body: CompareBody) -> dict[str, Any]:
         return export_comparison(body.result_ids, body.omissions)
+
+    @app.post("/api/results/{identifier}/summary")
+    def summary(identifier: UUID, body: SummaryBody) -> dict[str, Any]:
+        """Deterministic verdict; optionally rephrased by a local LLM under a fact check."""
+        if identifier not in downloads or "json" not in downloads[identifier]:
+            raise HTTPException(404, "Unknown result")
+        path = downloads[identifier]["json"]
+        try:
+            require_results_path(path, config)
+            result = AnalysisResult.model_validate_json(path.read_text(encoding="utf-8"))
+        except (ValueError, OSError) as exc:
+            raise HTTPException(404, "Unknown result") from exc
+        outcome = build_outcome(result, body.lang)
+        template = " ".join(outcome.sentences)
+        if not body.use_llm:
+            return {"text": template, "source": "template", "rejection": None}
+        model = configured_models().get(SUMMARY_MODEL)
+        if model is None or not model.tag:
+            return {"text": template, "source": "template", "rejection": "no summary model"}
+        text, source, rejection = llm_summary(
+            outcome, body.lang, base_url=config.ollama_url, tag=model.tag
+        )
+        return {"text": text, "source": source, "rejection": rejection}
 
     @app.get("/api/results/{identifier}/{kind}")
     def download(identifier: UUID, kind: str, inline: bool = False) -> FileResponse:

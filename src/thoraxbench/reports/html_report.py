@@ -12,6 +12,13 @@ from thoraxbench.config import Settings
 from thoraxbench.ontology.clinical import load_clinical_kb
 from thoraxbench.ontology.guidelines import fleischner
 from thoraxbench.reports.candidates import candidate_review
+from thoraxbench.reports.outcome import (
+    SHORT_DISCLAIMER,
+    SHOW_SCORE,
+    Outcome,
+    build_outcome,
+    label_name,
+)
 from thoraxbench.reports.study_report import (
     probability_of,
     render_study_report,
@@ -70,6 +77,14 @@ summary{padding:18px 22px;cursor:pointer;font-weight:650}details[open] summary{
 border-bottom:1px solid var(--line)}pre{margin:0;padding:22px;white-space:pre-wrap;
 overflow-wrap:anywhere;font:13px/1.8 ui-monospace,monospace;background:#f8fafc}
 footer{padding:24px 4px;font-size:12px;color:var(--muted)}
+.l-de{display:none}#lang-de:checked~.shell .l-de{display:revert}
+#lang-de:checked~.shell .l-en{display:none}.lang-input{position:absolute;opacity:0}
+.lang{display:flex;gap:6px;margin-top:18px}.lang label{cursor:pointer;padding:4px 12px;
+border:1px solid #b6e4de;border-radius:20px;font-size:13px;font-weight:700}
+#lang-en:checked~.shell label[for=lang-en],#lang-de:checked~.shell label[for=lang-de]{
+background:white;color:#122e42}.lang-input:focus-visible~.shell .lang{outline:3px solid #c58d16}
+.outcome{border:2px solid var(--teal)}.verdict{font-size:19px;font-weight:650;margin:0 0 12px}
+.verdict-not_assessable{border-color:#b0563a}.verdict-findings_to_review{border-color:#c58d16}
 @media(max-width:760px){.shell{padding:18px 14px}.hero{padding:26px 22px;border-radius:16px}
 .metadata{grid-template-columns:repeat(2,minmax(0,1fr))}.panel{padding:20px 16px}}
 @media print{body{background:white}.shell{padding:0}.hero{background:#123d4b;box-shadow:none}
@@ -165,10 +180,20 @@ def _gallery(result: AnalysisResult, study: Study) -> tuple[str, dict[int, str]]
 
 def _findings(result: AnalysisResult, anchors: dict[int, str]) -> str:
     if result.report.abstain or result.raw_error:
+        warnings = result.report.parse_warnings
+        detail = (
+            f"<details><summary>{_t('Parser details', 'Details der Auswertung')} "
+            f"({len(warnings)})</summary><pre>{escape(chr(10).join(warnings))}</pre></details>"
+            if warnings
+            else ""
+        )
         return (
-            "<h2>Abstention</h2><p>No usable research reading is available. "
-            + escape(result.raw_error or "; ".join(result.report.parse_warnings))
+            f"<h2>{_t('Abstention', 'Keine Auswertung')}</h2><p>"
+            + _t("No usable research reading is available.", "Keine verwertbare Auswertung.")
+            + " "
+            + escape(result.raw_error or "")
             + "</p>"
+            + detail
         )
     rows: list[str] = []
     kb = load_clinical_kb()
@@ -204,14 +229,85 @@ def _findings(result: AnalysisResult, anchors: dict[int, str]) -> str:
     return (
         "<h2>Findings and evidence references</h2><p>Scores are uncalibrated research outputs. "
         "Links show supplied evidence associations; they do not establish localization.</p>"
-        '<p class="notice">Severity and typical attention are educational reference context, '
-        "not validated urgency or a decision about whether you should be checked. Model outputs "
-        "may be incorrect; an absent or low-rated finding does not establish that no review "
-        "is needed. No diagnosis or treatment decisions should be based on this report.</p>"
+        '<p class="notice">'
+        + _t(
+            "Severity is general educational context, not an assessment of this scan.",
+            "Schweregrad ist allgemeiner Lernkontext, keine Bewertung dieser Aufnahme.",
+        )
+        + "</p>"
         '<div class="table-wrap"><table><thead><tr><th>Finding</th><th>Status</th>'
         "<th>Score</th><th>Typical severity (educational)</th><th>Observation</th>"
         "<th>Evidence</th></tr></thead><tbody>" + "".join(rows) + "</tbody></table>"
         "</div>"
+    )
+
+
+def _t(en: str, de: str) -> str:
+    """Both languages for already-escaped HTML; a CSS-only switch shows one of them."""
+    return f'<span class="l-en">{en}</span><span class="l-de" lang="de">{de}</span>'
+
+
+def _metadata(items: list[tuple[tuple[str, str], str, tuple[str, str] | None]]) -> str:
+    cells = "".join(
+        f"<div><dt>{_t(*title)}</dt><dd>{value}"
+        + (f"<small>{_t(*note)}</small>" if note else "")
+        + "</dd></div>"
+        for title, value, note in items
+    )
+    return f'<dl class="metadata">{cells}</dl>'
+
+
+def _outcome_section(outcomes: dict[str, Outcome]) -> str:
+    en, de = outcomes["en"], outcomes["de"]
+    rows = []
+    for item_en, item_de in zip(en.look_here, de.look_here, strict=True):
+        side = _t(
+            escape(item_en.side),
+            escape(
+                {"right": "rechts", "left": "links"}.get(
+                    item_de.side, "unbekannt" if item_de.side == "unknown" else item_de.side
+                )
+            ),
+        )
+        rows.append(
+            f"<tr><td>{_t(*(escape(label_name(item_en.label, lang)) for lang in ('en', 'de')))}"
+            "</td>"
+            f"<td>{side}</td>"
+            f"<td>{'' if item_en.size_mm is None else f'{item_en.size_mm:.1f} mm'}</td>"
+            f"<td>{'' if item_en.slice_number is None else item_en.slice_number}</td>"
+            f'<td class="score">{"" if item_en.score is None else f"{item_en.score:.2f}"}</td>'
+            f"<td>{escape(item_en.source)}</td></tr>"
+        )
+    table = (
+        '<div class="table-wrap"><table><thead><tr>'
+        f"<th>{_t('Look here', 'Hier prüfen')}</th><th>{_t('Side', 'Seite')}</th>"
+        f"<th>{_t('Size', 'Größe')}</th><th>{_t('Slice', 'Schicht')}</th>"
+        f"<th>{_t('Score', 'Wert')}</th><th>{_t('Source', 'Quelle')}</th></tr></thead><tbody>"
+        + "".join(rows)
+        + "</tbody></table></div>"
+        if rows
+        else ""
+    )
+    hidden = (
+        "<p>"
+        + _t(
+            f"{en.hidden_candidates} low-score candidate(s) below {SHOW_SCORE:.1f} are listed "
+            "only in the detail table.",
+            f"{en.hidden_candidates} Kandidat(en) mit Wert unter {SHOW_SCORE:.1f} stehen nur "
+            "in der Detailtabelle.",
+        )
+        + "</p>"
+        if en.hidden_candidates
+        else ""
+    )
+    return (
+        f'<section class="panel outcome verdict-{en.verdict}" id="outcome">'
+        f"<h2>{_t('Verdict', 'Ergebnis')}</h2>"
+        f'<p class="verdict">{_t(*(escape(" ".join(o.sentences)) for o in (en, de)))}</p>'
+        f"<p>{_t('Checked', 'Geprüft')}: {_t(escape(en.coverage), escape(de.coverage))}</p>"
+        + table
+        + hidden
+        + "</section>"
     )
 
 
@@ -308,6 +404,9 @@ def render_html_report(result: AnalysisResult, study: Study) -> str:
     """
     gallery, anchors = _gallery(result, study)
     markdown = render_study_report(result)
+    width_mm = float((study.volume.shape[2] - 1) * study.volume.spacing_mm[2])
+    outcomes = {lang: build_outcome(result, lang, width_mm=width_mm) for lang in ("en", "de")}
+    disclaimer = _t(*(escape(SHORT_DISCLAIMER[lang]) for lang in ("en", "de")))
     title = f"ThoraxBench research report — {result.case_id}"
     unavailable = result.report.abstain or bool(result.raw_error)
     input_qc = (
@@ -341,26 +440,49 @@ def render_html_report(result: AnalysisResult, study: Study) -> str:
         '<meta http-equiv="Content-Security-Policy" content="default-src \'none\'; '
         "img-src data:; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'\">"
         f"<title>{escape(title)}</title><style>{REPORT_STYLE}</style></head><body>"
+        # CSS-only language switch: the radios precede the page so siblings can react.
+        '<input class="lang-input" type="radio" name="lang" id="lang-en" checked>'
+        '<input class="lang-input" type="radio" name="lang" id="lang-de">'
         '<main class="shell"><header class="hero"><p class="eyebrow">'
         "ThoraxBench Local · Research review</p>"
-        f"<h1>{escape(title)}</h1><p>Experimental findings, image evidence and "
-        "reproducible context in one offline review.</p></header>"
-        f'<p class="notice">{escape(result.disclaimer)}</p>'
-        '<nav aria-label="Report sections"><a href="#findings">Review findings</a>'
-        '<a href="#images">Inspect images</a><a href="#report">Complete report</a></nav>'
-        '<dl class="metadata">'
-        f"<div><dt>Dataset</dt><dd>{escape(result.dataset)}</dd></div>"
-        f"<div><dt>Model</dt><dd>{escape(result.model_id)}<small>Local inference</small></dd></div>"
-        f"<div><dt>Input QC</dt><dd>{input_qc}"
-        "<small>Deterministic checks, not model success</small></dd></div>"
-        f"<div><dt>Model image assessment</dt><dd>{assessment}</dd></div>"
-        f"<div><dt>Reading status</dt><dd>{'Abstained' if unavailable else 'Completed'}</dd></div>"
-        f"<div><dt>Analysis stages</dt><dd>{result.perf.total_s:.3f} s"
-        "<small>Excludes DICOM loading and reporting</small></dd></div></dl>"
-        '<p class="notice">A negative on sampled model images cannot exclude findings '
-        "elsewhere in the study. Source labels distinguish detector, model "
-        "and heuristic output.</p>"
-        '<section class="panel" id="findings">'
+        f"<h1>{escape(title)}</h1><p>"
+        + _t(
+            "Verdict first, then evidence and reproducible details.",
+            "Zuerst das Ergebnis, dann Belege und reproduzierbare Details.",
+        )
+        + '</p><div class="lang" aria-label="Language / Sprache">'
+        '<label for="lang-en">EN</label><label for="lang-de">DE</label></div></header>'
+        f'<p class="notice">{disclaimer}</p>'
+        + _outcome_section(outcomes)
+        + '<nav aria-label="Report sections">'
+        f'<a href="#findings">{_t("Review findings", "Befunde prüfen")}</a>'
+        f'<a href="#images">{_t("Inspect images", "Bilder ansehen")}</a>'
+        f'<a href="#report">{_t("Complete report", "Vollständiger Bericht")}</a></nav>'
+        + _metadata(
+            [
+                (("Dataset", "Datensatz"), escape(result.dataset), None),
+                (("Model", "Modell"), escape(result.model_id), ("Local inference", "Lokal")),
+                (
+                    ("Input QC", "Input-QC"),
+                    input_qc,
+                    ("Deterministic checks, not model success", "Feste Prüfungen"),
+                ),
+                (("Model image assessment", "Bildbewertung des Modells"), assessment, None),
+                (
+                    ("Reading status", "Status"),
+                    _t("Abstained", "Keine Auswertung")
+                    if unavailable
+                    else _t("Completed", "Abgeschlossen"),
+                    None,
+                ),
+                (
+                    ("Analysis stages", "Analysedauer"),
+                    f"{result.perf.total_s:.3f} s",
+                    ("Excludes DICOM loading and reporting", "Ohne DICOM-Laden und Bericht"),
+                ),
+            ]
+        )
+        + '<section class="panel" id="findings">'
         + _findings(result, anchors)
         + '</section><section class="panel" id="images">'
         + gallery
@@ -368,13 +490,20 @@ def render_html_report(result: AnalysisResult, study: Study) -> str:
         + _candidate_gallery(result, study)
         + _educational_context(result)
         + diagnostics
-        + '<details id="report"><summary>Complete research report and educational context</summary>'
+        + '<details id="report"><summary>'
+        + _t(
+            "Complete research report and educational context",
+            "Vollständiger Forschungsbericht und Lernkontext (Englisch)",
+        )
+        + "</summary>"
         f"<pre>{escape(markdown)}</pre></details>"
         "<details><summary>Original model response (escaped)</summary>"
         f"<pre>{escape(result.raw_text)}</pre></details>"
         "<details><summary>Structured result and provenance</summary>"
-        f"<pre>{escape(result.model_dump_json(indent=2))}</pre></details>"
-        f"<footer><p>{escape(result.disclaimer)}</p>"
+        # Shareable HTML omits identifiers; the separate JSON download keeps them.
+        f"<pre>{escape(result.model_dump_json(indent=2, exclude={'series_uid', 'patient_id'}))}"
+        "</pre></details>"
+        f"<footer><p>{disclaimer}</p>"
         "<p>ThoraxBench Local · Self-contained research export · No external assets required</p>"
         "</footer></main></body></html>"
     )
@@ -443,7 +572,7 @@ def render_comparison_report(
         '<p class="eyebrow">ThoraxBench Local · Research comparison</p>'
         f"<h1>Model comparison — {escape(first.case_id)}</h1>"
         f"<p>{len(reports)} completed local run(s) · {escape(first.dataset)}</p></header>"
-        f'<p class="notice">{escape(first.disclaimer)}</p>'
+        f'<p class="notice">{escape(SHORT_DISCLAIMER["en"])}</p>'
         '<section class="panel"><h2>Run status</h2>'
         "<p>Failed and abstained outputs remain unavailable. Timings cover engine stages, "
         "excluding DICOM loading and reporting; this is not a speed benchmark.</p>"
@@ -462,5 +591,5 @@ def render_comparison_report(
         + "".join(rows)
         + "</tbody></table></div></section>"
         + "".join(embedded)
-        + f"<footer>{escape(first.disclaimer)}</footer></main></body></html>"
+        + f"<footer>{escape(SHORT_DISCLAIMER['en'])}</footer></main></body></html>"
     )

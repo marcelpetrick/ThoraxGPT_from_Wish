@@ -9,13 +9,14 @@ from unittest.mock import Mock
 import pytest
 from typer.testing import CliRunner
 
-from thoraxbench.analysis import AnalysisResult
+from thoraxbench.analysis import DISCLAIMER, AnalysisResult
 from thoraxbench.cli import main as cli
 from thoraxbench.config import Settings
 from thoraxbench.perf import PerfRecord
 from thoraxbench.provenance import RunProvenance
 from thoraxbench.reports.html_report import render_comparison_report, render_html_report
-from thoraxbench.schemas import AnalysisRequest, Finding, FindingsReport
+from thoraxbench.reports.outcome import SHORT_DISCLAIMER, build_outcome
+from thoraxbench.schemas import AnalysisRequest, Finding, FindingsReport, LesionCandidate
 from thoraxbench.study import Study, load_study_dir
 from thoraxbench.views import render_slice_png
 
@@ -136,7 +137,7 @@ def test_abstention_has_no_usable_reading_claim(
     result.raw_error = raw_error
     result.report.parse_warnings = ["unavailable"]
     html = render_html_report(result, study)
-    assert "<h2>Abstention</h2>" in html
+    assert '<h2><span class="l-en">Abstention</span>' in html
     assert "No usable research reading is available" in html
     assert "No abnormality" not in html
     assert "not medical advice" in html
@@ -180,7 +181,7 @@ def test_review_has_visible_severity_and_scoped_guideline_context(
     assert "Fleischner Society 2017" in html
     assert "Illustrative solid-nodule, single-nodule, low-risk assumptions" in html
     assert "eligibility have not been established" in html
-    assert "does not establish that no review is needed" in html
+    assert "Severity is general educational context, not an assessment of this scan." in html
     assert "Understanding the terminology" in html
 
 
@@ -272,9 +273,87 @@ def test_abstention_keeps_input_qc_separate_and_escapes_diagnostics(
         {"tokens_generated": 2048, "note": "<script>bad</script>"}
     ]
     html = render_html_report(result, study)
-    assert "<dt>Input QC</dt><dd>Adequate" in html
-    assert "<dt>Model image assessment</dt><dd>Unavailable" in html
+    assert "Input-QC</span></dt><dd>Adequate" in html
+    assert "Bildbewertung des Modells</span></dt><dd>Unavailable" in html
     assert "generation token limit reached" in html
     assert "Generation limit diagnostics" in html
     assert "&lt;script&gt;bad&lt;/script&gt;" in html
     assert "<script>bad</script>" not in html
+
+
+def test_outcome_states_yes_bias_once_in_both_languages(
+    result: AnalysisResult, study: Study
+) -> None:
+    labels = ["pulmonary_nodule", "pleural_effusion", "emphysema", "cardiomegaly"]
+    result.request = AnalysisRequest(labels=labels)
+    result.qc = {"n_slices": 317, "adequate": True}
+    result.slice_indices = [0, 105, 211, 316]
+    result.report.abstain = True
+    result.report.parse_warnings = [
+        f"{label}: positive has no valid attached-image evidence; prediction marked unavailable"
+        for label in labels
+    ]
+    en = build_outcome(result, "en")
+    de = build_outcome(result, "de")
+    assert en.verdict == de.verdict == "not_assessable"
+    assert en.yes_bias
+    assert len(en.sentences) <= 3
+    assert len(de.sentences) <= 3
+    assert "answered yes to all 4 findings" in en.sentences[0]
+    assert "4 of 317 slices (1 %)" in en.sentences[1]
+    assert "alle 4 Befunde" in de.sentences[0]
+    html = render_html_report(result, study)
+    assert html.count('id="outcome"') == 1
+    assert 'id="lang-de"' in html
+    assert 'lang="de"' in html
+    assert "Parser details" in html  # warnings collapse instead of one long paragraph
+    readable = html.split("Structured result and provenance")[0]
+    assert DISCLAIMER not in readable  # the full text stays only in the embedded JSON
+    # One visible notice at the top; the footer and the collapsed Markdown repeat one line.
+    assert html.count(f'<p class="notice"><span class="l-en">{SHORT_DISCLAIMER["en"]}') == 1
+    assert f'"series_uid": "{result.series_uid}"' not in html
+    assert result.patient_id not in html
+
+
+def test_outcome_lists_strong_detector_candidates_and_counts_hidden(
+    result: AnalysisResult, study: Study
+) -> None:
+    result.model_id = "monai-lung-nodule"
+    result.dataset, result.case_id = study.dataset, study.case_id
+    result.series_uid = study.volume.series_uid
+    result.qc = {"n_slices": 64, "spacing_mm": [5.0, 2.5, 2.5], "adequate": True}
+    result.report.findings = [
+        Finding(label="pulmonary_nodule", confidence=0.91, laterality="right", source="detector")
+    ]
+    result.report.lesions = [
+        LesionCandidate(center_zyx_mm=(100.0, 150.0, 60.0), diameter_mm=5.3, score=0.91),
+        LesionCandidate(center_zyx_mm=(50.0, 150.0, 250.0), diameter_mm=6.2, score=0.15),
+    ]
+    width = float((study.volume.shape[2] - 1) * study.volume.spacing_mm[2])
+    outcome = build_outcome(result, "en", width_mm=width)
+    assert outcome.verdict == "findings_to_review"
+    assert outcome.hidden_candidates == 1
+    assert [(item.side, item.slice_number) for item in outcome.look_here] == [("right", 21)]
+    assert (
+        "5 mm pulmonary nodule candidate in the right lung near slice 21 of 64"
+        in (outcome.sentences[0])
+    )
+    assert "only lung nodules were searched" in outcome.sentences[1]
+    assert build_outcome(result, "de").sentences[0].startswith("Zur Prüfung markiert: ")
+    html = render_html_report(result, study)
+    assert "Look here" in html
+    assert "Hier prüfen" in html
+    assert "1 low-score candidate(s) below 0.5" in html
+
+
+def test_outcome_without_findings_says_what_was_checked(result: AnalysisResult) -> None:
+    result.model_id = "monai-lung-nodule"
+    result.qc = {"n_slices": 64}
+    result.report.lesions = []
+    outcome = build_outcome(result, "en")
+    assert outcome.verdict == "nothing_flagged"
+    assert outcome.sentences == [
+        "Nothing was flagged in the checked area.",
+        "Checked: whole volume; only lung nodules were searched.",
+        "This does not rule out findings; the radiologist's report remains the reference.",
+    ]

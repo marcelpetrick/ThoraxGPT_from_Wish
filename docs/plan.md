@@ -126,18 +126,26 @@ how well supported), what was not flagged, what could not be assessed, and what 
 radiologist. One short disclaimer line in app/report; the full text lives once in the repo.
 
 Phase A — report clarity (lead, inline; separate commit):
-- [ ] A1 Remove SeriesInstanceUID/patient identifiers from human-facing reports (keep hashes).
-- [ ] A2 Outcome box first: verdict + coverage ("checked 4 of 317 slices, 1 %") + next step.
-- [ ] A3 Detect all-positive/constant output: one line "unusable: answered yes to all N
+- [x] A1 Remove SeriesInstanceUID/patient identifiers from human-facing reports (keep hashes).
+- [x] A2 Outcome box first: verdict + coverage ("checked 4 of 317 slices, 1 %") + next step.
+- [x] A3 Detect all-positive/constant output: one line "unusable: answered yes to all N
   labels (yes-bias)" instead of N repeated abstention lines.
-- [ ] A4 One-line disclaimer in UI/report; full text once in `docs/DISCLAIMER.md`.
-- [ ] A5 Groom outcomes: ranked "look here" findings first; low-score detector candidates
+- [x] A4 One-line disclaimer in UI/report; full text once in `docs/DISCLAIMER.md`.
+- [x] A5 Groom outcomes: ranked "look here" findings first; low-score detector candidates
   collapsed ("7 low-score candidates hidden, score < 0.1"); educational context below.
-- [ ] A6 Report switchable EN/DE (HTML toggle; same data, translated labels and texts).
-- [ ] A7 Verdict of at most three sentences on top. Default: deterministic template from the
+- [x] A6 Report switchable EN/DE (HTML toggle; same data, translated labels and texts).
+- [x] A7 Verdict of at most three sentences on top. Default: deterministic template from the
   structured outcome (always available, EN/DE). Optional "LLM summary": a local text-only
   call that receives only the structured outcome JSON, never images; accepted only if every
   number, label and side it mentions exists in that JSON, otherwise the template is shown.
+- Phase A evidence: Markdown/HTML open with a ≤3-sentence verdict (`reports/outcome.py`,
+  EN/DE templates) and coverage; yes-bias collapses N abstention lines into one; detector
+  candidates below 0.5 are counted, not listed; HTML has a CSS-only EN/DE switch; one short
+  disclaimer (full text in `docs/DISCLAIMER.md`); SeriesInstanceUID/patient ID removed from
+  the readable report and its embedded JSON (the JSON download keeps them). Optional
+  `POST /api/results/{id}/summary` (`use_llm`) lets local `medgemma1.5-q4` rephrase the facts
+  only; text with new numbers, findings, causal/diagnostic words or >3 sentences falls back
+  to the template. Unit/integration: 908 passed before the gate.
 
 Phase C — thorax-review focus and model guidance (lead):
 - [x] C1 Evidence-based fit marker per model (`fit` 1–3 + reason in `configs/models/*.yaml`):
