@@ -152,6 +152,11 @@ def test_models_probe_ollama_once_and_never_services(
     assert models["medgemma1.5-q4"]["recommended"]
     assert not models["ct-clip"]["available"]
     assert not models["ct-clip"]["recommended"]
+    # Every configured model carries an evidence-based thorax-review fit with a reason.
+    assert models["monai-lung-nodule"]["fit"] == 1
+    assert models["heuristic-hu"]["fit"] == 2
+    assert models["medgemma1.5-q4"]["fit"] == 3
+    assert all(item["fit"] in {1, 2, 3} and item["fit_reason"] for item in models.values())
     tags.mock(side_effect=httpx.ConnectError("down"))
     assert client.get("/api/models").status_code == 200
 

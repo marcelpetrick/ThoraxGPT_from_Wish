@@ -4,7 +4,7 @@
   "snapshot_date": "2026-10-16",
   "model_id": "moondream",
   "source_config": "configs/models/moondream.yaml",
-  "source_config_sha256": "ed03eb7ecefe4150252084155cc1ed0e2a8da43c3e02e7a52e19391d295b783d",
+  "source_config_sha256": "ffcbc8ca193fc1cc1eacc7f304396da1f16a143e398f514d36fee7eed2aa1c3c",
   "adapter": "ollama",
   "family": "moondream",
   "tag": "moondream:latest",

@@ -4,7 +4,7 @@
   "snapshot_date": "2026-10-16",
   "model_id": "ct-clip",
   "source_config": "configs/models/ct-clip.yaml",
-  "source_config_sha256": "f2606aa37448f54096de772fa4a68cbd28041b7f27448b7d4ca7e90d92ea08b5",
+  "source_config_sha256": "e29d9f4379ee8621e155bce2e738495898278c54538920fe8c0c9dd1f8bc084c",
   "adapter": "http_service",
   "family": "ct-clip",
   "tag": null,

@@ -4,7 +4,7 @@
   "snapshot_date": "2026-10-16",
   "model_id": "heuristic-hu",
   "source_config": "configs/models/heuristic-hu.yaml",
-  "source_config_sha256": "6a98a316a37fccc8b236af7a259587cbd05b23ff6c532f3210f122bbb2b07002",
+  "source_config_sha256": "cce4d27c3284199097eafe57048786b10da98560419ef3011bfc83d01b5e2e95",
   "adapter": "heuristic",
   "family": "rules",
   "tag": null,

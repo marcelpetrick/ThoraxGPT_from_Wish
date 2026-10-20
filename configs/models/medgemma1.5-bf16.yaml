@@ -12,4 +12,6 @@ capabilities:
   report_generation: true
 license: "Health AI Developer Foundations terms"
 tier: "A"
+fit: 3
+fit_reason: "Same model; exceeds 8 GB VRAM; no evidence of better recognition."
 notes: "8.6 GB; exceeds 8 GB VRAM, partial CPU offload."

@@ -10,4 +10,6 @@ capabilities:
   probabilities: true
 license: "CC-BY-NC-SA-4.0"
 tier: "B"
+fit: 2
+fit_reason: "3D chest-CT model; not installed, quality unmeasured here."
 notes: "Weights gated on Hugging Face (CT-RATE); trained on CT-RATE (overlap)."

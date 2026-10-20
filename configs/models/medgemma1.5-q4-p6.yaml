@@ -20,6 +20,8 @@ capabilities:
   probabilities: true
 license: "Health AI Developer Foundations terms"
 tier: A
+fit: 3
+fit_reason: "Single-image protocol; readiness failed (non-constant output check)."
 notes: "Experimental single-image P6; no study-wide detection or localized evidence claim."
 options:
   ollama:

@@ -9,4 +9,6 @@ capabilities:
   report_generation: true
 license: "CC-BY-NC-SA-4.0"
 tier: "B"
+fit: 2
+fit_reason: "3D chest-CT model; not installed, quality unmeasured here."
 notes: "High GPU requirements; optional."

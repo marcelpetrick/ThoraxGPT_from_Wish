@@ -10,4 +10,6 @@ capabilities:
   report_generation: true
 license: "Apache-2.0"
 tier: "C"
+fit: 3
+fit_reason: "2D medical VLM; not CT-specific, unmeasured."
 notes: "Medical 2D VLM (PubMedVision)."

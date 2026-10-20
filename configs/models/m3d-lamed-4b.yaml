@@ -11,4 +11,6 @@ capabilities:
   segmentation: true
 license: "Apache-2.0"
 tier: "B"
+fit: 2
+fit_reason: "3D CT model; not installed, quality unmeasured here."
 notes: "Input 1x32x256x256; same-scale 3D comparator (E005)."

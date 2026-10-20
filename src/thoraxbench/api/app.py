@@ -455,6 +455,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:  # noqa: PLR0915 - 
                 {
                     "id": item.id,
                     "recommended": item.id in RECOMMENDED_MODELS,
+                    "fit": item.fit,
+                    "fit_reason": item.fit_reason,
                     "single_image_protocol": item.prompt == "P6",
                     "adapter": item.adapter,
                     "tag": item.tag,

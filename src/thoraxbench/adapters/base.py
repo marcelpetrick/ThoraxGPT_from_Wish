@@ -104,6 +104,9 @@ class ModelConfig(BaseModel):
     timeout_s: float = 600.0
     license: str = "unknown"
     tier: str = ""
+    # Expected thorax-review output quality from current evidence: 1 best, 3 worst fit.
+    fit: Literal[1, 2, 3] = 3
+    fit_reason: str = ""
     notes: str = ""
 
 

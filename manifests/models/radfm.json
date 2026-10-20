@@ -4,7 +4,7 @@
   "snapshot_date": "2026-10-16",
   "model_id": "radfm",
   "source_config": "configs/models/radfm.yaml",
-  "source_config_sha256": "1ae18562f5c019942eba9592601acbce8bb53e0635c8424213cb95b13237d4e9",
+  "source_config_sha256": "1f6cc553c5846683bdf365f2080cf2bfb968530696c20b2e05ed6c0a6a6e1af0",
   "adapter": "http_service",
   "family": "radfm",
   "tag": null,

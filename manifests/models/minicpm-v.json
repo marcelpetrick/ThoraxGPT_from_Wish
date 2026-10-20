@@ -4,7 +4,7 @@
   "snapshot_date": "2026-10-16",
   "model_id": "minicpm-v",
   "source_config": "configs/models/minicpm-v.yaml",
-  "source_config_sha256": "a3d722023df2726f0f445757810ee574313e6ec55ff2a7027fc2de4b39a85f90",
+  "source_config_sha256": "3a71aa25a60074a8d553a50030ffa6242a69a65266f86f29f8c1e18a0e99d585",
   "adapter": "ollama",
   "family": "minicpm-v",
   "tag": "minicpm-v:latest",

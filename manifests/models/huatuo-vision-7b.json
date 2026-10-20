@@ -4,7 +4,7 @@
   "snapshot_date": "2026-10-16",
   "model_id": "huatuo-vision-7b",
   "source_config": "configs/models/huatuo-vision-7b.yaml",
-  "source_config_sha256": "0dd1617d438a3ce7a0b4656f2d1c2d4d02e7d073456e8c857ee8a615b38cbe0e",
+  "source_config_sha256": "9a82f3c27614e40bfc14c38c468992153370896393b73d7fb3c20508b238bb40",
   "adapter": "http_service",
   "family": "huatuo-vision",
   "tag": null,

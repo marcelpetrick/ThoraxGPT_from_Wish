@@ -14,4 +14,6 @@ capabilities:
   report_generation: true
 license: "Apache-2.0"
 tier: "D"
+fit: 3
+fit_reason: "General-purpose VLM control; not trained for CT."
 notes: "General VLM control; thinking disabled."

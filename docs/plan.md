@@ -111,6 +111,61 @@ Status: ✅ done · 🔄 in progress · ⏳ open · ✖ dropped
 
 ## Current activity
 
+### Full thorax review and plain-language outcome — 2026-10-20
+
+User review of a real-study MedGemma report (v0.5.6): "useless, I can't find any value".
+Confirmed causes: (1) 4 single 1 mm slices of 317 (`uniform`, two outside the lungs);
+(2) the model answered positive for all 16 labels (yes-bias), each listed as a separate
+abstention line instead of one clear verdict; (3) detector/HU baseline were not part of
+the run, so no usable signal existed; (4) the full disclaimer is repeated three times;
+(5) privacy: the shareable report prints the real SeriesInstanceUID.
+
+**Goal:** one "Full thorax review" run that covers every lung/thorax slab, checks all
+labels, shows progress, and ends with a plain-language outcome: what was found (where,
+how well supported), what was not flagged, what could not be assessed, and what to show a
+radiologist. One short disclaimer line in app/report; the full text lives once in the repo.
+
+Phase A — report clarity (lead, inline; separate commit):
+- [ ] A1 Remove SeriesInstanceUID/patient identifiers from human-facing reports (keep hashes).
+- [ ] A2 Outcome box first: verdict + coverage ("checked 4 of 317 slices, 1 %") + next step.
+- [ ] A3 Detect all-positive/constant output: one line "unusable: answered yes to all N
+  labels (yes-bias)" instead of N repeated abstention lines.
+- [ ] A4 One-line disclaimer in UI/report; full text once in `docs/DISCLAIMER.md`.
+- [ ] A5 Groom outcomes: ranked "look here" findings first; low-score detector candidates
+  collapsed ("7 low-score candidates hidden, score < 0.1"); educational context below.
+- [ ] A6 Report switchable EN/DE (HTML toggle; same data, translated labels and texts).
+- [ ] A7 Verdict of at most three sentences on top. Default: deterministic template from the
+  structured outcome (always available, EN/DE). Optional "LLM summary": a local text-only
+  call that receives only the structured outcome JSON, never images; accepted only if every
+  number, label and side it mentions exists in that JSON, otherwise the template is shown.
+
+Phase C — thorax-review focus and model guidance (lead):
+- [x] C1 Evidence-based fit marker per model (`fit` 1–3 + reason in `configs/models/*.yaml`):
+  dropdown sorted by fit with 1️⃣/2️⃣/3️⃣ prefix, translated status line, API exposes it.
+- [ ] C2 Group the dropdown: thorax-review models first; general-purpose VLMs under a
+  "research controls" group (kept for benchmarking, not the default path).
+- [ ] C3 Test runs of every installed model on the synthetic demo (known planted lesions)
+  and one calibration case (never the holdout); record a results table and adjust `fit` only
+  on evidence.
+
+Phase B — full thorax review job (isolated worker; separate commits):
+- [ ] B1 Coverage sweep over lung z-range plus mediastinal/upper-abdomen margin as
+  contiguous slabs, visited coarse-to-fine (ends, middle, quarters, … until all covered).
+- [ ] B2 One multi-label query per slab (all labels, yes/no + evidence); about 60–70 slabs
+  for a 317 mm scan, roughly 10–15 min with MedGemma Q4 on this workstation.
+- [ ] B3 Aggregate per label across neighbouring slabs: localized clusters become findings;
+  a label positive on most slabs is reported as "not informative (constant answer)".
+- [ ] B4 Combine whole-volume MONAI candidates, HU cues and VLM clusters into one ranked
+  "look here" list with slice range, side, sources and agreement.
+- [ ] B5 Live progress: after the first slab, show measured time per image and
+  "k of n images left, about M min" (updated after every image); cancel keeps partial results.
+- [ ] B6 Outcome summary + rule-based next steps (existing guideline rules only).
+- [ ] B7 Validate on synthetic lesions and calibration cases only (never the holdout);
+  record honestly whether VLM clusters add anything over the detector.
+
+Expectation: the detector is the only component with demonstrated signal. Full coverage
+does not make a small VLM accurate; the summary must say so when its answers are constant.
+
 ### Vendor private header values and UI red-team — 2026-10-19
 
 The user's operator scan (`dcom_evaluator.py --scan-headers --check-import`) located all

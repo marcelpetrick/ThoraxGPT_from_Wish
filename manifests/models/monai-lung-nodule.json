@@ -4,7 +4,7 @@
   "snapshot_date": "2026-10-17",
   "model_id": "monai-lung-nodule",
   "source_config": "configs/models/monai-lung-nodule.yaml",
-  "source_config_sha256": "63281821b40e90a12965d77a2f383dbbd3abb4d740599963c60b52ecb406bc9b",
+  "source_config_sha256": "b40a701df584d95f9e2fd74ad9914ec9b1b4b301752d4e2aa9c2c8203699ebf8",
   "adapter": "monai_detector",
   "family": "monai_retinanet_luna16",
   "tag": null,

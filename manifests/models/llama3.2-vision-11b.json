@@ -4,7 +4,7 @@
   "snapshot_date": "2026-10-16",
   "model_id": "llama3.2-vision-11b",
   "source_config": "configs/models/llama3.2-vision-11b.yaml",
-  "source_config_sha256": "7de542d8cd02e583524071cfeb301a2a30fff1975ec19122a1bc0dc1531a14bf",
+  "source_config_sha256": "40c5ecce10b38b396b00c8d346be6bcf1c2a9ddc4ae88c6825c462e5e214e0c0",
   "adapter": "ollama",
   "family": "llama3.2-vision",
   "tag": "llama3.2-vision:11b",

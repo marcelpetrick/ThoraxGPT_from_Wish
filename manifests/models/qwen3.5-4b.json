@@ -4,7 +4,7 @@
   "snapshot_date": "2026-10-16",
   "model_id": "qwen3.5-4b",
   "source_config": "configs/models/qwen3.5-4b.yaml",
-  "source_config_sha256": "5695a51d580f233d6e305a5de1a0af8b08d471afa77d932d4b4f1eaa0b833a91",
+  "source_config_sha256": "e961b3ee3f62bf16c16724b2eea8a0ed274729ca892b6ac22878a541a73912eb",
   "adapter": "ollama",
   "family": "qwen3.5",
   "tag": "qwen3.5:4b",

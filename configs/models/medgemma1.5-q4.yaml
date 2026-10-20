@@ -20,4 +20,6 @@ capabilities:
   report_generation: true
 license: "Health AI Developer Foundations terms"
 tier: "A"
+fit: 3
+fit_reason: "Failed readiness: answers positive for all labels without image evidence."
 notes: "Bounded raw-axial research profile. Sparse sampled images cannot exclude whole-study findings."

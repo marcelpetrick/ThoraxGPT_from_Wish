@@ -12,4 +12,6 @@ capabilities:
   report_generation: true
 license: "Gemma Terms of Use"
 tier: "D"
+fit: 3
+fit_reason: "General-purpose VLM control; not trained for CT."
 notes: "General-VLM control with the same architecture and image encoder as MedGemma 1.5 (isolates medical training)."

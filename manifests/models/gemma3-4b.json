@@ -4,7 +4,7 @@
   "snapshot_date": "2026-10-16",
   "model_id": "gemma3-4b",
   "source_config": "configs/models/gemma3-4b.yaml",
-  "source_config_sha256": "3c4f3f91915de3a5d3fbbd7f26f635bfb86c7c24a4d5fa0239ff428d47a3f452",
+  "source_config_sha256": "aaf093b7a51f049866c6f5d0789ebca794211b47668fb06e4a3bf5505fbc1c18",
   "adapter": "ollama",
   "family": "gemma3",
   "tag": "gemma3:4b-it-q4_K_M",

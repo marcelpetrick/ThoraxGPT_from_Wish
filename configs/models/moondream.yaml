@@ -11,4 +11,6 @@ capabilities:
   classification: true
 license: "Apache-2.0"
 tier: "D"
+fit: 3
+fit_reason: "Tiny negative control."
 notes: "Tiny negative control; 2K context."

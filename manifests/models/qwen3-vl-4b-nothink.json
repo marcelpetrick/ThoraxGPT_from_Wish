@@ -4,7 +4,7 @@
   "snapshot_date": "2026-10-17",
   "model_id": "qwen3-vl-4b-nothink",
   "source_config": "configs/models/qwen3-vl-4b-nothink.yaml",
-  "source_config_sha256": "4e3bb5fd86843236000793e29bd135fef3dc427c2a89944823a4571c1e72d2e6",
+  "source_config_sha256": "7bcdd5973405326d84ed595c3b0959fddfa9df53baf9298cf0f831690e080017",
   "adapter": "ollama",
   "family": "qwen3-vl",
   "tag": "qwen3-vl:4b",

@@ -4,7 +4,7 @@
   "snapshot_date": "2026-10-16",
   "model_id": "ct-chat",
   "source_config": "configs/models/ct-chat.yaml",
-  "source_config_sha256": "00703d6f3a191e2503f12b78a28d20b39b8be0f60af19e06e736e06cc1062da7",
+  "source_config_sha256": "3d91fd5c8c4b766ecf5ab0748a2ca5d8c7f9d433d0a84864df5ae56a065bbebe",
   "adapter": "http_service",
   "family": "ct-chat",
   "tag": null,

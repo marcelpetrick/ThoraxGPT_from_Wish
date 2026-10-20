@@ -4,7 +4,7 @@
   "snapshot_date": "2026-10-16",
   "model_id": "m3d-lamed-4b",
   "source_config": "configs/models/m3d-lamed-4b.yaml",
-  "source_config_sha256": "19516cb6cd246fcf3c62a6e6d08a9afc0c67626c04119568b83853cb61dde9e8",
+  "source_config_sha256": "31f9127e36f6cc3d85a70d9aa7a7bd0d5e303aff77fb8c48b0403c3e4a1a6d00",
   "adapter": "http_service",
   "family": "m3d-lamed",
   "tag": null,

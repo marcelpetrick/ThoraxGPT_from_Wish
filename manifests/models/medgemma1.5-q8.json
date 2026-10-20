@@ -4,7 +4,7 @@
   "snapshot_date": "2026-10-17",
   "model_id": "medgemma1.5-q8",
   "source_config": "configs/models/medgemma1.5-q8.yaml",
-  "source_config_sha256": "d7a0a56b7ae08ce913c5d8bc0eb78db026e207ba3b3dc4d18cb357aa53082c25",
+  "source_config_sha256": "9a5bd573e6b202ae3d3406a7f5f8d7621381f5957ae61311bff00694f279829f",
   "adapter": "ollama",
   "family": "medgemma",
   "tag": "medgemma1.5:4b-it-q8_0",

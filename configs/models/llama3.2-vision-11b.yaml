@@ -12,4 +12,6 @@ capabilities:
   report_generation: true
 license: "Llama 3.2 Community License"
 tier: "D"
+fit: 3
+fit_reason: "General-purpose VLM control; one image per request."
 notes: "Single image per request; use a contact sheet view."

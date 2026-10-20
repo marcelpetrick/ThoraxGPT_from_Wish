@@ -29,6 +29,8 @@ options:
     min_free_gpu_mb: 3000
 license: "Apache-2.0"
 tier: "reference"
+fit: 1
+fit_reason: "Whole-volume nodule detector; one clear located candidate on real data. Nodules only."
 notes: >-
   Pretrained LUNA16 RetinaNet nodule detector (MONAI Model Zoo). Upstream intended use: an
   example, not for diagnostic purposes. Trained on LIDC-IDRI scans: results on LIDC-IDRI are

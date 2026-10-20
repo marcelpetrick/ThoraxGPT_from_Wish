@@ -9,4 +9,6 @@ capabilities:
   report_generation: true
 license: "see upstream"
 tier: "B"
+fit: 2
+fit_reason: "3D radiology model; not installed, quality unmeasured here."
 notes: "Historical baseline, low priority."

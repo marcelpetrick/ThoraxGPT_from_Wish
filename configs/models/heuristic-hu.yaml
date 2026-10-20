@@ -9,4 +9,6 @@ capabilities:
   localization: true
 license: "GPL-3.0-or-later"
 tier: "control"
+fit: 2
+fit_reason: "Deterministic HU baseline over the whole volume; coarse cues, not a reading."
 notes: "Deterministic HU-rule baseline."
