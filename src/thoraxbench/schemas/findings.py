@@ -47,11 +47,15 @@ class Finding(BaseModel):
         Models use ``confidence`` both as "my answer is correct" and as P(present); e.g.
         MedGemma writes ``present: false, confidence: 0.0`` for a clear negative. Reading
         that as P(present) = 1 inverted negatives (2026-10-20). Confidence therefore only
-        sets the strength: a positive maps to >= 0.5, a negative to < 0.5, and an exact
-        0.5 stays unknown. :meth:`confidence_contradicts_answer` flags the ambiguity.
+        sets the strength: a positive maps to >= 0.5, a negative to < 0.5; a negative at
+        exactly 0.5 stays unknown. :meth:`confidence_contradicts_answer` flags the ambiguity.
         """
-        if self.present is None or self.confidence is None or self.confidence == 0.5:
+        if self.present is None or self.confidence is None:
             return None
+        if self.confidence == 0.5:
+            # A positive at the cut-off stays a positive at 0.5; a negative cannot be
+            # expressed below it, so it stays unknown.
+            return 0.5 if self.present else None
         low, high = sorted((self.confidence, 1.0 - self.confidence))
         return high if self.present else low
 
@@ -66,6 +70,11 @@ class Finding(BaseModel):
             return Laterality.UNKNOWN
         text = str(value).strip().lower()
         return text if text in {m.value for m in Laterality} else Laterality.UNKNOWN
+
+
+def side_of_x(x_mm: float, width_mm: float) -> str:
+    """Patient side of a canonical ``x`` (columns run from patient right at 0 to left)."""
+    return "right" if x_mm < width_mm / 2 else "left"
 
 
 class LesionCandidate(BaseModel):

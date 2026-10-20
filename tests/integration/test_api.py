@@ -86,7 +86,7 @@ def test_demo_slices_analysis_and_downloads(client: TestClient) -> None:
     assert body["presentation"]["educational_only"] is True
     assert any(row["severity"] is not None for row in body["presentation"]["findings"])
     assert "Pulmonary nodule" in body["markdown"]
-    assert "Research tool, not a diagnosis" in body["markdown"]
+    assert "experimental research tool, not a diagnosis" in body["markdown"]
     assert "## Verdict" in body["markdown"]
     saved = client.get(body["downloads"]["json"])
     assert saved.json() == body["result"]

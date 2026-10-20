@@ -8,7 +8,7 @@ import ipaddress
 import json
 from collections.abc import Awaitable, Callable
 from pathlib import Path
-from threading import RLock
+from threading import Lock, RLock
 from typing import Any, Literal
 from urllib.parse import urlsplit
 from uuid import UUID, uuid4
@@ -846,6 +846,16 @@ def create_app(settings: Settings | None = None) -> FastAPI:  # noqa: PLR0915 - 
 
         return work
 
+    # Model work and the optional LLM rewording share one GPU; never run both at once.
+    gpu_lock = Lock()
+
+    def on_gpu(work: Callable[[JobContext], JobOutcome]) -> Callable[[JobContext], JobOutcome]:
+        def locked(context: JobContext) -> JobOutcome:
+            with gpu_lock:
+                return work(context)
+
+        return locked
+
     def submit(body: JobBody) -> tuple[dict[str, Any], bool]:
         result_folder()
         configured = configured_models()
@@ -892,7 +902,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:  # noqa: PLR0915 - 
             label["models"] = [item.id for item in candidates]
             work = comparison_work(body)
         try:
-            snapshot, created = jobs.submit(body.kind, key, label, work, steps)
+            snapshot, created = jobs.submit(body.kind, key, label, on_gpu(work), steps)
         except QueueFullError as exc:
             raise HTTPException(429, str(exc)) from exc
         return snapshot, created
@@ -980,15 +990,22 @@ def create_app(settings: Settings | None = None) -> FastAPI:  # noqa: PLR0915 - 
         template = " ".join(outcome.sentences)
         if not body.use_llm:
             return {"text": template, "source": "template", "rejection": None}
-        # The GPU runs one job at a time; the optional rephrasing never competes with it.
-        if any(job["status"] in ACTIVE for job in jobs.snapshots()):
-            return {"text": template, "source": "template", "rejection": "a local job is running"}
         model = configured_models().get(SUMMARY_MODEL)
         if model is None or not model.tag:
             return {"text": template, "source": "template", "rejection": "no summary model"}
-        text, source, rejection = llm_summary(
-            outcome, body.lang, base_url=config.ollama_url, tag=model.tag
-        )
+        # The GPU runs one job at a time: skip when a job is queued or holds the GPU, and
+        # hold the GPU while rephrasing so a newly started job waits for it.
+        busy = {"text": template, "source": "template", "rejection": "a local job is running"}
+        if any(job["status"] in ACTIVE for job in jobs.snapshots()):
+            return busy
+        if not gpu_lock.acquire(blocking=False):
+            return busy
+        try:
+            text, source, rejection = llm_summary(
+                outcome, body.lang, base_url=config.ollama_url, tag=model.tag
+            )
+        finally:
+            gpu_lock.release()
         return {"text": text, "source": source, "rejection": rejection}
 
     @app.get("/api/results/{identifier}/{kind}")

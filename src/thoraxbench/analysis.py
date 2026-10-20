@@ -101,6 +101,7 @@ def _check_image_evidence(report: FindingsReport, n_images: int, *, required: bo
     Raw responses remain unchanged for inspection. This validates reference bounds, not
     visual correctness. Source-slice references from the HU baseline never enter here.
     """
+    contradicted: list[str] = []
     for finding in report.findings:
         valid = list(dict.fromkeys(i for i in finding.evidence_images if 1 <= i <= n_images))
         if valid != finding.evidence_images:
@@ -110,10 +111,7 @@ def _check_image_evidence(report: FindingsReport, n_images: int, *, required: bo
             )
             finding.evidence_images = valid
         if finding.confidence_contradicts_answer():
-            report.parse_warnings.append(
-                f"{finding.label}: confidence {finding.confidence} read as strength of the "
-                f"explicit answer present={str(finding.present).lower()}"
-            )
+            contradicted.append(finding.label)
         probability = finding.presence_probability()
         if required and probability is not None and probability >= 0.5 and not valid:
             finding.present = None
@@ -122,6 +120,13 @@ def _check_image_evidence(report: FindingsReport, n_images: int, *, required: bo
                 f"{finding.label}: positive has no valid attached-image evidence; "
                 "prediction marked unavailable"
             )
+    if contradicted:
+        # One summary line, so routine negatives never crowd out other warnings.
+        report.parse_warnings.append(
+            f"confidence read as strength of the explicit yes/no answer for "
+            f"{len(contradicted)} label(s): {', '.join(contradicted[:4])}"
+            + (" …" if len(contradicted) > 4 else "")
+        )
 
 
 def analyze_study(  # noqa: PLR0915 - one linear, staged engine pipeline
@@ -267,7 +272,9 @@ def analyze_study(  # noqa: PLR0915 - one linear, staged engine pipeline
         context=prepared.context
         if prepared.meta.get("include_cues") is False
         else prepared.context or (study.cues.summary() if study.qc.adequate else ""),
-        qc=study.qc.to_dict(),
+        # The left-right width lets saved results place candidate sides without the volume.
+        qc=study.qc.to_dict()
+        | {"width_mm": float((study.volume.shape[2] - 1) * study.volume.spacing_mm[2])},
         perf=perf,
         provenance=provenance,
     )

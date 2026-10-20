@@ -284,4 +284,8 @@ def test_confident_negatives_with_zero_confidence_stay_negative() -> None:
     assert report.positive_labels() == set()
     assert all(report.label_probability(label) == 0.0 for label in labels)
     assert not any("marked unavailable" in w for w in report.parse_warnings)
-    assert sum("read as strength of the explicit answer" in w for w in report.parse_warnings) == 4
+    summary = [w for w in report.parse_warnings if "read as strength" in w]
+    assert summary == [
+        "confidence read as strength of the explicit yes/no answer for 4 label(s): "
+        "pulmonary_nodule, pleural_effusion, emphysema, cardiomegaly"
+    ]

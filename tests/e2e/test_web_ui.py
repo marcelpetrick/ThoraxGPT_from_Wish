@@ -106,7 +106,7 @@ def test_synthetic_study_analysis_downloads_and_about(
     downloaded.value.save_as(report_path)
     report = report_path.read_text()
     assert "research" in report.lower()
-    assert "research tool, not a diagnosis" in report.lower()
+    assert "experimental research tool, not a diagnosis" in report.lower()
     assert "## verdict" in report.lower()
     assert "nodule" in report.lower()
     _check_inline_report(page)

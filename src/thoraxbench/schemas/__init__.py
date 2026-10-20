@@ -8,6 +8,7 @@ from thoraxbench.schemas.findings import (
     Laterality,
     LesionCandidate,
     StudyQuality,
+    side_of_x,
 )
 from thoraxbench.schemas.model_io import (
     AnalysisRequest,
@@ -29,4 +30,5 @@ __all__ = [
     "RawOutput",
     "ReferenceLabels",
     "StudyQuality",
+    "side_of_x",
 ]

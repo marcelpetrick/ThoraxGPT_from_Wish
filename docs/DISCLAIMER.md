@@ -7,7 +7,7 @@ misleading. Do not use them for diagnosis or treatment decisions. Any finding re
 independent review by a qualified radiologist.
 
 Reports and the app show this once as a short line:
-"Research tool, not a diagnosis: have every result reviewed by a radiologist."
+"Self-made experimental research tool, not a diagnosis: findings may be incorrect, incomplete or misleading. Have every result reviewed by a radiologist." (German: "Selbst entwickeltes experimentelles Forschungswerkzeug, keine Diagnose: Befunde können falsch, unvollständig oder irreführend sein. Jedes Ergebnis von Radiologen prüfen lassen.")
 
 ## Haftungsausschluss
 

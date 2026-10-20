@@ -202,8 +202,9 @@ persistent English/German and light/dark switches. Every action, field label and
 metric needs concise translated help via accessible hover/focus tooltips. The About page
 names Marcel Petrick as author, explains the research purpose, links to the canonical GitHub
 repository for forks/issues/contributions with translated help, and lists used libraries,
-installed versions and license information. UI text is translated; generated research
-reports remain English until separately specified.
+installed versions and license information. UI text is translated. Generated HTML reports
+offer an EN/DE switch for the verdict and key labels (user request 2026-10-20); the Markdown
+report and educational knowledge-base text remain English.
 
 Use synthetic studies for browser tests and screenshots. Never commit patient images or
 rendered slices of real CT studies. Screenshots of the code-generated synthetic phantom
@@ -243,9 +244,12 @@ follow the proposed design in `docs/lan-runner.md` when resumed.
 
 1. **Research use only.** Never add text, UI, or output that claims clinical validity,
    diagnosis, treatment suitability, or medical-device status (Vision §28). Every
-   user-facing output carries the research-only disclaimer, identifies this as a self-made
-   experimental tool, and states that findings may be incorrect, incomplete or misleading
-   and are not professional medical advice or a basis for diagnosis/treatment decisions.
+   user-facing output carries one short line that identifies this as a self-made
+   experimental tool, not a diagnosis, states that findings may be incorrect, incomplete or
+   misleading, and asks for radiologist review (`reports/outcome.py` `SHORT_DISCLAIMER`).
+   The full text (not professional medical advice, not a basis for diagnosis/treatment
+   decisions) lives once in `docs/DISCLAIMER.md` and in every result JSON; do not repeat
+   it on every panel (user decision 2026-10-20).
 2. **No medical data in Git.** DICOM, NIfTI, rendered slices of real studies, model weights,
    archives and secrets never get committed. `scripts/check_no_medical_data.sh` enforces this in the
    pipeline. Raw data lives in `data/` (git-ignored, 10 GB budget).

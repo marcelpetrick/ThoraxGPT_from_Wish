@@ -15,6 +15,7 @@ from thoraxbench.reports.candidates import candidate_review
 from thoraxbench.reports.outcome import (
     SHORT_DISCLAIMER,
     SHOW_SCORE,
+    SIDES,
     Outcome,
     build_outcome,
     label_name,
@@ -262,12 +263,8 @@ def _outcome_section(outcomes: dict[str, Outcome]) -> str:
     rows = []
     for item_en, item_de in zip(en.look_here, de.look_here, strict=True):
         side = _t(
-            escape(item_en.side),
-            escape(
-                {"right": "rechts", "left": "links"}.get(
-                    item_de.side, "unbekannt" if item_de.side == "unknown" else item_de.side
-                )
-            ),
+            escape(SIDES["en"].get(item_en.side, item_en.side)),
+            escape(SIDES["de"].get(item_de.side, item_de.side)),
         )
         rows.append(
             f"<tr><td>{_t(*(escape(label_name(item_en.label, lang)) for lang in ('en', 'de')))}"

@@ -160,6 +160,14 @@ Phase C — thorax-review focus and model guidance (lead):
   (status 2026-10-17, readiness checks) must be re-run before they are cited.
 - [x] M1 Manual page 20 "Thorax review" (verdict, EN/DE switch, LLM wording, fit markers,
   detector-first full review, weak cues); 20-page Chromium PDF, pages 1 and 20 reviewed.
+- [x] R2 `/code-review` (v0.5.4…HEAD), all 9 findings fixed: a stop during a detector/HU-only
+  review is reported as cancelled; the selected detector config is used; yes-bias text counts
+  only unsupported positives; German sides reuse `outcome.SIDES`; a positive at exactly 0.5
+  stays positive; results store `qc.width_mm` so app and report verdicts give the same sides;
+  confidence contradictions collapse into one warning; a GPU lock keeps jobs and the LLM
+  rewording apart; the short disclaimer now names a self-made experimental tool and possible
+  incorrect, incomplete or misleading findings (AGENTS.md updated for it and the EN/DE
+  report switch); one shared `side_of_x` replaces three copies.
 - [x] R1 Branch review (v0.5.4…d4988f6), all findings fixed: (1) HU-only look-here entries are
   weak cues and never decide the verdict (real scans got "findings to review" from density
   noise); (2) the full review also runs with the detector or HU baseline only, the image-model

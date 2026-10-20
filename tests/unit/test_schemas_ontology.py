@@ -85,7 +85,8 @@ def test_model_io_types() -> None:
         (True, 0.2, 0.8),
         (False, 0.2, 0.2),
         (False, 0.0, 0.0),
-        (True, 0.5, None),
+        (True, 0.5, 0.5),
+        (False, 0.5, None),
     ],
 )
 def test_shared_probability_and_positive_labels(

@@ -61,6 +61,7 @@ from thoraxbench.schemas import (
     FindingsReport,
     PreparedInput,
     RawOutput,
+    side_of_x,
 )
 from thoraxbench.scoring.overlap import possible_training_overlap
 
@@ -72,8 +73,7 @@ BackendFactory = Callable[[Path, str, DetectorParams], DetectorBackend]
 
 
 def _side(x_mm: float, width_mm: float) -> str:
-    # Columns run from patient right (x = 0) to patient left.
-    return "right" if x_mm < width_mm / 2 else "left"
+    return side_of_x(x_mm, width_mm)
 
 
 class MonaiDetectorModel:

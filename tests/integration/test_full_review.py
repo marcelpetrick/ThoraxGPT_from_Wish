@@ -256,6 +256,14 @@ def test_whole_volume_review_without_image_model(study: Study) -> None:
     assert run.summary["coverage"]["stopped"] is False
 
 
+def test_whole_volume_review_reports_a_requested_stop(study: Study) -> None:
+    """Without a slab sweep a stop during the baselines still ends the run as stopped."""
+    run = run_full_review(
+        study, "heuristic-hu", Settings(), detector_id=None, should_stop=lambda: True
+    )
+    assert run.summary["coverage"]["stopped"] is True
+
+
 def test_service_models_are_refused(study: Study) -> None:
     with pytest.raises(ModelUnavailableError):
         run_full_review(study, "ct-chat", Settings())

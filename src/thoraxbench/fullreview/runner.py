@@ -40,7 +40,7 @@ from thoraxbench.ontology import load_ontology
 from thoraxbench.privacy import settings_redactor
 from thoraxbench.provenance import RunProvenance, sha256_of_obj
 from thoraxbench.sampling import Selection, ThoraxSweep
-from thoraxbench.schemas import AnalysisRequest, FindingsReport, PreparedInput
+from thoraxbench.schemas import AnalysisRequest, FindingsReport, PreparedInput, side_of_x
 from thoraxbench.study import Study
 from thoraxbench.views import MultiSliceView, get_view, render_slice_png
 
@@ -169,7 +169,7 @@ def _baselines(
                         source="detector",
                         label="pulmonary_nodule",
                         slice_index=index,
-                        side="right" if lesion.center_zyx_mm[2] < width_mm / 2 else "left",
+                        side=side_of_x(lesion.center_zyx_mm[2], width_mm),
                         score=round(lesion.score, 4),
                         size_mm=round(lesion.diameter_mm, 1)
                         if lesion.diameter_mm is not None
@@ -219,6 +219,8 @@ def run_full_review(  # noqa: PLR0915 - one staged, linear engine pipeline
     image_model = model is not None or config.adapter == "ollama"
     if not image_model and config.adapter not in {"monai_detector", "heuristic"}:
         raise ModelUnavailableError("full thorax review needs an image model or the detector")
+    # A selected detector configuration is the one to run, not the default detector.
+    detector_id = model_id if config.adapter == "monai_detector" else detector_id
     vlm: ThoraxModel | None = None
     window, size = "lung", 0
     if image_model:
@@ -252,10 +254,12 @@ def run_full_review(  # noqa: PLR0915 - one staged, linear engine pipeline
     thumbnails: dict[int, bytes] = {}
     durations: list[float] = []
     failures_before_answer = 0
-    stopped = False
     runtime_failed = False
     if adequate:
         announce("slabs")
+    # Without a slab sweep the baselines are the whole run; a stop requested meanwhile
+    # (which may have skipped the detector) must still end the job as stopped.
+    stopped = vlm is None and stop()
     progress(0, total, None)
     for visited, position in enumerate(selection.visit_order):
         if stop() or vlm is None:

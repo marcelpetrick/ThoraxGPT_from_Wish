@@ -19,7 +19,7 @@ from thoraxbench.analysis import AnalysisResult
 from thoraxbench.ontology import load_ontology
 from thoraxbench.ontology.clinical import ClinicalEntry, Severity, load_clinical_kb
 from thoraxbench.ontology.guidelines import fleischner, size_bin
-from thoraxbench.reports.outcome import SHORT_DISCLAIMER, build_outcome
+from thoraxbench.reports.outcome import NO_EVIDENCE, SHORT_DISCLAIMER, build_outcome
 from thoraxbench.schemas import Finding, ReferenceLabels
 
 PRESENT_THRESHOLD = 0.5
@@ -99,7 +99,8 @@ def _header(result: AnalysisResult) -> list[str]:
     if rep.abstain or result.raw_error:
         reason = f" ({result.raw_error})" if result.raw_error else ""
         detail = (
-            f"It claimed {len(rep.parse_warnings)} label(s) positive without image evidence "
+            f"It claimed {sum(NO_EVIDENCE in w for w in rep.parse_warnings)} label(s) positive "
+            "without image evidence "
             "(yes-bias), so all were discarded."
             if outcome.yes_bias
             else "; ".join(rep.parse_warnings)

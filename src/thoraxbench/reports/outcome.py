@@ -12,6 +12,7 @@ from dataclasses import dataclass, field
 from typing import Literal
 
 from thoraxbench.analysis import AnalysisResult
+from thoraxbench.schemas import side_of_x
 
 Language = Literal["en", "de"]
 Verdict = Literal["findings_to_review", "nothing_flagged", "not_assessable"]
@@ -24,8 +25,14 @@ DETECTOR_MODEL = "monai-lung-nodule"
 NO_EVIDENCE = "positive has no valid attached-image evidence"
 
 SHORT_DISCLAIMER = {
-    "en": "Research tool, not a diagnosis: have every result reviewed by a radiologist.",
-    "de": "Forschungswerkzeug, keine Diagnose: Jedes Ergebnis von Radiologen prüfen lassen.",
+    "en": (
+        "Self-made experimental research tool, not a diagnosis: findings may be incorrect, "
+        "incomplete or misleading. Have every result reviewed by a radiologist."
+    ),
+    "de": (
+        "Selbst entwickeltes experimentelles Forschungswerkzeug, keine Diagnose: Befunde können "
+        "falsch, unvollständig oder irreführend sein. Jedes Ergebnis von Radiologen prüfen lassen."
+    ),
 }
 
 LABELS_DE = {
@@ -84,11 +91,6 @@ class Outcome:
     yes_bias: bool = False
 
 
-def _side(x_mm: float, width_mm: float) -> str:
-    # Columns run from patient right (x = 0) to patient left, as in the detector adapter.
-    return "right" if x_mm < width_mm / 2 else "left"
-
-
 def yes_bias(result: AnalysisResult) -> bool:
     """Report whether most requested labels were claimed positive without image evidence."""
     requested = len(result.request.labels) or len(result.report.findings)
@@ -118,7 +120,7 @@ def _look_here(result: AnalysisResult, width_mm: float | None) -> tuple[list[Loo
     shown = [
         LookHere(
             label=lesion.label,
-            side=_side(lesion.center_zyx_mm[2], width_mm)
+            side=side_of_x(lesion.center_zyx_mm[2], width_mm)
             if width_mm
             else (top_side if rank == 0 else "unknown"),
             size_mm=lesion.diameter_mm,
@@ -205,7 +207,9 @@ def build_outcome(
                 else "Run the lung-nodule detector (1️⃣ monai-lung-nodule) on the same study."
             )
         return Outcome("not_assessable", [first, second, third], coverage, yes_bias=biased)
-    places, hidden = _look_here(result, width_mm)
+    stored = result.qc.get("width_mm")
+    width = width_mm or (float(stored) if isinstance(stored, int | float) and stored > 0 else None)
+    places, hidden = _look_here(result, width)
     if not places:
         first = (
             "Im geprüften Bereich wurde nichts markiert."
