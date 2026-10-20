@@ -132,7 +132,15 @@ def _normalise_items(findings: object) -> list[dict[str, Any]]:
             elif isinstance(val, bool) or val is None:
                 items.append({"label": key, "present": val})
             elif isinstance(val, int | float):
-                items.append({"label": key, "present": True, "confidence": val})
+                # A bare number is P(present); store direction plus strength (0.5 = unknown).
+                prob = float(val)
+                items.append(
+                    {
+                        "label": key,
+                        "present": None if prob == 0.5 else prob > 0.5,
+                        "confidence": max(prob, 1.0 - prob),
+                    }
+                )
             else:
                 items.append({"label": key, "present": val})
         return items

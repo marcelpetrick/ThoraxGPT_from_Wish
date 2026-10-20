@@ -274,6 +274,11 @@ def run_full_review(  # noqa: PLR0915 - one staged, linear engine pipeline
             stopped = True  # the stop aborted this request; it was never answered
             break
         report = vlm.parse(raw)
+        if raw.error is None and report.abstain and report.findings:
+            # A study-level self-abstention ("only one slice visible") is expected for a
+            # single slab; the per-label answers for this image are kept.
+            report.abstain = False
+            report.parse_warnings.append("slab self-abstention ignored; per-label answers kept")
         _check_image_evidence(report, 1, required=True)
         elapsed = clock() - t0
         durations.append(elapsed)

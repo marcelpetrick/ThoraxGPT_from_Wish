@@ -4,7 +4,7 @@
 # THIS image only. Same strict schema (version 2) and parser as P5; with one attached image a
 # positive cites IMAGE 1. Used by the full-review job; P5 stays unchanged.
 id: P7
-version: "1.0.0"
+version: "1.1.0"
 title: Single-slab all-label check (full thorax review)
 label_constrained: true
 schema_version: "2"
@@ -30,4 +30,6 @@ user: |
     region); an empty string otherwise.
   - Sizes only as "size_bin"; never state millimetres.
   - "study_quality.adequate": false only if the image is not a readable chest CT.
+  - Seeing one slab is expected; set "abstain": false and use null for labels this slab
+    cannot show.
   - Keep every text field short. Return only the JSON object.

@@ -247,8 +247,8 @@ def test_uncertain_predictions_are_unavailable_to_scoring() -> None:
 def test_safety_and_factuality_use_implied_presence_and_skip_abstention() -> None:
     report = FindingsReport(
         findings=[
-            Finding(label="nodule", present=False, confidence=0.2, size_mm=12),
-            Finding(label="mass", present=True, confidence=0.2, size_mm=40),
+            Finding(label="nodule", present=True, confidence=0.8, size_mm=12),
+            Finding(label="mass", present=False, confidence=0.8, size_mm=40),
         ]
     )
     reference = {"nodule": False, "mass": True}

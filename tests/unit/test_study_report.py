@@ -49,7 +49,7 @@ def test_heuristic_evidence_names_source_slices(result: AnalysisResult) -> None:
     [
         (True, None, None, "uncertain"),
         (False, None, None, "uncertain"),
-        (True, 0.5, 0.5, "present"),
+        (True, 0.5, None, "uncertain"),
         (False, 0.8, 0.2, "not detected"),
         (None, 0.9, None, "uncertain"),
     ],

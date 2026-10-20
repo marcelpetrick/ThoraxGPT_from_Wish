@@ -417,10 +417,11 @@ def test_context_ablation_preserves_empty_actual_model_context(study: Study) -> 
 @pytest.mark.parametrize(
     ("present", "confidence", "expected", "abstain"),
     [
-        (False, 0.1, None, True),
-        (True, 0.1, 0.1, False),
+        # The explicit answer sets the direction (2026-10-20 inversion fix).
+        (False, 0.1, 0.1, False),
+        (True, 0.1, None, True),
         (False, 0.9, 0.1, False),
-        (False, 0.5, None, True),
+        (False, 0.5, None, False),
     ],
 )
 def test_evidence_guard_uses_implied_presence_probability(

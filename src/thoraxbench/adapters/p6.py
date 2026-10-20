@@ -220,17 +220,15 @@ class P6OllamaModel(OllamaModel):
             )
             latency += elapsed
             calls.extend(label_calls)
-            confidence = (
-                None
-                if probability is None or answer is None
-                else probability
-                if answer
-                else 1.0 - probability
-            )
+            # P6 scores by the logprob P(yes); it sets the direction, the text answer stays
+            # in the diagnostics. The confidence is the strength of that direction.
+            present, confidence = answer, None
+            if probability is not None and answer is not None:
+                present, confidence = probability >= 0.5, max(probability, 1.0 - probability)
             findings.append(
                 Finding(
                     label=label,
-                    present=answer,
+                    present=present,
                     confidence=confidence,
                     source="model",
                     description="P6 single-image answer; no model-localized image citation.",

@@ -38,7 +38,11 @@ class ScriptedVlm:
     """Labelled scripted answers per slab centre; records every prepared input."""
 
     def __init__(
-        self, positive: Callable[[int], set[str]], *, error: bool = False, abstain: bool = False
+        self,
+        positive: Callable[[int], set[str]],
+        *,
+        error: bool = False,
+        abstain: bool | str = False,
     ) -> None:
         self.positive = positive
         self.error = error
@@ -60,6 +64,7 @@ class ScriptedVlm:
                 "laterality": "right" if label in found else "unknown",
             }
             for label in request.labels
+            if self.abstain != "empty"
         ]
         return RawOutput(
             text=json.dumps(
@@ -67,7 +72,7 @@ class ScriptedVlm:
                     "study_quality": {"adequate": True, "limitations": []},
                     "findings": findings,
                     "negative_findings": [],
-                    "abstain": self.abstain,
+                    "abstain": bool(self.abstain),
                     "uncertainty": "Scripted synthetic response; no model ran.",
                 }
             )
@@ -205,7 +210,7 @@ def test_abstaining_model_and_inadequate_study(study: Study) -> None:
         study,
         "medgemma1.5-q4",
         Settings(),
-        model=ScriptedVlm(_nodule_slab, abstain=True),  # type: ignore[arg-type]
+        model=ScriptedVlm(_nodule_slab, abstain="empty"),  # type: ignore[arg-type]
         detector_id=None,
         strategy=ThoraxSweep(n=12),
     )
@@ -223,6 +228,24 @@ def test_abstaining_model_and_inadequate_study(study: Study) -> None:
     )
     assert run.summary["verdict"] == "not_assessable"
     assert run.summary["coverage"]["slabs_total"] == 0
+
+
+def test_slab_self_abstention_keeps_per_label_answers(study: Study) -> None:
+    """MedGemma abstains per slab ("one slice visible") while answering every label."""
+    run = run_full_review(
+        study,
+        "medgemma1.5-q4",
+        Settings(),
+        model=ScriptedVlm(_nodule_slab, abstain=True),  # type: ignore[arg-type]
+        detector_id=None,
+        strategy=ThoraxSweep(n=12),
+    )
+    assert run.summary["coverage"]["slabs_answered"] == 12
+    assert any(
+        "self-abstention ignored" in warning
+        for slab in run.summary["slabs"]
+        for warning in slab["warnings"]
+    )
 
 
 def test_non_image_models_are_refused(study: Study) -> None:

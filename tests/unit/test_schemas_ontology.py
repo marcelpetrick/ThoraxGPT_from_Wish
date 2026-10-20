@@ -81,9 +81,11 @@ def test_model_io_types() -> None:
         (True, None, None),
         (False, None, None),
         (None, 0.9, None),
-        (True, 0.2, 0.2),
-        (False, 0.2, 0.8),
-        (True, 0.49999, 0.49999),
+        # The explicit answer sets the direction; confidence only sets strength.
+        (True, 0.2, 0.8),
+        (False, 0.2, 0.2),
+        (False, 0.0, 0.0),
+        (True, 0.5, None),
     ],
 )
 def test_shared_probability_and_positive_labels(

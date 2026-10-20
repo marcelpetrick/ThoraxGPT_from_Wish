@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Copyright (C) 2026 Marcel Petrick <mail@marcelpetrick.it>
+import json
 from pathlib import Path
 
 import pytest
@@ -220,7 +221,7 @@ def test_parse_alternative_shapes() -> None:
         '{"findings": {"emphysema": true, "atelectasis": 0.3, "pneumothorax": "no",'
         ' "consolidation": {"present": true}, "fibrosis": null}, "study_quality": 5}'
     )
-    assert rep2.label_probability("atelectasis") == 0.3
+    assert rep2.label_probability("atelectasis") == pytest.approx(0.3)
     assert rep2.label_probability("pneumothorax") is None
     assert rep2.label_probability("fibrosis_interstitial") is None
     assert parse_findings('{"findings": "weird"}').findings == []
@@ -256,3 +257,31 @@ def test_schema_binds_attached_image_bounds_and_negative_label_ids() -> None:
     assert schema["properties"]["negative_findings"]["items"]["enum"] == ["pulmonary_nodule"]
     with pytest.raises(ValueError, match="negative"):
         findings_json_schema(n_images=-1)
+
+
+def test_confident_negatives_with_zero_confidence_stay_negative() -> None:
+    """Regression 2026-10-20: MedGemma's `present: false, confidence: 0.0` meant "absent".
+
+    Reading confidence as "answer is correct" turned all 16 negatives into unsupported
+    positives and the run abstained. The explicit answer now sets the direction.
+    """
+    from thoraxbench.analysis import _check_image_evidence
+
+    labels = ["pulmonary_nodule", "pleural_effusion", "emphysema", "cardiomegaly"]
+    text = json.dumps(
+        {
+            "findings": [
+                {"label": label, "present": False, "confidence": 0.0, "evidence_images": []}
+                for label in labels
+            ],
+            "negative_findings": labels,
+            "abstain": False,
+        }
+    )
+    report = parse_findings(text)
+    _check_image_evidence(report, 4, required=True)
+    assert not report.abstain
+    assert report.positive_labels() == set()
+    assert all(report.label_probability(label) == 0.0 for label in labels)
+    assert not any("marked unavailable" in w for w in report.parse_warnings)
+    assert sum("read as strength of the explicit answer" in w for w in report.parse_warnings) == 4

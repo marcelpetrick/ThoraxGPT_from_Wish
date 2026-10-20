@@ -17,7 +17,7 @@ from thoraxbench.schemas import Finding, FindingsReport
         (False, 0.9, "not_detected"),
         (None, 0.9, "uncertain"),
         (True, None, "uncertain"),
-        (False, 0.1, "present"),
+        (False, 0.1, "not_detected"),
     ],
 )
 def test_education_is_assigned_only_to_available_positive_predictions(

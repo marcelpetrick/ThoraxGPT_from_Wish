@@ -109,6 +109,11 @@ def _check_image_evidence(report: FindingsReport, n_images: int, *, required: bo
                 f"expected attached images 1..{n_images}"
             )
             finding.evidence_images = valid
+        if finding.confidence_contradicts_answer():
+            report.parse_warnings.append(
+                f"{finding.label}: confidence {finding.confidence} read as strength of the "
+                f"explicit answer present={str(finding.present).lower()}"
+            )
         probability = finding.presence_probability()
         if required and probability is not None and probability >= 0.5 and not valid:
             finding.present = None

@@ -151,11 +151,20 @@ Phase A — report clarity (lead, inline; separate commit):
   to the template. Unit/integration: 908 passed before the gate.
 
 Phase C — thorax-review focus and model guidance (lead):
+- [x] C0 **Parser inversion fix (critical).** `present: false, confidence: 0.0` (MedGemma's
+  way to say "absent") was read as P(present) = 1.0, so all 16 negatives became unsupported
+  positives and the run abstained — including the user's real-study MedGemma run, which the
+  lead first misreported as a yes-bias. The yes/no answer now sets the direction, confidence
+  only the strength (0.5 = unknown), contradictions add a warning; bare numbers and P6
+  logprobs keep P(present) semantics. Earlier "constant positive" MedGemma conclusions
+  (status 2026-10-17, readiness checks) must be re-run before they are cited.
+- [x] C0b Full review: a slab-level self-abstention ("only one slice visible") no longer
+  discards the per-label answers; P7 1.1.0 asks for `abstain: false` and null per label.
 - [x] C1 Evidence-based fit marker per model (`fit` 1–3 + reason in `configs/models/*.yaml`):
   dropdown sorted by fit with 1️⃣/2️⃣/3️⃣ prefix, translated status line, API exposes it.
 - [ ] C2 Group the dropdown: thorax-review models first; general-purpose VLMs under a
   "research controls" group (kept for benchmarking, not the default path).
-- [ ] C3 Test runs of every installed model on the synthetic demo (known planted lesions)
+- [x] C3 Test runs of every installed model on the synthetic demo (known planted lesions)
   and one calibration case (never the holdout); record a results table and adjust `fit` only
   on evidence.
 

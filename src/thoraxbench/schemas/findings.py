@@ -42,10 +42,22 @@ class Finding(BaseModel):
     source: str = "model"
 
     def presence_probability(self) -> float | None:
-        """Implied P(present), without inventing confidence for an unknown answer."""
-        if self.present is None or self.confidence is None:
+        """Implied P(present); the explicit yes/no answer always sets the direction.
+
+        Models use ``confidence`` both as "my answer is correct" and as P(present); e.g.
+        MedGemma writes ``present: false, confidence: 0.0`` for a clear negative. Reading
+        that as P(present) = 1 inverted negatives (2026-10-20). Confidence therefore only
+        sets the strength: a positive maps to >= 0.5, a negative to < 0.5, and an exact
+        0.5 stays unknown. :meth:`confidence_contradicts_answer` flags the ambiguity.
+        """
+        if self.present is None or self.confidence is None or self.confidence == 0.5:
             return None
-        return self.confidence if self.present else 1.0 - self.confidence
+        low, high = sorted((self.confidence, 1.0 - self.confidence))
+        return high if self.present else low
+
+    def confidence_contradicts_answer(self) -> bool:
+        """Report whether a literal "answer is correct" reading would flip the yes/no answer."""
+        return self.present is not None and self.confidence is not None and self.confidence < 0.5
 
     @field_validator("laterality", mode="before")
     @classmethod
