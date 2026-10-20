@@ -268,6 +268,17 @@ rejected whole valid slices (probably a complete series).
   five-step quickstart, model fit table, honest limits; the former operator/research body
   moved unchanged to `docs/research-workflows.md`, documents indexed in `docs/README.md`.
   The heuristic verdict no longer says "whole volume; other areas were not looked at".
+- [x] V1 Promo story and shot list (`docs/linkedin-promo-2026-10-20.md`) from the user's
+  "chest CT on a CD" story; first phantom draft rejected (too fast, cropped, cartoon CT).
+- [x] V2 `scripts/promo_video.py`: guarded LIDC calibration capture with a real detector
+  run, GitHub README scene, calm full-window scenes; plan guards unit-tested.
+- [x] V3 Render: 16:9, 40 s, sparkle cards, highlight ring, captions, Kokoro voice-over and
+  generated music, loudness -16 LUFS, exact frame count.
+- [x] V4 Review: contact sheet, full-size frames, transcript of the voice, loudness.
+- [x] V5 Commit the reviewed cut to `media/` with its hash pinned in the medical-data guard.
+- Found while recording and fixed in the app: detector-only full reviews listed all labels
+  as unchecked (0.6.4), the viewer flashed a placeholder while scrubbing (0.6.5), and a
+  certifi advisory turned CI red (0.6.6).
 
 ### Root cleanup and diagnostic scan handover — 2026-10-19
 

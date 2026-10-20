@@ -260,6 +260,9 @@ follow the proposed design in `docs/lan-runner.md` when resumed.
    User exception (2026-10-19): commit only the two reviewed public-calibration cuts
    `media/pilot-A.mp4` and `media/pilot-B.mp4`, with captions, checksums and TCIA credits.
    Full takes, other real renders and reports stay ignored. No LinkedIn upload is authorized.
+   User request (2026-10-20): commit the reviewed promo cut `media/promo-16x9.mp4` (public
+   LIDC-IDRI-0027 calibration example, user's choice) with captions and credits, pinned by
+   SHA-256 in the guard like the pilots. Takes and other renders stay ignored; no upload.
 3. **The sealed split stays sealed.** The 20 % sealed-validation patients
    (`data/sealed/`, hash-only manifest in `manifests/splits/`) must never be read by
    development, prompt tuning, calibration fitting, threshold fitting or tests. Only
@@ -401,6 +404,16 @@ only the two reviewed final cuts and their supporting credits/captions/checksums
 Local draft delivery and frame/encoding checks are recorded in
 `docs/video-delivery-2026-10-19.md`. Preserve the uncut master and failed attempts.
 A successful MONAI demonstration does not resolve MedGemma recognition readiness.
+
+### LinkedIn promo — calm 40-second preview (2026-10-20)
+
+Story, shot list, data rules, procedure and post text: `docs/linkedin-promo-2026-10-20.md`;
+recorder/renderer: `scripts/promo_video.py`. After the user rejected a fast, cropped
+phantom draft, the rules are: calm pacing (few 4–7 s shots, soft fades), the real app
+window, the rendered GitHub README with a green badge, the public LIDC calibration case
+(never the user's scan), a real detector run with its real duration on any sped-up shot,
+the disclaimer once on the end card, a warm local voice (Kokoro `af_heart`, verified by
+transcription) and generated music. Keep takes under ignored `data/results/promo/`.
 
 ## Visual evidence reliability
 
